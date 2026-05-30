@@ -13,7 +13,7 @@
 
 import express from 'express';
 import cors from 'cors';
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync } from 'fs';
 import { exec, execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -103,10 +103,10 @@ const AGENTS = {
   obsidian: {
     id: 'obsidian', name: 'Obsidian', emoji: '📝',
     role: 'Memory · Vault · Knowledge Graph',
-    status: existsSync('D:/Obsidian') ? 'online' : 'offline',
+    status: existsSync('D:/Agent OS') ? 'online' : 'offline',
     color: '#f59e0b',
     type: 'knowledge_base',
-    vaultPath: 'D:/Obsidian',
+    vaultPath: 'D:/Agent OS',
     capabilities: ['notes', 'knowledge_graph', 'search', 'memory', 'document_store'],
     description: 'Shared memory for all agents. Stores notes, documents, and knowledge that any agent can read or write.',
   },
@@ -158,7 +158,7 @@ function checkAgentHealth() {
   } catch { AGENTS.lmstudio.status = 'offline'; }
   
   // Obsidian
-  AGENTS.obsidian.status = existsSync('D:/Obsidian') ? 'online' : 'offline';
+  AGENTS.obsidian.status = existsSync('D:/Agent OS') ? 'online' : 'offline';
 }
 
 checkAgentHealth();
@@ -1070,7 +1070,7 @@ app.get('/api/mcp-catalog', (req, res) => {
 // VAULT note management (CRUD)
 app.get('/api/vault', (req, res) => {
   const f = req.query.file || req.file;
-  const d = 'D:/Obsidian';
+  const d = 'D:/Agent OS';
   if (f) {
     try {
       res.json({ name: f, content: readFileSync(join(d, f), 'utf-8') });
@@ -1080,7 +1080,21 @@ app.get('/api/vault', (req, res) => {
     return;
   }
   try {
-    res.json(existsSync(d) ? readdirSync(d).filter(x => x.endsWith('.md')).map(x => ({ name: x })) : []);
+    if (!existsSync(d)) return res.json([]);
+    const files = readdirSync(d).filter(x => x.endsWith('.md'));
+    const notes = files.map(name => {
+      try {
+        const stats = statSync(join(d, name));
+        return {
+          name,
+          sizeBytes: stats.size,
+          mtime: stats.mtime.toISOString()
+        };
+      } catch {
+        return { name, sizeBytes: 0, mtime: new Date().toISOString() };
+      }
+    });
+    res.json(notes);
   } catch {
     res.json([]);
   }
@@ -1088,7 +1102,7 @@ app.get('/api/vault', (req, res) => {
 
 app.post('/api/vault', (req, res) => {
   const { action, name, content } = req.body;
-  const vaultPath = 'D:/Obsidian';
+  const vaultPath = 'D:/Agent OS';
   if (!existsSync(vaultPath)) return res.status(503).json({ error: 'Vault path not found' });
   
   const filePath = join(vaultPath, name);
