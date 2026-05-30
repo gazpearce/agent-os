@@ -301,6 +301,7 @@ function ImageGenPanel() {
 function BrowserPanel() {
   const [url, setUrl] = useState('');
   const [browserLog, setBrowserLog] = useState<string[]>([]);
+  const [screenshotUrl, setScreenshotUrl] = useState('');
   const browse = async (action: string) => {
     try {
       const res = await fetch('/api/browser', {
@@ -310,6 +311,9 @@ function BrowserPanel() {
       });
       const data = await res.json();
       setBrowserLog(prev => [...prev.slice(-4), `${action}: ${data.message || data.success || 'ok'}`]);
+      if (action === 'screenshot' && data.success && data.path) {
+        setScreenshotUrl(`${data.path}?t=${Date.now()}`);
+      }
     } catch (e) {
       setBrowserLog(prev => [...prev.slice(-4), `Error: ${e}`]);
     }
@@ -331,6 +335,11 @@ function BrowserPanel() {
       {browserLog.length > 0 && (
         <div className="bg-black/30 rounded-lg p-2 text-[9px] text-gray-500 font-mono space-y-0.5 max-h-16 overflow-y-auto">
           {browserLog.map((l, i) => <div key={i}>{l}</div>)}
+        </div>
+      )}
+      {screenshotUrl && (
+        <div className="rounded-xl overflow-hidden border border-white/[0.05] bg-black/30 mt-1">
+          <img src={screenshotUrl} alt="Browser Viewport" className="w-full h-auto max-h-48 object-contain select-none" />
         </div>
       )}
     </div>
@@ -595,25 +604,67 @@ function VisionPanel() {
 
 /* ─────────── CRON MANAGEMENT PANEL ─────────── */
 function CronManagementPanel() {
-  const [crons, setCrons] = useState(CRON_JOBS);
+  const [crons, setCrons] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState('');
   const [newInterval, setNewInterval] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const fetchCrons = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/crons');
+      if (res.ok) {
+        const data = await res.json();
+        setCrons(data.crons || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveCrons = async (updatedCrons: any[]) => {
+    setCrons(updatedCrons);
+    try {
+      await fetch('/api/crons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ crons: updatedCrons }),
+      });
+    } catch (e) {
+      console.error('Failed to save crons:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCrons();
+  }, []);
+
   const addCron = () => {
     if (!newName.trim()) return;
-    setCrons(prev => [...prev, { id: `c-${Date.now()}`, name: newName, interval: newInterval || 'manual', status: 'idle', next: 'not scheduled' }]);
+    const updated = [...crons, { id: `c-${Date.now()}`, name: newName, interval: newInterval || 'manual', status: 'idle', next: 'not scheduled' }];
+    saveCrons(updated);
     setNewName('');
     setNewInterval('');
     setShowAdd(false);
   };
+
   const toggleCron = (id: string) => {
-    setCrons(prev => prev.map(c => c.id === id ? { ...c, status: c.status === 'running' ? 'idle' : 'running', next: c.status === 'idle' ? 'pending' : '-' } : c));
+    const updated = crons.map(c => c.id === id ? { ...c, status: c.status === 'running' ? 'idle' : 'running', next: c.status === 'idle' ? 'pending' : '-' } : c);
+    saveCrons(updated);
   };
-  const deleteCron = (id: string) => { setCrons(prev => prev.filter(c => c.id !== id)); };
+
+  const deleteCron = (id: string) => {
+    const updated = crons.filter(c => c.id !== id);
+    saveCrons(updated);
+  };
+
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-        <span className="flex items-center gap-1.5"><Clock size={10} className="text-orange-400" /> Cron Jobs</span>
+        <span className="flex items-center gap-1.5"><Clock size={10} className="text-orange-400" /> Cron Jobs {loading && "⏳"}</span>
         <button onClick={() => setShowAdd(!showAdd)} className="text-[8px] text-gray-500 hover:text-white cursor-pointer">{showAdd ? 'Cancel' : '+ Add'}</button>
       </div>
       {showAdd && (
@@ -628,7 +679,7 @@ function CronManagementPanel() {
           <div key={c.id} className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/[0.015] border border-white/[0.02] text-[10px]">
             <div className="flex-1 min-w-0">
               <div className="text-gray-300 truncate font-medium">{c.name}</div>
-              <div className="text-gray-600 text-[8px]">{c.interval} · {c.next}</div>
+              <div className="text-gray-600 text-[8px]">{c.interval} {c.next ? `· ${c.next}` : ''}</div>
             </div>
             <div className="flex items-center gap-1">
               <button onClick={() => toggleCron(c.id)} className={`text-[8px] px-1.5 py-0.5 rounded cursor-pointer ${c.status === 'running' ? 'bg-green-500/20 text-green-400' : 'bg-white/[0.03] text-gray-500'}`}>
@@ -645,24 +696,65 @@ function CronManagementPanel() {
 
 /* ─────────── TODO PANEL ─────────── */
 function TodoPanel() {
-  const [todos, setTodos] = useState([
-    { id: '1', text: 'Deploy Agent OS to production', done: false, priority: 'high' },
-    { id: '2', text: 'Connect Spotify integration', done: false, priority: 'medium' },
-    { id: '3', text: 'Set up Discord bot webhook', done: true, priority: 'low' },
-  ]);
+  const [todos, setTodos] = useState<any[]>([]);
   const [newTodo, setNewTodo] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const fetchTodos = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/todos');
+      if (res.ok) {
+        const data = await res.json();
+        setTodos(data.todos || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveTodos = async (updatedTodos: any[]) => {
+    setTodos(updatedTodos);
+    try {
+      await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ todos: updatedTodos }),
+      });
+    } catch (e) {
+      console.error('Failed to save todos:', e);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
   const addTodo = () => {
     if (!newTodo.trim()) return;
-    setTodos(prev => [...prev, { id: `t-${Date.now()}`, text: newTodo, done: false, priority: 'medium' }]);
+    const updated = [...todos, { id: `t-${Date.now()}`, text: newTodo, done: false, priority: 'medium' }];
+    saveTodos(updated);
     setNewTodo('');
   };
-  const toggleTodo = (id: string) => { setTodos(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t)); };
-  const deleteTodo = (id: string) => { setTodos(prev => prev.filter(t => t.id !== id)); };
+
+  const toggleTodo = (id: string) => {
+    const updated = todos.map(t => t.id === id ? { ...t, done: !t.done } : t);
+    saveTodos(updated);
+  };
+
+  const deleteTodo = (id: string) => {
+    const updated = todos.filter(t => t.id !== id);
+    saveTodos(updated);
+  };
+
   const priorityColor: Record<string, string> = { high: 'text-red-400', medium: 'text-yellow-400', low: 'text-gray-400' };
+
   return (
     <div className="space-y-2">
       <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none flex items-center gap-1.5">
-        <CheckCircle2 size={10} className="text-green-400" /> Todo List
+        <CheckCircle2 size={10} className="text-green-400" /> Todo List {loading && "⏳"}
       </div>
       <div className="flex gap-1.5">
         <input value={newTodo} onChange={e => setNewTodo(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTodo()} placeholder="New todo..." className="flex-1 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-green-500/30" />
@@ -1258,7 +1350,7 @@ export default function App() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: textToSend, model: activeModel })
+        body: JSON.stringify({ query: textToSend, model: activeModel, agent: activeAgent })
       });
       if (res.ok) {
         // Add a blank message from the agent to stream text into

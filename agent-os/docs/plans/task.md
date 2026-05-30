@@ -38,3 +38,11 @@
 | T34 | Swarm Verification | Restart server and test LM Studio agent query | ✅ Completed | Successfully queried LM Studio local model meta-llama-3.1-8b |
 | T35 | Swarm Builder Pipeline | Create `swarm_builder.js` software builder script | ✅ Completed | Refactored AGY CLI to chatCompletion to prevent win32 timeouts, fixed OpenClaw agent options |
 | T36 | Pipeline Verification | Run a swarm builder test to create a sample utility | ✅ Completed | Swarm pipeline ran successfully with closed-loop debugging; verified build output |
+| T37 | Backend (`server.mjs`) | Fix Obsidian Vault Path & Note Metadata | ✅ Completed | Path alignment and note properties |
+| T38 | Backend (`server.mjs`) | Fix Memory Search Field Mapping | ✅ Completed | Duplicate fields (source/text vs file/snippet) |
+| T39 | Backend (`server.mjs`) | Fix Web Search Proxy JSON Response | ✅ Completed | Proxy returns JSON object with raw property |
+| T40 | Backend (`server.mjs`) | Fix Model Selection Config Bypass | ⏳ In Progress | Read active model from config.yaml dynamically |
+| T41 | Frontend & Backend | Implement Persistent Todo List API | ⏳ In Progress | Endpoints and TodoPanel sync |
+| T42 | Frontend & Backend | Implement Cron Job Background Scheduler & API | ⏳ In Progress | Endpoints, scheduler and Cron panel sync |
+| T43 | Frontend (`App.tsx`) | Implement Playwright Screenshot Viewport | ⏳ Pending | Image viewport render |
+| T44 | Build & Verification | Swarm Build & Diagnostic Verification | ⏳ Pending | Compile and status tests |

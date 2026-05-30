@@ -163,6 +163,74 @@ function checkAgentHealth() {
 
 checkAgentHealth();
 
+// CRON SCHEDULER & PERSISTENCE
+const CRONS_PATH = `${SHARED}/cron-jobs.json`;
+let activeIntervals = {};
+
+function readCrons() {
+  try {
+    if (existsSync(CRONS_PATH)) {
+      return JSON.parse(readFileSync(CRONS_PATH, 'utf-8'));
+    }
+  } catch {}
+  return [
+    { id: "1", name: "OpenRouter Key Rotation", interval: "2 min", status: "running", next: "" },
+    { id: "2", name: "Blog Content Engine", interval: "hourly", status: "idle", next: "" },
+    { id: "3", name: "Free Model Scanner", interval: "6 hours", status: "idle", next: "" },
+    { id: "4", name: "AionUI Health Monitor", interval: "5 min", status: "running", next: "" }
+  ];
+}
+
+function writeCrons(crons) {
+  try {
+    writeFileSync(CRONS_PATH, JSON.stringify(crons, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Write crons failed:', e.message);
+  }
+}
+
+function parseInterval(intervalStr) {
+  const num = parseFloat(intervalStr);
+  if (isNaN(num)) {
+    if (intervalStr.includes('hourly')) return 60 * 60 * 1000;
+    return 24 * 60 * 60 * 1000;
+  }
+  if (intervalStr.includes('min')) return num * 60 * 1000;
+  if (intervalStr.includes('hour')) return num * 60 * 60 * 1000;
+  return num * 1000;
+}
+
+function executeCronTask(job) {
+  console.log(`[Cron] Executing: ${job.name}`);
+  logActivity({ type: 'cron_run', name: job.name, status: 'success', info: `Executed at ${new Date().toLocaleTimeString()}` });
+  
+  if (job.name === 'OpenRouter Key Rotation') {
+    exec('python rotate_keys.py', { cwd: WORKSPACE }, (err) => {
+      console.log('[Cron] Key Rotation execution completed.', err ? err.message : 'Success');
+    });
+  } else if (job.name === 'AionUI Health Monitor') {
+    checkAgentHealth();
+  }
+}
+
+function setupCrons() {
+  Object.values(activeIntervals).forEach(clearInterval);
+  activeIntervals = {};
+
+  const crons = readCrons();
+  crons.forEach(job => {
+    if (job.status === 'running') {
+      const ms = parseInterval(job.interval);
+      activeIntervals[job.id] = setInterval(() => {
+        executeCronTask(job);
+      }, ms);
+      console.log(`[Cron] Scheduled job: ${job.name} every ${job.interval} (${ms}ms)`);
+    }
+  });
+}
+
+setupCrons();
+
 // ═══════════════════════════════════════════════════════════════════════
 // INTER-AGENT MESSAGING SYSTEM
 // ═══════════════════════════════════════════════════════════════════════
@@ -256,7 +324,14 @@ async function sendMessage(toAgent, message, fromAgent = 'hermes') {
 
 // Chat with fallback
 async function chatCompletion(query, overrideSystemPrompt = null) {
-  const model = 'openrouter/owl-alpha';
+  let model = 'openrouter/owl-alpha';
+  try {
+    const cfg = readConfig();
+    const m = cfg.match(/default:\s*([^\s\n]+)/);
+    if (m && m[1]) {
+      model = m[1];
+    }
+  } catch {}
   
   let systemPrompt = overrideSystemPrompt;
   if (!systemPrompt) {
@@ -745,6 +820,51 @@ app.post('/api/db-tasks/delete', (req, res) => {
       res.status(500).json({ error: e.message });
     }
   }
+// TODO LIST PERSISTENCE
+const TODOS_PATH = `${SHARED}\\todo-list.json`;
+
+function readTodos() {
+  try {
+    if (existsSync(TODOS_PATH)) {
+      return JSON.parse(readFileSync(TODOS_PATH, 'utf-8'));
+    }
+  } catch {}
+  return [
+    { id: '1', text: 'Deploy Agent OS to production', done: false, priority: 'high' },
+    { id: '2', text: 'Connect Spotify integration', done: false, priority: 'medium' },
+    { id: '3', text: 'Set up Discord bot webhook', done: true, priority: 'low' },
+  ];
+}
+
+function writeTodos(todos) {
+  try {
+    writeFileSync(TODOS_PATH, JSON.stringify(todos, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('Write todos failed:', e.message);
+  }
+}
+
+app.get('/api/todos', (req, res) => {
+  res.json({ todos: readTodos() });
+});
+
+app.post('/api/todos', (req, res) => {
+  const { todos } = req.body;
+  if (!Array.isArray(todos)) return res.status(400).json({ error: 'todos array required' });
+  writeTodos(todos);
+  res.json({ success: true });
+});
+
+app.get('/api/crons', (req, res) => {
+  res.json({ crons: readCrons() });
+});
+
+app.post('/api/crons', (req, res) => {
+  const { crons } = req.body;
+  if (!Array.isArray(crons)) return res.status(400).json({ error: 'crons array required' });
+  writeCrons(crons);
+  setupCrons(); // Reload scheduler
+  res.json({ success: true });
 });
 
 // STATEFUL PLAYWRIGHT BROWSER
