@@ -1,0 +1,20 @@
+[
+  {
+    "ts": "2026-05-30T18:40:08.887Z",
+    "from": "hermes",
+    "action": "message",
+    "to": "agy",
+    "data": {
+      "msg": "List the files in D:/Agent OS directory"
+    }
+  },
+  {
+    "ts": "2026-05-30T18:42:08.897Z",
+    "from": "agy",
+    "action": "response",
+    "to": "hermes",
+    "data": {
+      "result": "done"
+    }
+  }
+]

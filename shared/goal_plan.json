@@ -1,0 +1,22 @@
+[
+  {
+    "agent": "obsidian",
+    "task": "Read the recent lessons learned in the vault to find any relevant setup tips",
+    "reason": "We need to gather existing knowledge and lessons learned from Obsidian before creating the welcome-test.md"
+  },
+  {
+    "agent": "agy",
+    "task": "Review the lessons retrieved from Obsidian and summarize the key insights for new users",
+    "reason": "Organize and distill the lessons into categories to help write a comprehensive welcome-test.md"
+  },
+  {
+    "agent": "hermes",
+    "task": "Create a file named shared/welcome-test.md with a welcoming overview of the Agent OS workflow based on the summarized lessons",
+    "reason": "Establish a welcoming document in the shared workspace for newcomers to understand the system quickly"
+  },
+  {
+    "agent": "openclaw",
+    "task": "Verify the shared/welcome-test.md file exists, is accessible to all agents, and contains all core sections",
+    "reason": "Quality check to ensure completeness and correctness before the swarm considers the task complete"
+  }
+]

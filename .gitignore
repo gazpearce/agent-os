@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+tmp/
+*.log
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
