@@ -881,12 +881,13 @@ app.get('/api/memory-search', (req, res) => {
     const lines = content.split('\n');
     lines.forEach((line, idx) => {
       if (line.toLowerCase().includes(query)) {
-        results.push({ source: 'CONTEXT.md', line: idx + 1, text: line.trim() });
+        const text = line.trim();
+        results.push({ source: 'CONTEXT.md', file: 'CONTEXT.md', line: idx + 1, text, snippet: text });
       }
     });
   }
   
-  const obsidianPath = 'D:\\Obsidian';
+  const obsidianPath = 'D:\\Agent OS';
   if (existsSync(obsidianPath)) {
     try {
       const files = readdirSync(obsidianPath).filter(f => f.endsWith('.md'));
@@ -895,7 +896,8 @@ app.get('/api/memory-search', (req, res) => {
         const lines = content.split('\n');
         lines.forEach((line, idx) => {
           if (line.toLowerCase().includes(query)) {
-            results.push({ source: `Obsidian: ${f}`, line: idx + 1, text: line.trim() });
+            const text = line.trim();
+            results.push({ source: `Obsidian: ${f}`, file: f, line: idx + 1, text, snippet: text });
           }
         });
       });
