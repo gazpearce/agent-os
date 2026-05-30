@@ -920,7 +920,8 @@ app.post('/api/proxy', async (req, res) => {
     if (contentType && contentType.includes('application/json')) {
       res.json(await r.json());
     } else {
-      res.send(await r.text());
+      const text = await r.text();
+      res.json({ raw: text });
     }
   } catch (e) {
     res.status(500).json({ error: e.message });
