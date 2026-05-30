@@ -820,6 +820,7 @@ app.post('/api/db-tasks/delete', (req, res) => {
       res.status(500).json({ error: e.message });
     }
   }
+});
 // TODO LIST PERSISTENCE
 const TODOS_PATH = `${SHARED}\\todo-list.json`;
 
