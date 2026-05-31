@@ -1074,7 +1074,6 @@ export default function App() {
   const [terminalLogs, setTerminalLogs] = useState<{ type: 'input' | 'output' | 'error'; text: string }[]>([
     { type: 'output', text: "Agent OS [Version 2.4.0]\n(c) 2026 Nous Research & Antigravity. All rights reserved.\nType 'help' for standard options." }
   ]);
-  const [terminalLoading, setTerminalLoading] = useState(false);
   const terminalBottomRef = useRef<HTMLDivElement>(null);
 
   // Sessions state
@@ -1337,6 +1336,38 @@ export default function App() {
     terminalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [terminalLogs]);
 
+  // Dynamic terminal SSE stream sync
+  useEffect(() => {
+    if (centerTab !== 'terminal') return;
+
+    const source = new EventSource('/api/terminal/output');
+    source.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.text) {
+          setTerminalLogs(prev => {
+            const last = prev[prev.length - 1];
+            if (last && last.type === 'output') {
+              return [...prev.slice(0, -1), { type: 'output', text: last.text + data.text }];
+            } else {
+              return [...prev, { type: 'output', text: data.text }];
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing terminal SSE:", e);
+      }
+    };
+
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [centerTab]);
+
   // Send message to Hermes CLI API
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || chatInput;
@@ -1550,39 +1581,23 @@ export default function App() {
     }
   };
 
-  // Execute terminal command
+  // Execute terminal command on host shell
   const handleRunCommand = async () => {
-    if (!terminalInput.trim() || terminalLoading) return;
+    if (!terminalInput.trim()) return;
     const cmd = terminalInput;
-    setTerminalLogs(prev => [...prev, { type: 'input', text: `Gary@AGENT-OS:~$ ${cmd}` }]);
     setTerminalInput("");
 
-    if (cmd.trim() === 'clear') {
-      setTerminalLogs([]);
-      return;
-    }
-    if (cmd.trim() === 'help') {
-      setTerminalLogs(prev => [...prev, { type: 'output', text: "Available commands:\n  - hermes chat -q \"<msg>\" : Send direct Hermes query\n  - node -v / python --version : Print environment runtimes\n  - dir / ls : List current directories\n  - clear : Clear terminal logs\n  - help : Print this list" }]);
-      return;
-    }
+    // Add input echo directly to logs
+    setTerminalLogs(prev => [...prev, { type: 'input', text: `Gary@AGENT-OS:~$ ${cmd}` }]);
 
-    setTerminalLoading(true);
     try {
-      const res = await fetch("/api/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      await fetch('/api/terminal/input', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: cmd })
       });
-      if (res.ok) {
-        const data = await res.json();
-        setTerminalLogs(prev => [...prev, { type: 'output', text: data.output }]);
-      } else {
-        throw new Error("Execution failed: " + res.statusText);
-      }
     } catch (e: any) {
-      setTerminalLogs(prev => [...prev, { type: 'error', text: `Error: ${e.message}` }]);
-    } finally {
-      setTerminalLoading(false);
+      setTerminalLogs(prev => [...prev, { type: 'error', text: `Failed to send input: ${e.message}` }]);
     }
   };
 
@@ -2490,8 +2505,20 @@ export default function App() {
 
           {/* ─── TAB 3: HOST TERMINAL CONSOLE ─── */}
           {centerTab === "terminal" && (
-            <div className="flex-grow flex flex-col overflow-hidden bg-black/60 p-4 font-mono text-xs">
-              <div className="flex-1 overflow-y-auto space-y-2 pr-2 select-text">
+            <div className="flex-grow flex flex-col overflow-hidden bg-[#04040c]/90 p-4 font-mono text-xs border border-white/[0.04] rounded-2xl">
+              <div className="flex justify-between items-center mb-4 border-b border-white/[0.05] pb-3 select-none">
+                <span className="text-gray-400 font-semibold text-xs tracking-wider">PERSISTENT SYSTEM SHELL (POWERSHELL)</span>
+                <button 
+                  onClick={async () => {
+                    await fetch('/api/terminal/kill', { method: 'POST' });
+                    setTerminalLogs([]);
+                  }}
+                  className="px-3 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs transition-colors cursor-pointer font-sans"
+                >
+                  Reset Session
+                </button>
+              </div>
+              <div className="flex-grow overflow-y-auto space-y-2 pr-2 select-text custom-scrollbar">
                 {terminalLogs.map((log, index) => (
                   <div key={index} className={`whitespace-pre-wrap ${
                     log.type === 'input' ? 'text-indigo-300 font-semibold' : log.type === 'error' ? 'text-red-400' : 'text-[#cbd5e1]'
@@ -2499,23 +2526,17 @@ export default function App() {
                     {log.text}
                   </div>
                 ))}
-                {terminalLoading && (
-                  <div className="text-gray-500 flex items-center gap-2 animate-pulse select-none">
-                    <span>⚡ Executing command in host shell...</span>
-                  </div>
-                )}
                 <div ref={terminalBottomRef} />
               </div>
               <div className="flex items-center gap-2 pt-3 border-t border-white/[0.05] select-none">
-                <span className="text-indigo-400 font-bold shrink-0">Gary@AGENT-OS:~$</span>
+                <span className="text-indigo-400 font-bold shrink-0">PS Gary&gt;</span>
                 <input
                   type="text"
                   value={terminalInput}
-                  disabled={terminalLoading}
                   onChange={e => setTerminalInput(e.target.value)}
                   onKeyDown={e => e.key === "Enter" && handleRunCommand()}
                   className="flex-grow bg-transparent text-white focus:outline-none placeholder-gray-600 select-text"
-                  placeholder="Type commands here... (e.g. dir, node -v, hermes --help)"
+                  placeholder="Type commands here... (e.g. dir, node -v, claude)"
                 />
               </div>
             </div>
