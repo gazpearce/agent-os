@@ -14,7 +14,7 @@
 import express from 'express';
 import cors from 'cors';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync } from 'fs';
-import { exec, execSync } from 'child_process';
+import { exec, execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { createRequire } from 'module';
@@ -283,7 +283,7 @@ function recursiveSearch(dir, query, results = [], depth = 0) {
 }
 
 // Helper to execute tool calls
-async function executeToolCall(toolCallText, onProgress = null) {
+async function executeToolCall(toolCallText, onProgress = null, fromAgent = 'hermes') {
   // Parse tool type from first line or nested tag
   let toolType = '';
   const firstLineMatch = toolCallText.match(/<longcat_tool_call>\s*([a-zA-Z0-9_\-]+)/i);
@@ -428,6 +428,19 @@ async function executeToolCall(toolCallText, onProgress = null) {
     } catch (e) {
       return `<longcat_tool_response>\nError searching files: ${e.message}\n</longcat_tool_response>`;
     }
+  } else if (toolLower === 'send_agent_message' || toolLower === 'talk_to_agent') {
+    const to = args.to_agent || args.to || '';
+    const msg = args.message || args.msg || args.content || '';
+    if (!to) return '<longcat_tool_response>\nError: to_agent arg missing\n</longcat_tool_response>';
+    if (!msg) return '<longcat_tool_response>\nError: message arg missing\n</longcat_tool_response>';
+    if (onProgress) onProgress(`💬 [Swarm Collaboration] ${fromAgent.toUpperCase()} calling agent ${to.toUpperCase()}...`);
+    try {
+      const result = await sendMessage(to, msg, fromAgent, onProgress);
+      const responseContent = result.response || result.output || 'No response';
+      return `<longcat_tool_response>\nResponse from ${to.toUpperCase()}:\n${responseContent}\n</longcat_tool_response>`;
+    } catch (e) {
+      return `<longcat_tool_response>\nError communicating with agent ${to}: ${e.message}\n</longcat_tool_response>`;
+    }
   }
 
   // Generic fallback if unknown tool type
@@ -482,9 +495,69 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
     }
   }
   
+  // Fallback to GitHub Models (GPT-4o-mini)
+  try {
+    console.log('[OR Chat] Falling back to GitHub Models (GPT-4o-mini)...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const r = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages,
+        max_tokens: maxTokens
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (r.status === 200) {
+      const d = await r.json();
+      if (d.choices?.[0]?.message?.content) {
+        console.log('[OR Chat] Success with GitHub Models fallback');
+        return d.choices[0].message.content;
+      }
+    }
+  } catch (err) {
+    console.log('[OR Chat] GitHub Models fallback failed:', err.message);
+  }
+
+  // Fallback to Groq (Llama 3.3 70B)
+  try {
+    console.log('[OR Chat] Falling back to Groq (Llama 3.3 70B)...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        max_tokens: maxTokens
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (r.status === 200) {
+      const d = await r.json();
+      if (d.choices?.[0]?.message?.content) {
+        console.log('[OR Chat] Success with Groq fallback');
+        return d.choices[0].message.content;
+      }
+    }
+  } catch (err) {
+    console.log('[OR Chat] Groq fallback failed:', err.message);
+  }
+
   // Gemini fallback
   try {
-    console.log('[OR Chat] All OpenRouter models/keys failed. Falling back to direct Gemini API...');
+    console.log('[OR Chat] All OpenRouter and primary fallbacks failed. Falling back to direct Gemini API...');
     const flattenedText = messages.map(m => `${m.role === 'system' ? 'System Instructions' : m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n\n');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -618,6 +691,15 @@ Available tools:
 <longcat_arg_value>text pattern to search</longcat_arg_value>
 </longcat_tool_call>
 
+6. Call/Consult another agent (send_agent_message):
+<longcat_tool_call>send_agent_message
+<longcat_arg_key>to_agent</longcat_arg_key>
+<longcat_arg_value>agent_name_here</longcat_arg_value>
+<longcat_arg_key>message</longcat_arg_key>
+<longcat_arg_value>message or task instructions to the other agent</longcat_arg_value>
+</longcat_tool_call>
+Available agents: "agy" (CEO/Planner), "claude" (Expert Developer), "openclaw" (Browser/Router), "hermes" (Executor/Terminal), "ollama" (Local LLM), "obsidian" (Knowledge Vault).
+
 Only run one tool at a time. After calling a tool, the system will return the result, and you can make follow-up tool calls or provide your final response.`;
 
       agentPrompt += toolInstructions;
@@ -640,7 +722,7 @@ Only run one tool at a time. After calling a tool, the system will return the re
         }
         
         // Execute tool call and get XML response
-        const toolResult = await executeToolCall(toolCallMatch[0], onProgress);
+        const toolResult = await executeToolCall(toolCallMatch[0], onProgress, toAgent);
         
         // Push step history
         history.push({ role: 'assistant', content: currentResponse });
@@ -853,9 +935,69 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
     }
   }
 
+  // Fallback to GitHub Models (GPT-4o-mini)
+  try {
+    console.log('[OR ChatCompletion] Falling back to GitHub Models (GPT-4o-mini)...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const r = await fetch('https://models.inference.ai.azure.com/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+        max_tokens: maxTokens
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (r.status === 200) {
+      const d = await r.json();
+      if (d.choices?.[0]?.message?.content) {
+        console.log('[OR ChatCompletion] Success with GitHub Models fallback');
+        return d.choices[0].message.content;
+      }
+    }
+  } catch (err) {
+    console.log('[OR ChatCompletion] GitHub Models fallback failed:', err.message);
+  }
+
+  // Fallback to Groq (Llama 3.3 70B)
+  try {
+    console.log('[OR ChatCompletion] Falling back to Groq (Llama 3.3 70B)...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer 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'
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+        max_tokens: maxTokens
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (r.status === 200) {
+      const d = await r.json();
+      if (d.choices?.[0]?.message?.content) {
+        console.log('[OR ChatCompletion] Success with Groq fallback');
+        return d.choices[0].message.content;
+      }
+    }
+  } catch (err) {
+    console.log('[OR ChatCompletion] Groq fallback failed:', err.message);
+  }
+
   // Gemini fallback
   try {
-    console.log('[OR ChatCompletion] All OpenRouter models/keys failed. Falling back to direct Gemini API...');
+    console.log('[OR ChatCompletion] All OpenRouter and primary fallbacks failed. Falling back to direct Gemini API...');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
@@ -1796,12 +1938,92 @@ app.post('/api/vault', (req, res) => {
   }
 });
 
-// TERMINAL
+// TERMINAL (Persistent Session)
+let terminalProcess = null;
+let terminalClients = [];
+let terminalBuffer = '';
+
+function startTerminalSession() {
+  if (terminalProcess) return;
+  terminalBuffer = '';
+  console.log('[Terminal] Starting persistent PowerShell session...');
+  
+  terminalProcess = spawn('powershell.exe', ['-NoLogo', '-NoProfile'], {
+    cwd: HOME,
+    env: { ...process.env, TERM: 'xterm' }
+  });
+
+  const handleOutput = (data) => {
+    const text = data.toString('utf8');
+    terminalBuffer = (terminalBuffer + text).slice(-20000); // keep last 20KB
+    broadcastTerminalOutput(text);
+  };
+
+  terminalProcess.stdout.on('data', handleOutput);
+  terminalProcess.stderr.on('data', handleOutput);
+
+  terminalProcess.on('exit', () => {
+    console.log('[Terminal] Persistent PowerShell session exited.');
+    terminalProcess = null;
+    broadcastTerminalOutput('\n[Session terminated. Press Enter or click Reset to start a new session.]\n');
+  });
+}
+
+function broadcastTerminalOutput(text) {
+  terminalClients.forEach(client => {
+    try {
+      client.res.write(`data: ${JSON.stringify({ text })}\n\n`);
+    } catch {}
+  });
+}
+
+app.get('/api/terminal/output', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  startTerminalSession();
+
+  // Send historical buffer on initial connect
+  if (terminalBuffer) {
+    res.write(`data: ${JSON.stringify({ text: terminalBuffer })}\n\n`);
+  }
+
+  const client = { id: Date.now(), res };
+  terminalClients.push(client);
+
+  req.on('close', () => {
+    terminalClients = terminalClients.filter(c => c.id !== client.id);
+  });
+});
+
+app.post('/api/terminal/input', (req, res) => {
+  const { command } = req.body;
+  if (!terminalProcess) {
+    startTerminalSession();
+  }
+  if (command !== undefined && terminalProcess) {
+    // Write directly to powershell stdin
+    terminalProcess.stdin.write(command + '\n');
+  }
+  res.json({ success: true });
+});
+
+app.post('/api/terminal/kill', (req, res) => {
+  if (terminalProcess) {
+    terminalProcess.kill('SIGTERM');
+  }
+  res.json({ success: true });
+});
+
+// Legacy synchronous /api/run endpoint for backward compatibility
 app.post('/api/run', (req, res) => {
   const cmd = req.body.command;
   if (!cmd) return res.status(400).json({ error: 'Command required' });
   exec(cmd, { cwd: HOME, timeout: 30000 }, (err, stdout, stderr) => res.json({ output: (stdout || stderr || 'No output').trim() }));
 });
+
 
 // IMAGE GEN
 app.post('/api/generate-image', (req, res) => {
@@ -1842,3 +2064,27 @@ function warmupOpenRouter() {
   });
 }
 warmupOpenRouter();
+
+function startFccServer() {
+  console.log('[fcc-server] Checking if Claude Code proxy (fcc-server) is running on port 8082...');
+  exec('powershell -Command "Get-NetTCPConnection -LocalPort 8082 -State Listen -ErrorAction Stop"', (err) => {
+    if (!err) {
+      console.log('[fcc-server] Claude Code proxy (fcc-server) is already running on port 8082.');
+      return;
+    }
+    console.log('[fcc-server] Claude Code proxy not running. Starting fcc-server.exe...');
+    const fccBin = `${HOME}\\.local\\bin\\fcc-server.exe`;
+    if (!existsSync(fccBin)) {
+      console.error(`[fcc-server] Error: fcc-server.exe not found at ${fccBin}`);
+      return;
+    }
+    const child = spawn(fccBin, [], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env }
+    });
+    child.unref();
+    console.log('[fcc-server] fcc-server.exe spawned in background.');
+  });
+}
+startFccServer();
