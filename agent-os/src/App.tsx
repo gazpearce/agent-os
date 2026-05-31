@@ -109,6 +109,7 @@ interface DbTask {
 const INITIAL_AGENTS: Agent[] = [
   { id: "agy", name: "Antigravity", role: "Intelligence · CEO", icon: <Brain size={18} />, status: "online", version: "1.0.2", layer: "L1", color: "#6366f1", tokens: 2841, tasks: 12, skills: 15 },
   { id: "openclaw", name: "OpenClaw", role: "Execution · Router", icon: <Workflow size={18} />, status: "offline", version: "2026.5.20", layer: "L2", color: "#10b981", tokens: 19430, tasks: 42, skills: 8 },
+  { id: "claude", name: "Claude Code", role: "Developer · Refactoring", icon: <Bot size={18} />, status: "online", version: "2.1.159", layer: "L3", color: "#ea580c", tokens: 53102, tasks: 14, skills: 12 },
   { id: "hermes", name: "Hermes", role: "Research · Executor", icon: <Zap size={18} />, status: "offline", version: "active", layer: "L3", color: "#a855f7", tokens: 142893, tasks: 23, skills: 31 },
   { id: "obsidian", name: "Obsidian", role: "Memory · Vault", icon: <Database size={18} />, status: "online", version: "installed", layer: "L4", color: "#f59e0b", tokens: 0, tasks: 0, skills: 5 },
   { id: "ollama", name: "Ollama", role: "Local · Inference", icon: <Cpu size={18} />, status: "offline", version: "0.24.0", layer: "L6", color: "#22d3ee", tokens: 0, tasks: 0, skills: 4 },
@@ -1072,7 +1073,7 @@ export default function App() {
   // Terminal state
   const [terminalInput, setTerminalInput] = useState("");
   const [terminalLogs, setTerminalLogs] = useState<{ type: 'input' | 'output' | 'error'; text: string }[]>([
-    { type: 'output', text: "Agent OS [Version 2.4.0]\n(c) 2026 Nous Research & Antigravity. All rights reserved.\nType 'help' for standard options." }
+    { type: 'output', text: "Agent OS [Version 2.5.0]\n(c) 2026 Nous Research & Antigravity. All rights reserved.\nType 'help' for standard options." }
   ]);
   const terminalBottomRef = useRef<HTMLDivElement>(null);
 
@@ -1786,7 +1787,7 @@ export default function App() {
             <h1 className="text-sm font-bold tracking-wider uppercase text-white flex items-center gap-1.5">
               Agent OS <span className="text-[10px] text-indigo-400 font-mono font-normal">Mission Control</span>
             </h1>
-            <div className="text-[9px] font-mono text-gray-500">v2.4.0 • Swarms & Vault DB Sync</div>
+            <div className="text-[9px] font-mono text-gray-500">v2.5.0 • Stateful CLI & Swarms</div>
           </div>
         </div>
 
@@ -1819,7 +1820,7 @@ export default function App() {
               className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              v2.4.0
+              v2.5.0
               <ChevronDown size={10} className={`opacity-80 transition-transform ${showVersionHistory ? "rotate-180" : ""}`} />
             </button>
 
@@ -1837,8 +1838,17 @@ export default function App() {
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                     <div className="border-l-2 border-indigo-500 pl-2 py-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.4.0 (Active)</span>
+                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.5.0 (Active)</span>
                         <span className="text-[8px] text-gray-500">Active</span>
+                      </div>
+                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
+                        Stateful persistent terminal console, native Claude Code and OpenClaw CLI integration, multi-model failover retry routing, and real-time SSE progress stream.
+                      </p>
+                    </div>
+                    <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.4.0</span>
+                        <span className="text-[8px] text-gray-500">Build 10</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
                         Vault DB Sync, SQLite database queries for Kanban, live telemetry logs, and Obsidian markdown editor.
