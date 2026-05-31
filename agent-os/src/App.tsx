@@ -1352,76 +1352,95 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: textToSend, model: activeModel, agent: activeAgent })
       });
+      
       if (res.ok) {
-        // Add a blank message from the agent to stream text into
-        setChatMessages(prev => [...prev, {
-          agent: activeAgent,
-          msg: "",
-          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-          tools: []
-        }]);
-
-        const reader = res.body?.getReader();
-        if (!reader) {
-          throw new Error("Response body is not readable");
-        }
-
-        const decoder = new TextDecoder();
-        let accumulatedResponse = "";
-
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-
-          const chunkText = decoder.decode(value, { stream: true });
-          const lines = chunkText.split('\n');
-          
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('data: ')) {
-              const dataText = trimmed.slice(6).trim();
-              if (dataText === '[DONE]') continue;
-              try {
-                const parsed = JSON.parse(dataText);
-                if (parsed.content) {
-                  accumulatedResponse += parsed.content;
+        const contentType = res.headers.get("content-type") || "";
+        
+        if (contentType.includes("text/event-stream") && res.body?.getReader) {
+          // Streaming response (old-style)
+          setChatMessages(prev => [...prev, {
+            agent: activeAgent, msg: "",
+            time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+            tools: []
+          }]);
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let accumulatedResponse = "";
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunkText = decoder.decode(value, { stream: true });
+            const lines = chunkText.split("\n");
+            for (const line of lines) {
+              const trimmed = line.trim();
+              if (trimmed.startsWith("data: ")) {
+                const dataText = trimmed.slice(6).trim();
+                if (dataText === "[DONE]") continue;
+                try {
+                  const parsed = JSON.parse(dataText);
+                  if (parsed.content) {
+                    accumulatedResponse += parsed.content;
+                  }
                   setChatMessages(prev => {
                     const updated = [...prev];
                     if (updated.length > 0) {
                       const lastIdx = updated.length - 1;
-                      updated[lastIdx] = {
-                        ...updated[lastIdx],
-                        msg: accumulatedResponse
+                      const current = updated[lastIdx];
+                      const newTools = parsed.tool ? [...(current.tools || []), parsed.tool] : current.tools || [];
+                      updated[lastIdx] = { 
+                        ...current, 
+                        msg: accumulatedResponse,
+                        tools: newTools
                       };
                     }
                     return updated;
                   });
-                }
-              } catch (_) {
-                // Ignore incomplete JSON chunks
+                } catch (_) {}
               }
             }
           }
+          // URL auto-open for streaming too
+          const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
+          const msgMatch = accumulatedResponse.match(urlRegex) || [];
+          if (msgMatch.length > 0) {
+            const href = (msgMatch[0] || "").startsWith("http") ? msgMatch[0] : "http://" + msgMatch[0];
+            window.open(href || "https://google.com", "_blank");
+          }
+          fetchMailbox();
+        } else {
+          // Non-streaming JSON response (new Hermes server)
+          const data = await res.json();
+          if (data.error) {
+            setChatMessages(prev => [...prev, {
+              agent: activeAgent,
+              msg: `Error: ${data.error}`,
+              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+              isError: true
+            }]);
+          } else {
+            setChatMessages(prev => [...prev, {
+              agent: data.agent || activeAgent,
+              msg: data.response || "No response received",
+              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+              tools: data.tokens ? [`tokens: ${data.tokens}`] : []
+            }]);
+            // URL auto-open
+            const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
+            const responseText = data.response || "";
+            const msgMatch = responseText.match(urlRegex) || [];
+            if (msgMatch.length > 0) {
+              const href = (msgMatch[0] || "").startsWith("http") ? msgMatch[0] : "http://" + msgMatch[0];
+              window.open(href || "https://google.com", "_blank");
+            }
+          }
         }
-
-        // Auto-open detected URLs in new tabs if they resemble navigation targets
-        const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
-        const msgMatch = accumulatedResponse.match(urlRegex) || [];
-        if (msgMatch.length > 0) {
-          const url = msgMatch[0];
-          const href = (url || '').startsWith('http') ? (url || '') : 'http://' + (url || '');
-          window.open(href || 'https://google.com', '_blank');
-        }
-
-        // Refresh mailbox logs to capture any real agent exchanges
-        fetchMailbox();
       } else {
         throw new Error("HTTP error: " + res.status);
       }
     } catch (e: any) {
       setChatMessages(prev => [...prev, {
         agent: activeAgent,
-        msg: `Failed to talk to ${activeAgent}: ${e.message}. Ensure the CLI gateway is online.`,
+        msg: `Failed: ${e.message}`,
         time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
         isError: true
       }]);
