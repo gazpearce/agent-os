@@ -1021,7 +1021,7 @@ function AgentTelemetryPanel({ agents }: { agents: any[] }) {
       </div>
       <div className="space-y-1">
         {agents.map(a => {
-          const s = status[a.id] || a.status;
+          const s = status?.agents?.[a.id]?.status || a.status;
           return (
             <div key={a.id} className="flex items-center justify-between px-2 py-1 rounded-lg bg-white/[0.015] border border-white/[0.02] text-[10px]">
               <div className="flex items-center gap-1.5">
@@ -1377,8 +1377,9 @@ export default function App() {
       if (res.ok) {
         const data = await res.json();
         setAgents(prev => prev.map(agent => {
-          if (data[agent.id] !== undefined) {
-            return { ...agent, status: data[agent.id] };
+          const apiAgent = data?.agents?.[agent.id];
+          if (apiAgent && apiAgent.status !== undefined) {
+            return { ...agent, status: apiAgent.status };
           }
           return agent;
         }));
