@@ -126,6 +126,14 @@ const AGENTS = {
     capabilities: ['local_models', 'embeddings', 'openai_api'],
     description: 'Local OpenAI-compatible inference server. Serving loaded models: meta-llama-3.1-8b, google/gemma-3-4b.',
   },
+  claude: {
+    id: 'claude', name: 'Claude Code', emoji: '🤖',
+    role: 'Expert Developer · Code Optimizer',
+    status: 'online', color: '#ea580c',
+    type: 'cli_agent',
+    capabilities: ['code_gen', 'refactoring', 'terminal_tools', 'testing', 'codebase_search'],
+    description: 'Native Claude Code CLI running free via local fcc-server proxy. Excellent at codebase refactoring, debugging, and terminal-based task execution.'
+  }
 };
 
 // Check agent health on startup
@@ -148,6 +156,11 @@ function checkAgentHealth() {
   // LM Studio port connection check
   exec('powershell -Command "Get-NetTCPConnection -LocalPort 1234 -ErrorAction Stop"', { timeout: 3000 }, (err) => {
     AGENTS.lmstudio.status = err ? 'offline' : 'online';
+  });
+  
+  // Claude Code
+  exec('claude -v', { timeout: 3000 }, (err) => {
+    AGENTS.claude.status = err ? 'offline' : 'online';
   });
   
   // Obsidian
@@ -241,8 +254,36 @@ function logActivity(entry) {
   } catch (e) { console.error('Log error:', e.message); }
 }
 
+// Helper for recursive codebase search
+function recursiveSearch(dir, query, results = [], depth = 0) {
+  if (depth > 5) return results;
+  try {
+    const files = readdirSync(dir);
+    for (const file of files) {
+      if (['node_modules', '.git', 'dist', 'build', '.openclaw', '.fcc'].includes(file)) continue;
+      const fullPath = join(dir, file);
+      const stat = statSync(fullPath);
+      if (stat.isDirectory()) {
+        recursiveSearch(fullPath, query, results, depth + 1);
+      } else if (stat.isFile() && stat.size < 1024 * 1024) {
+        const content = readFileSync(fullPath, 'utf-8');
+        if (content.includes(query)) {
+          const lines = content.split('\n');
+          lines.forEach((line, idx) => {
+            if (line.includes(query)) {
+              results.push({ file: fullPath.replace(/\\/g, '/'), line: idx + 1, content: line.trim().substring(0, 150) });
+            }
+          });
+        }
+      }
+      if (results.length >= 50) break;
+    }
+  } catch {}
+  return results;
+}
+
 // Helper to execute tool calls
-async function executeToolCall(toolCallText) {
+async function executeToolCall(toolCallText, onProgress = null) {
   // Parse tool type from first line or nested tag
   let toolType = '';
   const firstLineMatch = toolCallText.match(/<longcat_tool_call>\s*([a-zA-Z0-9_\-]+)/i);
@@ -309,6 +350,7 @@ async function executeToolCall(toolCallText) {
   if (toolLower === 'bash' || toolLower === 'command') {
     const cmd = normalizedArgs.command;
     if (!cmd) return '<longcat_tool_response>\nError: command arg missing\n</longcat_tool_response>';
+    if (onProgress) onProgress(`💻 Running terminal command: \`${cmd.substring(0, 80)}${cmd.length > 80 ? '...' : ''}\``);
     try {
       const output = await new Promise((resolve) => {
         exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
@@ -323,6 +365,7 @@ async function executeToolCall(toolCallText) {
     const filePath = normalizedArgs.filePath;
     const content = normalizedArgs.content;
     if (!filePath) return '<longcat_tool_response>\nError: file_path arg missing\n</longcat_tool_response>';
+    if (onProgress) onProgress(`📝 Writing file: \`${filePath}\``);
     try {
       const dir = dirname(filePath);
       if (!existsSync(dir)) {
@@ -336,6 +379,7 @@ async function executeToolCall(toolCallText) {
   } else if (toolLower === 'read' || toolLower === 'read_file' || toolLower === 'view_file') {
     const filePath = normalizedArgs.filePath;
     if (!filePath) return '<longcat_tool_response>\nError: file_path arg missing\n</longcat_tool_response>';
+    if (onProgress) onProgress(`📖 Reading file: \`${filePath}\``);
     try {
       if (existsSync(filePath)) {
         const content = readFileSync(filePath, 'utf-8');
@@ -345,6 +389,44 @@ async function executeToolCall(toolCallText) {
       }
     } catch (e) {
       return `<longcat_tool_response>\nError reading file: ${e.message}\n</longcat_tool_response>`;
+    }
+  } else if (toolLower === 'replace_file_content' || toolLower === 'edit_file') {
+    const filePath = normalizedArgs.filePath;
+    const target = args.target_content || args.target || '';
+    const replacement = args.replacement_content || args.replacement || '';
+    if (!filePath) return '<longcat_tool_response>\nError: file_path arg missing\n</longcat_tool_response>';
+    if (onProgress) onProgress(`✏️ Editing file: \`${filePath}\``);
+    try {
+      if (!existsSync(filePath)) {
+        return `<longcat_tool_response>\nError: File ${filePath} does not exist\n</longcat_tool_response>`;
+      }
+      const content = readFileSync(filePath, 'utf-8');
+      if (!content.includes(target)) {
+        return `<longcat_tool_response>\nError: Target content not found in file. Ensure exact whitespace matching.\n</longcat_tool_response>`;
+      }
+      const updated = content.replace(target, replacement);
+      writeFileSync(filePath, updated, 'utf-8');
+      return `<longcat_tool_response>\nFile successfully updated.\n</longcat_tool_response>`;
+    } catch (e) {
+      return `<longcat_tool_response>\nError editing file: ${e.message}\n</longcat_tool_response>`;
+    }
+  } else if (toolLower === 'grep_search' || toolLower === 'search') {
+    const query = args.query || args.q || '';
+    const dir = args.dir_path || WORKSPACE;
+    if (!query) return '<longcat_tool_response>\nError: query arg missing\n</longcat_tool_response>';
+    if (onProgress) onProgress(`🔍 Searching codebase for: \`${query}\``);
+    try {
+      const results = recursiveSearch(dir, query);
+      if (results.length === 0) {
+        return `<longcat_tool_response>\nNo matches found for "${query}".\n</longcat_tool_response>`;
+      }
+      let output = `Found ${results.length} matches:\n`;
+      results.forEach(r => {
+        output += `- ${r.file}:${r.line}: ${r.content}\n`;
+      });
+      return `<longcat_tool_response>\n${output}\n</longcat_tool_response>`;
+    } catch (e) {
+      return `<longcat_tool_response>\nError searching files: ${e.message}\n</longcat_tool_response>`;
     }
   }
 
@@ -418,7 +500,7 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
 }
 
 // Send message to another agent and get response
-async function sendMessage(toAgentRaw, message, fromAgent = 'hermes') {
+async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress = null) {
   const toAgent = toAgentRaw.toLowerCase();
   logActivity({ type: 'message', from: fromAgent, to: toAgent, message: message.substring(0, 200) });
   
@@ -427,9 +509,54 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes') {
   if (agent.status === 'offline') return { error: `Agent ${toAgent} is offline` };
   
   let response;
-  
-  // Dynamic agent loop execution for AGY, OpenClaw, and Hermes
-  if (['agy', 'openclaw', 'hermes'].includes(toAgent)) {
+  let runSimulated = false;
+
+  if (toAgent === 'claude') {
+    try {
+      if (onProgress) onProgress(`🤖 **Claude Code CLI** is initializing...`);
+      console.log(`[Swarm Execution] Running native Claude Code CLI agent...`);
+      const escapedMessage = message.replace(/"/g, "'").replace(/\r?\n/g, ' ');
+      const cmd = `set ANTHROPIC_API_KEY=freecc && set ANTHROPIC_BASE_URL=http://localhost:8082 && claude -p --dangerously-skip-permissions "${escapedMessage}" < NUL`;
+      if (onProgress) onProgress(`🔧 **Claude Code CLI** is running developer tasks...`);
+      const output = await new Promise((resolve, reject) => {
+        exec(cmd, { timeout: 90000, cwd: WORKSPACE }, (err, stdout, stderr) => {
+          if (err && !stdout) reject(err);
+          else resolve(stdout || stderr || 'Completed');
+        });
+      });
+      response = output.trim();
+      logActivity({ type: 'claude_cli_run', success: true });
+      return { success: true, from: toAgent, response };
+    } catch (e) {
+      console.log(`[Swarm Execution] Claude CLI failed: ${e.message}. Falling back to simulated API chat...`);
+      if (onProgress) onProgress(`⚠️ **Claude Code CLI** failed to run. Falling back to simulated Claude agent...`);
+      runSimulated = true;
+    }
+  } else if (toAgent === 'openclaw') {
+    try {
+      if (onProgress) onProgress(`🔀 **OpenClaw CLI** is initializing...`);
+      console.log(`[Swarm Execution] Running native OpenClaw CLI agent...`);
+      const escapedMessage = message.replace(/"/g, "'").replace(/\r?\n/g, ' ');
+      const cmd = `openclaw agent --local --agent main --message "${escapedMessage}" < NUL`;
+      if (onProgress) onProgress(`🔧 **OpenClaw CLI** is executing browser/routing steps...`);
+      const output = await new Promise((resolve, reject) => {
+        exec(cmd, { timeout: 90000, cwd: WORKSPACE }, (err, stdout, stderr) => {
+          if (err && !stdout) reject(err);
+          else resolve(stdout || stderr || 'Completed');
+        });
+      });
+      response = output.trim();
+      logActivity({ type: 'openclaw_cli_run', success: true });
+      return { success: true, from: toAgent, response };
+    } catch (e) {
+      console.log(`[Swarm Execution] OpenClaw CLI failed: ${e.message}. Falling back to simulated API chat...`);
+      if (onProgress) onProgress(`⚠️ **OpenClaw CLI** failed to run. Falling back to simulated OpenClaw agent...`);
+      runSimulated = true;
+    }
+  }
+
+  // Dynamic agent loop execution for AGY, OpenClaw, Hermes, and Claude fallback
+  if (['agy', 'openclaw', 'hermes', 'claude'].includes(toAgent) && (!['claude', 'openclaw'].includes(toAgent) || runSimulated)) {
     try {
       let agentPrompt = '';
       let maxTokens = 2048;
@@ -437,6 +564,9 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes') {
         agentPrompt = 'You are Antigravity (AGY), the L1 CEO, Orchestrator, and Deep Planner of the Agent OS V2 Swarm. Analyze goals, generate correct code, and provide detailed planning. Be concise. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
       } else if (toAgent === 'openclaw') {
         agentPrompt = 'You are OpenClaw, the L2 Execution and Routing agent of the Agent OS V2 Swarm. Help draft full posts, format code, and execute tasks. Be concise. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
+        maxTokens = 4096;
+      } else if (toAgent === 'claude') {
+        agentPrompt = 'You are Claude, the Expert Developer agent of the Agent OS V2 Swarm. Perform refactoring, write tests, and optimize code. Be concise. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
         maxTokens = 4096;
       } else {
         agentPrompt = 'You are Hermes, part of the Agent OS team. Be concise and helpful. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
@@ -472,6 +602,22 @@ Available tools:
 <longcat_arg_value>absolute path here</longcat_arg_value>
 </longcat_tool_call>
 
+4. Edit/Update a file (replace_file_content):
+<longcat_tool_call>replace_file_content
+<longcat_arg_key>file_path</longcat_arg_key>
+<longcat_arg_value>absolute path here</longcat_arg_value>
+<longcat_arg_key>target_content</longcat_arg_key>
+<longcat_arg_value>exact text block to replace</longcat_arg_value>
+<longcat_arg_key>replacement_content</longcat_arg_key>
+<longcat_arg_value>new content replacement block</longcat_arg_value>
+</longcat_tool_call>
+
+5. Codebase recursive search (grep_search):
+<longcat_tool_call>grep_search
+<longcat_arg_key>query</longcat_arg_key>
+<longcat_arg_value>text pattern to search</longcat_arg_value>
+</longcat_tool_call>
+
 Only run one tool at a time. After calling a tool, the system will return the result, and you can make follow-up tool calls or provide your final response.`;
 
       agentPrompt += toolInstructions;
@@ -494,7 +640,7 @@ Only run one tool at a time. After calling a tool, the system will return the re
         }
         
         // Execute tool call and get XML response
-        const toolResult = await executeToolCall(toolCallMatch[0]);
+        const toolResult = await executeToolCall(toolCallMatch[0], onProgress);
         
         // Push step history
         history.push({ role: 'assistant', content: currentResponse });
@@ -934,7 +1080,9 @@ app.post('/api/chat', async (req, res) => {
         }
 
         // Send task to target agent
-        const result = await sendMessage(step.agent, messageToSend, 'orchestrator');
+        const result = await sendMessage(step.agent, messageToSend, 'orchestrator', (update) => {
+          res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
+        });
         
         // Append full result response to accumulated context
         accumulatedContext += `\n### Step ${i + 1} (${AGENTS[step.agent]?.name || step.agent} output):\n${result.response || ''}\n`;
@@ -969,11 +1117,15 @@ app.post('/api/chat', async (req, res) => {
   let response;
   if (agentId && agentId !== 'hermes') {
     // Route to specific agent
-    const result = await sendMessage(agentId, query, 'user');
+    const result = await sendMessage(agentId, query, 'user', (update) => {
+      res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
+    });
     response = result.response || result.error || 'No response';
   } else {
     // Default: Hermes handles it, routed through sendMessage to support tools and prevent raw XML leakage
-    const result = await sendMessage('hermes', query, 'user');
+    const result = await sendMessage('hermes', query, 'user', (update) => {
+      res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
+    });
     response = result.response || result.error || 'No response';
   }
 
@@ -1673,3 +1825,20 @@ app.listen(PORT, () => {
   console.log(`   Shared workspace: ${SHARED}`);
   console.log(`   Agent-to-agent messaging: ✓ Live\n`);
 });
+
+function warmupOpenRouter() {
+  console.log('[Warmup] Warming up OpenRouter DNS and TCP connection...');
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  fetch('https://openrouter.ai/api/v1/models', {
+    method: 'GET',
+    signal: controller.signal
+  }).then(res => {
+    console.log('[Warmup] OpenRouter warmed up successfully (status ' + res.status + ')');
+  }).catch(err => {
+    console.log('[Warmup] OpenRouter warmup failed: ' + err.message);
+  }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+}
+warmupOpenRouter();

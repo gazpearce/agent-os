@@ -59,3 +59,8 @@
 | T54 | Backend (`server.mjs`) | Remove dead/rate-limited keys from pool | ✅ Completed | Clean up OR_KEYS in server.mjs |
 | T55 | Backend (`server.mjs`) | Optimize model failover retry count | ✅ Completed | Reduce key retries to at most 2 in chatCompletion methods |
 | T56 | Verification | End-to-End Latency Verification | ✅ Completed | Restart server and verify response time is under 5 seconds |
+| T57 | Backend (`server.mjs`) | Add Claude Code Agent & Health check to Server Registry | ✅ Completed | Registered in AGENTS and health check added |
+| T58 | Backend (`server.mjs`) | Implement OpenRouter Connection Warmup on Server Startup | ✅ Completed | Setup warmupOpenRouter in server startup |
+| T59 | Backend (`server.mjs`) | Implement Native CLI Background Execution for Claude & OpenClaw | ✅ Completed | Setup exec logic with timeout and failover |
+| T60 | Backend (`server.mjs`) | Add replace_file_content & grep_search tools to simulated agent loop | ✅ Completed | Implemented recursiveSearch, replace_file_content and grep_search tools |
+| T61 | Backend (`server.mjs`) | Add SSE Real-Time Swarm Progress Logging | ✅ Completed | Hooked onProgress callback to stream tool actions in real-time |
