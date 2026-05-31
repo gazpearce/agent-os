@@ -69,5 +69,11 @@
 | T64 | Backend (`server.mjs`) | Create Terminal Session Management APIs in Backend | ✅ Completed | Spawning persistent shell and broadcasting output |
 | T65 | Frontend (`App.tsx`) | Connect Frontend Terminal pane to SSE stream & Stdin POST | ✅ Completed | Web terminal connected, clean build verified |
 | T66 | Verification | Final Integration Test and Restart Verification | ✅ Completed | Verified backend terminal stream with a test script, restarted server, started Vite dev server |
+| T67 | Backend (`server.mjs`) | Backend Video Generator API (`/api/generate-video`) | ⬜ Not Started | Keyless Pollinations AI video endpoint |
+| T68 | Backend (`server.mjs`) | Implement Aider & GitHub CLI Agent Routing | ⬜ Not Started | Add CLI execution in sendMessage |
+| T69 | Backend (`server.mjs`) | Implement Swarm Diagnostics and Self-Healing APIs | ⬜ Not Started | Add diagnose and self-heal endpoints |
+| T70 | Backend (`server.mjs`) | Add Background Diagnostic Cron Check & Registries | ⬜ Not Started | Cron checking aider, register aider/github |
+| T71 | Frontend (`App.tsx`) | Upgrade Frontend App.tsx UI & Panels | ⬜ Not Started | Models array, MediaEnginePanel, SwarmDiagnosticsPanel |
+| T72 | Build & Verification | Compile & Run Verification | ⬜ Not Started | npm run build, server restart, dashboard test |
 
 

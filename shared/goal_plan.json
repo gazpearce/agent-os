@@ -1,22 +1,27 @@
 [
   {
     "agent": "obsidian",
-    "task": "Read the recent lessons learned in the vault to find any relevant setup tips",
-    "reason": "We need to gather existing knowledge and lessons learned from Obsidian before creating the welcome-test.md"
-  },
-  {
-    "agent": "agy",
-    "task": "Review the lessons retrieved from Obsidian and summarize the key insights for new users",
-    "reason": "Organize and distill the lessons into categories to help write a comprehensive welcome-test.md"
-  },
-  {
-    "agent": "hermes",
-    "task": "Create a file named shared/welcome-test.md with a welcoming overview of the Agent OS workflow based on the summarized lessons",
-    "reason": "Establish a welcoming document in the shared workspace for newcomers to understand the system quickly"
+    "task": "Search the vault for existing templates and content guidelines files related to blog post structure, frontmatter schema, and previously created UK networking or WiFi blog posts",
+    "reason": "Identify established patterns and templates to ensure consistency with the existing blog structure and content guidelines"
   },
   {
     "agent": "openclaw",
-    "task": "Verify the shared/welcome-test.md file exists, is accessible to all agents, and contains all core sections",
-    "reason": "Quality check to ensure completeness and correctness before the swarm considers the task complete"
+    "task": "Research WiFi 6 technology for UK residential homes including UK prices, British standards, local infographics resources, and Unsplash images",
+    "reason": "Gather the specific content requirements like UK pricing, British standards, and available images"
+  },
+  {
+    "agent": "hermes",
+    "task": "Create a file at Research/wifi-6-uk-research.md containing all research findings including UK prices and local statistics for WiFi 6 upgrades",
+    "reason": "Save research in a shared file for easy access during blog post creation"
+  },
+  {
+    "agent": "agy",
+    "task": "Based on the research file, create the blog post following the template with frontmatter, schema, hero image, and all sections (1000-3000 words) and save it to C:/Users/Gary/uni-blog/blog/posts/wifi/wifi-6-residential.md",
+    "reason": "Generate the final blog post with required frontmatter, schema, local images, pricing, standards, and FAQ"
+  },
+  {
+    "agent": "obsidian",
+    "task": "Index the new blog post in any relevant tracking documents or indexes in the vault",
+    "reason": "Ensure the new content is discoverable within the vault system"
   }
 ]
