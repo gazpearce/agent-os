@@ -1186,6 +1186,50 @@ export default function App() {
   const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban">("chat");
   const [rightTab, setRightTab] = useState<"sessions" | "models" | "skills" | "mcp-catalog" | "vault">("models");
   
+  const [voiceUpdatesEnabled, setVoiceUpdatesEnabled] = useState(() => {
+    return localStorage.getItem("voice_updates_enabled") === "true";
+  });
+
+  const toggleVoiceUpdates = () => {
+    setVoiceUpdatesEnabled(prev => {
+      const newVal = !prev;
+      localStorage.setItem("voice_updates_enabled", String(newVal));
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(newVal ? "Voice updates enabled" : "Voice updates disabled");
+        window.speechSynthesis.speak(utterance);
+      }
+      return newVal;
+    });
+  };
+
+  const speakText = (text: string) => {
+    if ('speechSynthesis' in window) {
+      let clean = text
+        .replace(/[\*_`#]/g, '')
+        .replace(/🧠/g, 'Orchestrator: ')
+        .replace(/🚀/g, 'Step starting: ')
+        .replace(/✅/g, 'Step completed: ')
+        .replace(/🏆/g, 'Goal completed! ')
+        .replace(/❌/g, 'Error: ')
+        .replace(/💻/g, 'Running terminal command: ')
+        .replace(/📝/g, 'Writing file: ')
+        .replace(/📖/g, 'Reading file: ')
+        .replace(/✏️/g, 'Editing file: ')
+        .replace(/🔍/g, 'Searching codebase for: ')
+        .replace(/💬/g, 'Swarm communication: ')
+        .replace(/>/g, '')
+        .trim();
+
+      if (!clean) return;
+
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(clean);
+      utterance.rate = 1.05;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+  
   // Collapsed Sidebar States
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
@@ -1579,6 +1623,24 @@ export default function App() {
                   const parsed = JSON.parse(dataText);
                   if (parsed.content) {
                     accumulatedResponse += parsed.content;
+                    if (voiceUpdatesEnabled) {
+                      const text = parsed.content;
+                      if (
+                        text.includes('🚀') || 
+                        text.includes('✅') || 
+                        text.includes('🧠') || 
+                        text.includes('🏆') || 
+                        text.includes('❌') || 
+                        text.includes('💻') || 
+                        text.includes('📝') || 
+                        text.includes('📖') || 
+                        text.includes('✏️') || 
+                        text.includes('🔍') || 
+                        text.includes('💬')
+                      ) {
+                        speakText(text);
+                      }
+                    }
                   }
                   setChatMessages(prev => {
                     const updated = [...prev];
@@ -1597,6 +1659,9 @@ export default function App() {
                 } catch (_) {}
               }
             }
+          }
+          if (voiceUpdatesEnabled && activeAgent !== 'orchestrator') {
+            speakText(`${activeAgent} has completed the execution.`);
           }
           // URL auto-open for streaming too
           const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
@@ -1630,6 +1695,9 @@ export default function App() {
             if (msgMatch.length > 0) {
               const href = (msgMatch[0] || "").startsWith("http") ? msgMatch[0] : "http://" + msgMatch[0];
               window.open(href || "https://google.com", "_blank");
+            }
+            if (voiceUpdatesEnabled) {
+              speakText(`${data.agent || activeAgent} has completed the execution.`);
             }
           }
         }
@@ -2228,7 +2296,20 @@ export default function App() {
               <span className="text-[10px] font-mono text-gray-500 hidden sm:inline">{currentAgent.role}</span>
             </div>
 
-            <div className="flex bg-white/[0.03] border border-white/[0.05] rounded-xl p-0.5">
+            <div className="flex items-center">
+              <button 
+                onClick={toggleVoiceUpdates} 
+                className={`p-1.5 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider mr-3 ${
+                  voiceUpdatesEnabled 
+                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/25 shadow-[0_0_10px_rgba(168,85,247,0.15)]' 
+                    : 'bg-white/[0.015] text-gray-500 border-white/[0.04] hover:text-gray-300 hover:bg-white/[0.03]'
+                }`}
+                title="Toggle Live Voice Updates during execution"
+              >
+                {voiceUpdatesEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
+              </button>
+
+              <div className="flex bg-white/[0.03] border border-white/[0.05] rounded-xl p-0.5">
               {[
                 { id: "chat", label: "Chat", icon: <Bot size={12} /> },
                 { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
@@ -2247,6 +2328,7 @@ export default function App() {
                   {tab.icon} {tab.label}
                 </button>
               ))}
+              </div>
             </div>
           </div>
 
