@@ -50,5 +50,9 @@
 | T46 | Backend (`server.mjs`) | Refactor Ollama agent routing to query the local REST API and handle output saving to file | ✅ Completed | Connected local Ollama API and added path parse saving |
 | T47 | Backend (`server.mjs`) | Integrate NoLogin.in REST API upload for web preview publishing of generated posts | ✅ Completed | Connected Firestore REST endpoint for homesecurity domain |
 
-| T48 | Verification | Run the swarm post generation scratch script and verify all agents finish successfully | ⏳ Pending | |
-| T49 | Verification | Verify final VitePress post output and NoLogin.in web preview | ⏳ Pending | |
+| T48 | Verification | Run the swarm post generation scratch script and verify all agents finish successfully | ⏩ Superseded | Superseded by parser/failover upgrade |
+| T49 | Verification | Verify final VitePress post output and NoLogin.in web preview | ⏩ Superseded | Superseded by parser/failover upgrade |
+| T50 | Config | Update Default Config Model | ✅ Completed | Set default model in config.yaml to google/gemma-4-31b-it:free |
+| T51 | Backend (`server.mjs`) | Implement Unified Tool Call Parser | ✅ Completed | Update executeToolCall to parse nested XML tags |
+| T52 | Backend (`server.mjs`) | Implement Swarm Model Failover Chain | ✅ Completed | Add failover loops for chatCompletion and getOrchestratorPlan |
+| T53 | Verification | Restart & End-To-End Verification | ✅ Completed | Restart server, run end-to-end tests, verify fast non-leaking replies |

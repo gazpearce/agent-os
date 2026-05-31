@@ -245,26 +245,71 @@ function logActivity(entry) {
 
 // Helper to execute tool calls
 async function executeToolCall(toolCallText) {
-  // Parse tool type (the first line after <longcat_tool_call>)
-  const match = toolCallText.match(/<longcat_tool_call>([a-zA-Z0-9_\-]+)/i);
-  if (!match) return '<longcat_tool_response>\nError: Invalid tool call block format\n</longcat_tool_response>';
-  const toolType = match[1].trim();
+  // Parse tool type from first line or nested tag
+  let toolType = '';
+  const firstLineMatch = toolCallText.match(/<longcat_tool_call>\s*([a-zA-Z0-9_\-]+)/i);
+  if (firstLineMatch) {
+    toolType = firstLineMatch[1].trim();
+  } else {
+    // Check if there is an explicit <tool> or <type> tag
+    const toolTagMatch = toolCallText.match(/<(tool|type|command|action)>([\s\S]*?)<\/ ?\1>/i);
+    if (toolTagMatch) {
+      toolType = toolTagMatch[2].trim();
+    } else {
+      // Check the line immediately following <longcat_tool_call>
+      const lines = toolCallText.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].includes('<longcat_tool_call>')) {
+          const nextLine = lines[i+1]?.trim();
+          if (nextLine && !nextLine.startsWith('<') && /^[a-zA-Z0-9_\-]+$/.test(nextLine)) {
+            toolType = nextLine;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  if (!toolType) {
+    return '<longcat_tool_response>\nError: Invalid tool call block format or tool type could not be parsed\n</longcat_tool_response>';
+  }
 
   // Parse arguments
   const args = {};
+  
+  // Try classic format first (using key/value matches)
   const keyMatches = [...toolCallText.matchAll(/<longcat_arg_key>([\s\S]*?)<\/longcat_arg_key>/g)];
   const valueMatches = [...toolCallText.matchAll(/<longcat_arg_value>([\s\S]*?)<\/longcat_arg_value>/g)];
   
-  for (let i = 0; i < keyMatches.length; i++) {
-    const k = keyMatches[i][1].trim();
-    const v = valueMatches[i] ? valueMatches[i][1].trim() : '';
-    args[k] = v;
+  if (keyMatches.length > 0) {
+    for (let i = 0; i < keyMatches.length; i++) {
+      const k = keyMatches[i][1].trim();
+      const v = valueMatches[i] ? valueMatches[i][1].trim() : '';
+      args[k] = v;
+    }
+  } else {
+    // Try parsing nested XML tags
+    const tags = [...toolCallText.matchAll(/<([a-zA-Z0-9_\-]+)>([\s\S]*?)<\/ ?\1>/gi)];
+    for (const t of tags) {
+      const tag = t[1].trim();
+      const content = t[2].trim();
+      if (tag.toLowerCase() === 'longcat_tool_call') continue;
+      args[tag] = content;
+    }
   }
 
   console.log(`[Swarm Execution] Tool Call detected: Type=${toolType}, Args=`, args);
 
-  if (toolType.toLowerCase() === 'bash' || toolType.toLowerCase() === 'command') {
-    const cmd = args.command || args.cmd;
+  // Normalize args to handle aliases used by different models/formats
+  const normalizedArgs = {
+    command: args.command || args.cmd || args.CommandLine || '',
+    filePath: args.file_path || args.path || args.TargetFile || args.AbsolutePath || '',
+    content: args.content || args.CodeContent || args.text || ''
+  };
+
+  const toolLower = toolType.toLowerCase();
+  if (toolLower === 'bash' || toolLower === 'command') {
+    const cmd = normalizedArgs.command;
     if (!cmd) return '<longcat_tool_response>\nError: command arg missing\n</longcat_tool_response>';
     try {
       const output = await new Promise((resolve) => {
@@ -276,9 +321,9 @@ async function executeToolCall(toolCallText) {
     } catch (e) {
       return `<longcat_tool_response>\nError executing bash command: ${e.message}\n</longcat_tool_response>`;
     }
-  } else if (toolType.toLowerCase() === 'write' || toolType.toLowerCase() === 'write_file' || toolType.toLowerCase() === 'write_to_file') {
-    const filePath = args.file_path || args.path || args.TargetFile;
-    const content = args.content || args.CodeContent || args.text;
+  } else if (toolLower === 'write' || toolLower === 'write_file' || toolLower === 'write_to_file') {
+    const filePath = normalizedArgs.filePath;
+    const content = normalizedArgs.content;
     if (!filePath) return '<longcat_tool_response>\nError: file_path arg missing\n</longcat_tool_response>';
     try {
       const dir = dirname(filePath);
@@ -290,8 +335,8 @@ async function executeToolCall(toolCallText) {
     } catch (e) {
       return `<longcat_tool_response>\nError writing file: ${e.message}\n</longcat_tool_response>`;
     }
-  } else if (toolType.toLowerCase() === 'read' || toolType.toLowerCase() === 'read_file' || toolType.toLowerCase() === 'view_file') {
-    const filePath = args.file_path || args.path || args.AbsolutePath;
+  } else if (toolLower === 'read' || toolLower === 'read_file' || toolLower === 'view_file') {
+    const filePath = normalizedArgs.filePath;
     if (!filePath) return '<longcat_tool_response>\nError: file_path arg missing\n</longcat_tool_response>';
     try {
       if (existsSync(filePath)) {
@@ -311,7 +356,7 @@ async function executeToolCall(toolCallText) {
 
 // Chat with fallback (supporting conversation history messages array)
 async function chatCompletionWithHistory(messages, maxTokens = 2048) {
-  let model = 'openrouter/owl-alpha';
+  let model = 'google/gemini-2.0-flash-001';
   try {
     const cfg = readConfig();
     const m = cfg.match(/default:\s*([^\s\n]+)/);
@@ -320,25 +365,46 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
     }
   } catch {}
 
-  for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 5)) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000);
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
-        body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      const d = await r.json();
-      if (d.error) { const c = d.error?.code; if ([429, 401, 503, 529].includes(c)) continue; return `Error: ${d.error.message}`; }
-      return d.choices?.[0]?.message?.content || 'No response';
-    } catch { continue; }
+  const modelFallbacks = [
+    model,
+    'google/gemma-4-31b-it:free',
+    'openrouter/free'
+  ];
+
+  const uniqueModels = [...new Set(modelFallbacks)];
+
+  for (const currentModel of uniqueModels) {
+    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 5)) {
+      try {
+        console.log(`[OR Chat] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
+          body: JSON.stringify({ model: currentModel, messages, max_tokens: maxTokens }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const d = await r.json();
+        if (d.error) {
+          console.log(`[OR Chat] Error with model ${currentModel}:`, d.error.message);
+          continue;
+        }
+        if (d.choices?.[0]?.message?.content) {
+          console.log(`[OR Chat] Success with model ${currentModel}`);
+          return d.choices[0].message.content;
+        }
+      } catch (err) {
+        console.log(`[OR Chat] Timeout or error with model ${currentModel}:`, err.message);
+        continue;
+      }
+    }
   }
   
   // Gemini fallback
   try {
+    console.log('[OR Chat] All OpenRouter models/keys failed. Falling back to direct Gemini API...');
     const flattenedText = messages.map(m => `${m.role === 'system' ? 'System Instructions' : m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n\n');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -586,7 +652,7 @@ Only run one tool at a time. After calling a tool, the system will return the re
 
 // Chat with fallback
 async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 2048) {
-  let model = 'openrouter/owl-alpha';
+  let model = 'google/gemini-2.0-flash-001';
   try {
     const cfg = readConfig();
     const m = cfg.match(/default:\s*([^\s\n]+)/);
@@ -606,24 +672,46 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
     }
   }
 
-  for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 5)) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000);
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
-        body: JSON.stringify({ model, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }], max_tokens: maxTokens }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      const d = await r.json();
-      if (d.error) { const c = d.error?.code; if ([429, 401, 503, 529].includes(c)) continue; return `Error: ${d.error.message}`; }
-      return d.choices?.[0]?.message?.content || 'No response';
-    } catch { continue; }
+  const modelFallbacks = [
+    model,
+    'google/gemma-4-31b-it:free',
+    'openrouter/free'
+  ];
+
+  const uniqueModels = [...new Set(modelFallbacks)];
+
+  for (const currentModel of uniqueModels) {
+    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 5)) {
+      try {
+        console.log(`[OR ChatCompletion] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
+          body: JSON.stringify({ model: currentModel, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }], max_tokens: maxTokens }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const d = await r.json();
+        if (d.error) {
+          console.log(`[OR ChatCompletion] Error with model ${currentModel}:`, d.error.message);
+          continue;
+        }
+        if (d.choices?.[0]?.message?.content) {
+          console.log(`[OR ChatCompletion] Success with model ${currentModel}`);
+          return d.choices[0].message.content;
+        }
+      } catch (err) {
+        console.log(`[OR ChatCompletion] Timeout or error with model ${currentModel}:`, err.message);
+        continue;
+      }
+    }
   }
+
   // Gemini fallback
   try {
+    console.log('[OR ChatCompletion] All OpenRouter models/keys failed. Falling back to direct Gemini API...');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
     const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
@@ -647,7 +735,7 @@ app.get('/api/status', (req, res) => {
   const m = cfg.match(/default:\s*([^\s\n]+)/);
   res.json({
     agents: Object.fromEntries(Object.entries(AGENTS).map(([k, v]) => [k, { name: v.name, status: v.status, role: v.role }])),
-    activeModel: m ? m[1] : 'openrouter/owl-alpha',
+    activeModel: m ? m[1] : 'google/gemini-2.0-flash-001',
     workspace: WORKSPACE,
   });
 });
@@ -737,47 +825,66 @@ Example JSON output:
   }
 ]`;
 
-  const model = 'openrouter/owl-alpha';
+  let model = 'google/gemini-2.0-flash-001';
+  try {
+    const cfg = readConfig();
+    const m = cfg.match(/default:\s*([^\s\n]+)/);
+    if (m && m[1]) {
+      model = m[1];
+    }
+  } catch {}
+
+  const modelFallbacks = [
+    model,
+    'google/gemma-4-31b-it:free',
+    'openrouter/free'
+  ];
+
+  const uniqueModels = [...new Set(modelFallbacks)];
+
   let attempt = 0;
-  for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5)) {
-    attempt++;
-    try {
-      console.log(`[Orchestrator] Attempt ${attempt}: trying key ${key.substring(0, 15)}...`);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000);
-      const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          Authorization: `Bearer ${key}`, 
-          'HTTP-Referer': `http://localhost:${PORT}`, 
-          'X-Title': 'Agent OS' 
-        },
-        body: JSON.stringify({ 
-          model, 
-          messages: [
-            { role: 'system', content: orchestratorPrompt }, 
-            { role: 'user', content: `Goal: ${goal}` }
-          ], 
-          max_tokens: 1024 
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-      const d = await r.json();
-      if (d.error) {
-        console.log(`[Orchestrator] Key ${key.substring(0, 15)} returned error:`, d.error.message);
+  for (const currentModel of uniqueModels) {
+    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5)) {
+      attempt++;
+      try {
+        console.log(`[Orchestrator] Attempt ${attempt}: trying model ${currentModel} with key ${key.substring(0, 15)}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            Authorization: `Bearer ${key}`, 
+            'HTTP-Referer': `http://localhost:${PORT}`, 
+            'X-Title': 'Agent OS' 
+          },
+          body: JSON.stringify({ 
+            model: currentModel, 
+            messages: [
+              { role: 'system', content: orchestratorPrompt }, 
+              { role: 'user', content: `Goal: ${goal}` }
+            ], 
+            max_tokens: 1024 
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        const d = await r.json();
+        if (d.error) {
+          console.log(`[Orchestrator] Model ${currentModel} with key ${key.substring(0, 15)} returned error:`, d.error.message);
+          continue;
+        }
+        const text = d.choices?.[0]?.message?.content || '[]';
+        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        console.log(`[Orchestrator] Model ${currentModel} succeeded!`);
+        return JSON.parse(cleanedText);
+      } catch (e) {
+        console.log(`[Orchestrator] Model ${currentModel} with key ${key.substring(0, 15)} failed/timed out:`, e.message);
         continue;
       }
-      const text = d.choices?.[0]?.message?.content || '[]';
-      const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      console.log(`[Orchestrator] Key ${key.substring(0, 15)} succeeded!`);
-      return JSON.parse(cleanedText);
-    } catch (e) {
-      console.log(`[Orchestrator] Key ${key.substring(0, 15)} failed/timed out:`, e.message);
-      continue;
     }
   }
+  
   console.log('[Orchestrator] All keys failed. Using hard fallback plan.');
 
   // Hard fallback
@@ -867,8 +974,9 @@ app.post('/api/chat', async (req, res) => {
     const result = await sendMessage(agentId, query, 'user');
     response = result.response || result.error || 'No response';
   } else {
-    // Default: Hermes handles it
-    response = await chatCompletion(query);
+    // Default: Hermes handles it, routed through sendMessage to support tools and prevent raw XML leakage
+    const result = await sendMessage('hermes', query, 'user');
+    response = result.response || result.error || 'No response';
   }
 
   // Stream simulated chunks of words
