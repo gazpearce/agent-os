@@ -1066,6 +1066,7 @@ export default function App() {
     "Processing & formatting output..."
   ];
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const chatScrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Collapsed tools execution log indexing
   const [expandedToolsIndex, setExpandedToolsIndex] = useState<number | null>(null);
@@ -1328,9 +1329,23 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-scroll chat and terminal panels
+  // Auto-scroll chat panel only if user is already near the bottom, or if the last message is from the user
   useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = chatScrollContainerRef.current;
+    if (!container) return;
+
+    // Check if the user is already scrolled to the bottom (within a threshold of 150px)
+    const threshold = 150;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold;
+
+    // Check if the last message is from the user
+    const lastMsg = chatMessages[chatMessages.length - 1];
+    const isLastMessageFromUser = lastMsg && lastMsg.agent === "user";
+
+    // Scroll only if they are already at the bottom, or if they just typed a message
+    if (isAtBottom || isLastMessageFromUser || chatLoading) {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
   }, [chatMessages, chatLoading]);
 
   useEffect(() => {
@@ -2087,7 +2102,7 @@ export default function App() {
           {centerTab === "chat" && (
             <div className="flex-1 flex flex-col overflow-hidden justify-between">
               {/* Centered Scrollable Conversation */}
-              <div className="flex-grow overflow-y-auto p-6 scroll-smooth">
+              <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-6 scroll-smooth">
                 <div className="max-w-4xl mx-auto w-full space-y-6">
                   <AnimatePresence>
                     {chatMessages.map((msg, i) => {
