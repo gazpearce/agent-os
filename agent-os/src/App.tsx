@@ -110,6 +110,8 @@ const INITIAL_AGENTS: Agent[] = [
   { id: "agy", name: "Antigravity", role: "Intelligence · CEO", icon: <Brain size={18} />, status: "online", version: "1.0.2", layer: "L1", color: "#6366f1", tokens: 2841, tasks: 12, skills: 15 },
   { id: "openclaw", name: "OpenClaw", role: "Execution · Router", icon: <Workflow size={18} />, status: "offline", version: "2026.5.20", layer: "L2", color: "#10b981", tokens: 19430, tasks: 42, skills: 8 },
   { id: "claude", name: "Claude Code", role: "Developer · Refactoring", icon: <Bot size={18} />, status: "online", version: "2.1.159", layer: "L3", color: "#ea580c", tokens: 53102, tasks: 14, skills: 12 },
+  { id: "aider", name: "Aider Chat", role: "Multi-file Coding Agent", icon: <Terminal size={18} />, status: "online", version: "0.68.0", layer: "L3", color: "#10b981", tokens: 0, tasks: 0, skills: 8 },
+  { id: "github", name: "GitHub CLI", role: "Repo Operations & PRs", icon: <Layers size={18} />, status: "online", version: "2.92.0", layer: "L3", color: "#64748b", tokens: 0, tasks: 0, skills: 5 },
   { id: "hermes", name: "Hermes", role: "Research · Executor", icon: <Zap size={18} />, status: "offline", version: "active", layer: "L3", color: "#a855f7", tokens: 142893, tasks: 23, skills: 31 },
   { id: "obsidian", name: "Obsidian", role: "Memory · Vault", icon: <Database size={18} />, status: "online", version: "installed", layer: "L4", color: "#f59e0b", tokens: 0, tasks: 0, skills: 5 },
   { id: "ollama", name: "Ollama", role: "Local · Inference", icon: <Cpu size={18} />, status: "offline", version: "0.24.0", layer: "L6", color: "#22d3ee", tokens: 0, tasks: 0, skills: 4 },
@@ -119,6 +121,8 @@ const INITIAL_AGENTS: Agent[] = [
 
 const MODELS = [
   { id: "openrouter/owl-alpha", name: "Owl Alpha", ctx: "1M", type: "agentic", selected: false },
+  { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (Reasoning)", ctx: "128K", type: "reasoning", selected: false },
+  { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", type: "coding", selected: false },
   { id: "deepseek/deepseek-v4-flash:free", name: "DeepSeek V4 Flash", ctx: "1M", type: "reasoning", selected: false },
   { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", type: "coding", selected: false },
   { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "NVIDIA Nemotron 3 Super", ctx: "1M", type: "agentic", selected: false },
@@ -246,16 +250,18 @@ function Markdown({ text }: { text: string }) {
 }
 
 /* ─────────────── MAIN APP ─────────────── */
-/* ─────────── IMAGE GENERATION PANEL ─────────── */
-function ImageGenPanel() {
+/* ─────────── MEDIA ENGINE PANEL ─────────── */
+function MediaEnginePanel() {
+  const [activeTab, setActiveTab] = useState<'image' | 'video'>('image');
   const [prompt, setPrompt] = useState('');
-  const [imgUrl, setImgUrl] = useState('');
+  const [mediaUrl, setMediaUrl] = useState('');
   const [genProvider, setGenProvider] = useState('pollinations');
-  const [genLoading, setGenLoading] = useState(false);
-  const gen = async () => {
-    if (!prompt.trim() || genLoading) return;
-    setGenLoading(true);
-    setImgUrl('');
+  const [loading, setLoading] = useState(false);
+
+  const genImage = async () => {
+    if (!prompt.trim() || loading) return;
+    setLoading(true);
+    setMediaUrl('');
     try {
       const res = await fetch('/api/generate-image', {
         method: 'POST',
@@ -263,35 +269,181 @@ function ImageGenPanel() {
         body: JSON.stringify({ prompt, provider: genProvider }),
       });
       const data = await res.json();
-      if (data.imageUrl) setImgUrl(data.imageUrl);
+      if (data.imageUrl) setMediaUrl(data.imageUrl);
     } catch (e) { console.error(e); }
-    finally { setGenLoading(false); }
+    finally { setLoading(false); }
   };
+
+  const genVideo = async () => {
+    if (!prompt.trim() || loading) return;
+    setLoading(true);
+    setMediaUrl('');
+    try {
+      const res = await fetch('/api/generate-video', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+      if (data.videoUrl) setMediaUrl(data.videoUrl);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const handleGen = () => {
+    if (activeTab === 'image') genImage();
+    else genVideo();
+  };
+
   return (
-    <div className="space-y-2">
-      <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none flex items-center gap-1.5">
-        <Image size={10} className="text-pink-400" /> Image Generation
-      </div>
-      <div className="flex gap-1.5">
-        {['pollinations', 'gemini'].map(p => (
-          <button key={p} onClick={() => setGenProvider(p)} className={`text-[8px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${genProvider === p ? 'bg-pink-500/20 text-pink-300 border-pink-500/30' : 'text-gray-500 border-white/[0.03] hover:text-gray-300'}`}>
-            {p}
+    <div className="space-y-3 p-3 bg-white/[0.015] border border-white/[0.04] rounded-2xl shadow-xl">
+      <div className="flex justify-between items-center select-none">
+        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
+          {activeTab === 'image' ? <Image size={10} className="text-pink-400" /> : <Video size={10} className="text-purple-400" />} Media Engine
+        </span>
+        <div className="flex gap-1.5">
+          <button 
+            onClick={() => { setActiveTab('image'); setMediaUrl(''); }} 
+            className={`text-[8px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${activeTab === 'image' ? 'bg-pink-500/20 text-pink-300 border-pink-500/30' : 'text-gray-500 border-white/[0.03] hover:text-gray-300'}`}
+          >
+            Image
           </button>
-        ))}
+          <button 
+            onClick={() => { setActiveTab('video'); setMediaUrl(''); }} 
+            className={`text-[8px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${activeTab === 'video' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'text-gray-500 border-white/[0.03] hover:text-gray-300'}`}
+          >
+            Video
+          </button>
+        </div>
       </div>
+
+      {activeTab === 'image' && (
+        <div className="flex gap-1.5 select-none">
+          {['pollinations', 'gemini'].map(p => (
+            <button 
+              key={p} 
+              onClick={() => setGenProvider(p)} 
+              className={`text-[8px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${genProvider === p ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' : 'text-gray-500 border-white/[0.03] hover:text-gray-300'}`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex gap-1.5">
-        <input value={prompt} onChange={e => setPrompt(e.target.value)} onKeyDown={e => e.key === 'Enter' && gen()} placeholder="Describe image..." className="flex-1 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-pink-500/30" />
-        <button onClick={gen} disabled={genLoading} className="px-3 py-1.5 rounded-lg bg-pink-600/80 hover:bg-pink-500 text-white text-[10px] font-medium disabled:opacity-50 cursor-pointer whitespace-nowrap">
-          {genLoading ? '⏳' : '🎨 Gen'}
+        <input 
+          value={prompt} 
+          onChange={e => setPrompt(e.target.value)} 
+          onKeyDown={e => e.key === 'Enter' && handleGen()} 
+          placeholder={activeTab === 'image' ? "Describe image..." : "Describe video..."} 
+          className="flex-1 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/30" 
+        />
+        <button 
+          onClick={handleGen} 
+          disabled={loading} 
+          className={`px-3 py-1.5 rounded-lg text-white text-[10px] font-medium disabled:opacity-50 cursor-pointer whitespace-nowrap ${activeTab === 'image' ? 'bg-pink-600/80 hover:bg-pink-500' : 'bg-purple-600/80 hover:bg-purple-500'}`}
+        >
+          {loading ? '⏳' : activeTab === 'image' ? '🎨 Gen Image' : '🎬 Gen Video'}
         </button>
       </div>
-      {imgUrl && (
-        <div className="rounded-xl overflow-hidden border border-white/[0.05] bg-black/30">
-          {imgUrl.startsWith('data:') || imgUrl.startsWith('http') ? (
-            <img src={imgUrl} alt="Generated" className="w-full h-auto max-h-48 object-contain" />
+
+      {mediaUrl && (
+        <div className="rounded-xl overflow-hidden border border-white/[0.05] bg-black/30 p-2 space-y-2">
+          {activeTab === 'image' ? (
+            <img src={mediaUrl} alt="Generated" className="w-full h-auto max-h-48 object-contain" />
           ) : (
-            <div className="p-3 text-[10px] text-gray-400">{imgUrl}</div>
+            <div className="space-y-2">
+              <video src={mediaUrl} controls autoPlay loop className="w-full h-auto max-h-48 rounded" />
+              <a 
+                href={mediaUrl} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="flex items-center justify-center gap-1 text-[10px] text-purple-400 hover:text-purple-300 font-medium py-1 px-2.5 rounded bg-purple-500/10 border border-purple-500/20 transition-all"
+              >
+                <Download size={10} /> Open & Download Video
+              </a>
+            </div>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────── SWARM DIAGNOSTICS PANEL ─────────── */
+function SwarmDiagnosticsPanel() {
+  const [diag, setDiag] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [healLogs, setHealLogs] = useState<string[]>([]);
+  const [healing, setHealing] = useState(false);
+
+  const runDiag = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/swarm/diagnose');
+      const data = await res.json();
+      setDiag(data);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const runHeal = async () => {
+    setHealing(true);
+    setHealLogs(["Starting self-healing triggers..."]);
+    try {
+      const res = await fetch('/api/swarm/self-heal', { method: 'POST' });
+      const data = await res.json();
+      if (data.logs) setHealLogs(data.logs);
+    } catch (e: any) { setHealLogs(prev => [...prev, `Heal error: ${e.message || e}`]); }
+    finally { setHealing(false); }
+  };
+
+  useEffect(() => { runDiag(); }, []);
+
+  return (
+    <div className="bg-[#0c0c16]/75 border border-white/[0.04] rounded-2xl p-4 space-y-4 shadow-xl">
+      <div className="flex justify-between items-center border-b border-white/[0.05] pb-3 select-none">
+        <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">🔬 Swarm Diagnostic Engine</span>
+        <div className="flex gap-2">
+          <button onClick={runDiag} disabled={loading} className="px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-[9px] font-mono cursor-pointer transition-colors">
+            {loading ? "Testing..." : "Run Diagnostics"}
+          </button>
+          <button onClick={runHeal} disabled={healing} className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[9px] font-mono cursor-pointer transition-colors">
+            {healing ? "Healing..." : "Run Auto-Healing"}
+          </button>
+        </div>
+      </div>
+
+      {diag && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[10px] font-mono select-none">
+          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
+            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">RUNTIMES</span>
+            <div>🐍 Python: <span className="text-indigo-300">{diag.runtimes.python}</span></div>
+            <div>⚡ Node.js: <span className="text-indigo-300">{diag.runtimes.node}</span></div>
+          </div>
+          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
+            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">CLI BINARIES</span>
+            <div>🧑‍💻 Aider: <span className={diag.clis.aider === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.aider}</span></div>
+            <div>🤖 Claude: <span className={diag.clis.claude === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.claude}</span></div>
+            <div>🐙 GitHub: <span className={diag.clis.gh === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.gh}</span></div>
+            <div>🔀 OpenClaw: <span className={diag.clis.openclaw === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.openclaw}</span></div>
+          </div>
+          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
+            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">PROXIES</span>
+            <div>🤖 fcc-server: <span className={diag.proxies.fccServer === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.fccServer}</span></div>
+            <div>🦙 LM Studio: <span className={diag.proxies.lmStudio === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.lmStudio}</span></div>
+          </div>
+        </div>
+      )}
+
+      {healLogs.length > 0 && (
+        <div className="p-3 bg-black/40 border border-white/[0.04] rounded-xl space-y-1 max-h-32 overflow-y-auto text-[9px] font-mono text-gray-400 select-text">
+          {healLogs.map((log, idx) => (
+            <div key={idx} className={log.includes('Failed') ? 'text-rose-400' : log.includes('success') || log.includes('installed') ? 'text-emerald-400' : 'text-gray-400'}>
+              🚀 {log}
+            </div>
+          ))}
         </div>
       )}
     </div>
@@ -2758,6 +2910,9 @@ export default function App() {
                   </div>
                 )}
               </div>
+
+              {/* Swarm Diagnostics Telemetry */}
+              <SwarmDiagnosticsPanel />
             </div>
           )}
         </main>
@@ -2952,8 +3107,8 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Image Generation */}
-                    <ImageGenPanel />
+                    {/* Media Engine */}
+                    <MediaEnginePanel />
 
                     {/* Browser Control */}
                     <BrowserPanel />
