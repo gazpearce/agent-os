@@ -33,6 +33,21 @@ const HOME = process.env.USERPROFILE;
 const PORT = 3001;
 const CONFIG_PATH = `${HOME}\\AppData\\Local\\hermes\\config.yaml`;
 const AIONUI_DB = `${HOME}\\AppData\\Roaming\\AionUi\\aionui\\aionui-backend.db`;
+
+let aionuiDb = null;
+function getAionuiDb() {
+  if (aionuiDb) return aionuiDb;
+  if (!existsSync(AIONUI_DB)) return null;
+  try {
+    const { DatabaseSync } = require('node:sqlite');
+    aionuiDb = new DatabaseSync(AIONUI_DB);
+    return aionuiDb;
+  } catch (e) {
+    console.error('[SQLite] Failed to open AionUi database globally:', e.message);
+    return null;
+  }
+}
+
 const WORKSPACE = `D:\\Agent OS`;
 const SHARED = `${WORKSPACE}\\shared`;
 const AGENT_LOG = `${SHARED}\\agent-log.json`;
@@ -1464,7 +1479,8 @@ app.get('/api/mcp-list', (req, res) => {
 // AIONUI DB & TEAMS
 app.get('/api/teams', (req, res) => {
   try {
-    const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+    const db = getAionuiDb();
+    if (!db) return res.json([]);
     const rows = db.prepare('SELECT * FROM teams').all();
     res.json(rows);
   } catch {
@@ -1474,7 +1490,8 @@ app.get('/api/teams', (req, res) => {
 
 app.get('/api/aionui/teams', (req, res) => {
   try {
-    const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+    const db = getAionuiDb();
+    if (!db) return res.json({ teams: [] });
     res.json({ teams: db.prepare('SELECT * FROM teams').all() });
   } catch {
     res.json({ teams: [] });
@@ -1483,7 +1500,8 @@ app.get('/api/aionui/teams', (req, res) => {
 
 app.get('/api/mailbox', (req, res) => {
   try {
-    const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+    const db = getAionuiDb();
+    if (!db) return res.json([]);
     const rows = db.prepare('SELECT * FROM mailbox ORDER BY created_at DESC LIMIT 50').all();
     res.json(rows);
   } catch {
@@ -1493,7 +1511,8 @@ app.get('/api/mailbox', (req, res) => {
 
 app.get('/api/aionui/mailbox', (req, res) => {
   try {
-    const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+    const db = getAionuiDb();
+    if (!db) return res.json({ mailbox: [] });
     res.json({ mailbox: db.prepare('SELECT * FROM mailbox ORDER BY created_at DESC LIMIT 50').all() });
   } catch {
     res.json({ mailbox: [] });
@@ -1520,7 +1539,8 @@ function writeHermesTasks(tasks) {
 
 app.get('/api/db-tasks', (req, res) => {
   try {
-    const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+    const db = getAionuiDb();
+    if (!db) return res.json({ aionui: [], hermes: readHermesTasks() });
     const aionuiRaw = db.prepare("SELECT * FROM team_tasks").all();
     const aionui = aionuiRaw.map(t => ({
       id: t.id,
@@ -1546,7 +1566,8 @@ app.post('/api/db-tasks/add', (req, res) => {
 
   if (source === 'aionui') {
     try {
-      const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+      const db = getAionuiDb();
+      if (!db) return res.status(503).json({ error: 'Database offline' });
       const teamRow = db.prepare("SELECT id FROM teams LIMIT 1").get();
       const teamId = teamRow ? teamRow.id : '019e6609-6cb6-7261-ae9c-70271379f3e1';
       const id = '019e' + Math.random().toString(16).substring(2, 14) + '-' + Math.random().toString(16).substring(2, 6);
@@ -1591,7 +1612,8 @@ app.post('/api/db-tasks/update', (req, res) => {
     res.json({ success: true });
   } else {
     try {
-      const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+      const db = getAionuiDb();
+      if (!db) return res.status(503).json({ error: 'Database offline' });
       db.prepare("UPDATE team_tasks SET status = ?, updated_at = ? WHERE id = ?").run(status, Date.now(), id);
       res.json({ success: true });
     } catch (e) {
@@ -1611,7 +1633,8 @@ app.post('/api/db-tasks/delete', (req, res) => {
     res.json({ success: true });
   } else {
     try {
-      const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+      const db = getAionuiDb();
+      if (!db) return res.status(503).json({ error: 'Database offline' });
       db.prepare("DELETE FROM team_tasks WHERE id = ?").run(id);
       res.json({ success: true });
     } catch (e) {
@@ -1913,7 +1936,8 @@ app.post('/api/skills', (req, res) => {
 // SESSIONS (Conversations & Messages)
 app.get('/api/sessions', (req, res) => {
   try {
-    const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+    const db = getAionuiDb();
+    if (!db) return res.json([]);
     const rows = db.prepare("SELECT id, title, created_at FROM conversations ORDER BY created_at DESC LIMIT 50").all();
     res.json(rows);
   } catch {
@@ -1924,7 +1948,8 @@ app.get('/api/sessions', (req, res) => {
 app.get('/api/session-detail', (req, res) => {
   const { id } = req.query;
   try {
-    const db = new (require('node:sqlite').DatabaseSync)(AIONUI_DB);
+    const db = getAionuiDb();
+    if (!db) return res.json({ messages: [] });
     const rows = db.prepare("SELECT role, content, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC").all(id);
     res.json({ messages: rows });
   } catch {
