@@ -52,11 +52,9 @@ function readConfig() {
 // OPENROUTER KEYS (working ones from Gary's config)
 // ═══════════════════════════════════════════════════════════════════════
 const OR_KEYS = [
-  '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',
   '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',
   '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',
   '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',
-  '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',
   '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',
   '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',
   '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',
@@ -374,7 +372,7 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
-    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 5)) {
+    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 2)) {
       try {
         console.log(`[OR Chat] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
         const controller = new AbortController();
@@ -681,7 +679,7 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
-    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 5)) {
+    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 2)) {
       try {
         console.log(`[OR ChatCompletion] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
         const controller = new AbortController();
@@ -844,7 +842,7 @@ Example JSON output:
 
   let attempt = 0;
   for (const currentModel of uniqueModels) {
-    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5)) {
+    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 2)) {
       attempt++;
       try {
         console.log(`[Orchestrator] Attempt ${attempt}: trying model ${currentModel} with key ${key.substring(0, 15)}...`);

@@ -56,3 +56,6 @@
 | T51 | Backend (`server.mjs`) | Implement Unified Tool Call Parser | ✅ Completed | Update executeToolCall to parse nested XML tags |
 | T52 | Backend (`server.mjs`) | Implement Swarm Model Failover Chain | ✅ Completed | Add failover loops for chatCompletion and getOrchestratorPlan |
 | T53 | Verification | Restart & End-To-End Verification | ✅ Completed | Restart server, run end-to-end tests, verify fast non-leaking replies |
+| T54 | Backend (`server.mjs`) | Remove dead/rate-limited keys from pool | ✅ Completed | Clean up OR_KEYS in server.mjs |
+| T55 | Backend (`server.mjs`) | Optimize model failover retry count | ✅ Completed | Reduce key retries to at most 2 in chatCompletion methods |
+| T56 | Verification | End-to-End Latency Verification | ✅ Completed | Restart server and verify response time is under 5 seconds |
