@@ -89,3 +89,5 @@
 | T84 | Frontend (`App.tsx`) | Implement GoalsPanel React Component | ✅ Completed | Created left/right layout with search, refresh, and markdown rendering |
 | T85 | Frontend (`App.tsx`) | Integrate Goals tab in central panel selection | ✅ Completed | Expanded centerTab union and added tab button to central nav bar |
 | T86 | Build & Verification | Swarm compilation and validation checks | ✅ Completed | Production compilation passes cleanly with zero warnings/errors |
+| T87 | Backend (`server.mjs`) | Implement automated tool call error interceptor | ✅ Completed | Wrapped executeToolCall to write raw errors to shared/error_vault/ for dynamic compile learning |
+| T88 | Verification | Restart and verify backend startup & logger | ✅ Completed | Confirmed syntax integrity, restarted task, verified logs are error-free |

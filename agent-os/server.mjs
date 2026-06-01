@@ -17,7 +17,7 @@ import os from 'os';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink } from 'fs';
 import { exec, execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, basename } from 'path';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
@@ -427,8 +427,82 @@ function recursiveSearch(dir, query, results = [], depth = 0) {
   return results;
 }
 
-// Helper to execute tool calls
+function writeToolErrorToVault(tool, target, errorMessage) {
+  try {
+    const errorVault = join(SHARED, 'error_vault');
+    if (!existsSync(errorVault)) mkdirSync(errorVault, { recursive: true });
+    
+    // Hash/slugify the target name
+    const sanitizedTarget = target.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30);
+    const slug = `tool-${tool}-${sanitizedTarget}-${Date.now()}`;
+    const filePath = join(errorVault, `${slug}.md`);
+    
+    const content = `# Error: Tool ${tool} failed on ${target}
+
+## Symptoms
+The tool execution failed with the following error:
+\`\`\`
+${errorMessage}
+\`\`\`
+
+## Root Cause
+The tool ${tool} encountered a failure when interacting with the target path or execution command: ${target}.
+
+## Solution
+Examine the console error message and verify permission configuration, path availability, command syntax, or workspace locking state.
+`;
+    writeFileSync(filePath, content, 'utf-8');
+    console.log(`[Self-Evolution] Auto-logged tool failure to vault: ${filePath}`);
+  } catch (e) {
+    console.error('[Self-Evolution] Failed to write tool error to vault:', e.message);
+  }
+}
+
+// Helper to execute tool calls (with automatic error logging and vault routing)
 async function executeToolCall(toolCallText, onProgress = null, fromAgent = 'hermes') {
+  const result = await _executeToolCallRaw(toolCallText, onProgress, fromAgent);
+  
+  if (result.includes('Error:') || result.includes('Error executing') || result.includes('failed') || result.includes('not supported')) {
+    try {
+      let toolType = 'unknown';
+      const match = toolCallText.match(/<longcat_tool_call>\s*([a-zA-Z0-9_\-]+)/i);
+      if (match) toolType = match[1].trim().toLowerCase();
+      
+      const cleanErr = result.replace('<longcat_tool_response>', '').replace('</longcat_tool_response>', '').trim();
+      
+      let target = 'unknown';
+      const keyMatches = [...toolCallText.matchAll(/<longcat_arg_key>([\s\S]*?)<\/longcat_arg_key>/g)];
+      const valueMatches = [...toolCallText.matchAll(/<longcat_arg_value>([\s\S]*?)<\/longcat_arg_value>/g)];
+      if (keyMatches.length > 0) {
+        for (let i = 0; i < keyMatches.length; i++) {
+          const k = keyMatches[i][1].trim();
+          if (['command', 'cmd', 'CommandLine', 'file_path', 'path', 'TargetFile', 'AbsolutePath', 'query', 'q'].includes(k)) {
+            target = valueMatches[i] ? valueMatches[i][1].trim() : 'unknown';
+            break;
+          }
+        }
+      } else {
+        const tags = [...toolCallText.matchAll(/<([a-zA-Z0-9_\-]+)>([\s\S]*?)<\/ ?\1>/gi)];
+        for (const t of tags) {
+          const tag = t[1].trim();
+          if (['command', 'cmd', 'CommandLine', 'file_path', 'path', 'TargetFile', 'AbsolutePath', 'query', 'q'].includes(tag)) {
+            target = t[2].trim();
+            break;
+          }
+        }
+      }
+
+      logActivity({ type: 'tool_error', tool: toolType, target, error: cleanErr });
+      writeToolErrorToVault(toolType, target, cleanErr);
+    } catch (e) {
+      console.error('[Self-Evolution] Tool error wrapper failed:', e.message);
+    }
+  }
+  return result;
+}
+
+// Helper to execute tool calls
+async function _executeToolCallRaw(toolCallText, onProgress = null, fromAgent = 'hermes') {
   // Parse tool type from first line or nested tag
   let toolType = '';
   const firstLineMatch = toolCallText.match(/<longcat_tool_call>\s*([a-zA-Z0-9_\-]+)/i);
@@ -2185,6 +2259,43 @@ app.post('/api/browser', async (req, res) => {
       res.json({ success: true, message: 'Page reloaded' });
     } else {
       res.status(400).json({ error: 'Unknown action' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GOALS ARCHIVE API
+app.get('/api/goals', (req, res) => {
+  const goalsDir = join(SHARED, 'knowledge_base', 'goals');
+  try {
+    if (!existsSync(goalsDir)) return res.json({ goals: [] });
+    const files = readdirSync(goalsDir).filter(f => f.endsWith('.md'));
+    const goals = [];
+    for (const f of files) {
+      const content = readFileSync(join(goalsDir, f), 'utf-8');
+      const lines = content.split('\n');
+      const title = lines.find(l => l.startsWith('# Swarm Goal: '))?.replace('# Swarm Goal: ', '').trim() || f;
+      const date = lines.find(l => l.startsWith('- **Date**: '))?.replace('- **Date**: ', '').trim() || '';
+      goals.push({ filename: f, title, date });
+    }
+    goals.sort((a, b) => b.filename.localeCompare(a.filename));
+    res.json({ goals });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/goals/content', (req, res) => {
+  const { file } = req.query;
+  if (!file) return res.status(400).json({ error: 'file parameter required' });
+  const safePath = join(SHARED, 'knowledge_base', 'goals', basename(file));
+  try {
+    if (existsSync(safePath)) {
+      const content = readFileSync(safePath, 'utf-8');
+      res.json({ content });
+    } else {
+      res.status(404).json({ error: 'Goal file not found' });
     }
   } catch (e) {
     res.status(500).json({ error: e.message });
