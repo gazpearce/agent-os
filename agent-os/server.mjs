@@ -1587,9 +1587,116 @@ Example JSON output:
 }
 
 // CHAT — main endpoint, also allows specifying which agent responds
+function searchMemoryInternal(q) {
+  if (!q) return [];
+  const results = [];
+  const query = q.toLowerCase();
+  
+  const contextPath = 'C:\\Users\\Gary\\CONTEXT.md';
+  if (existsSync(contextPath)) {
+    const lines = getCachedFileLines(contextPath);
+    lines.forEach((line, idx) => {
+      if (line.toLowerCase().includes(query)) {
+        const text = line.trim();
+        results.push({ source: 'CONTEXT.md', snippet: text });
+      }
+    });
+  }
+  
+  const obsidianPath = 'D:\\Agent OS';
+  if (existsSync(obsidianPath)) {
+    try {
+      const allMdFiles = findMarkdownFiles(obsidianPath);
+      allMdFiles.forEach(filePath => {
+        const lines = getCachedFileLines(filePath);
+        lines.forEach((line, idx) => {
+          if (line.toLowerCase().includes(query)) {
+            const text = line.trim();
+            const relativeName = filePath.replace(obsidianPath + '\\', '').replace(obsidianPath + '/', '').replace(/\\/g, '/');
+            results.push({ source: relativeName, snippet: text });
+          }
+        });
+      });
+    } catch {}
+  }
+
+  if (existsSync(AGENT_LOG)) {
+    try {
+      const rawLogs = JSON.parse(readFileSync(AGENT_LOG, 'utf-8') || '[]');
+      const reversedLogs = [...rawLogs].reverse();
+      reversedLogs.forEach((log) => {
+        const typeMatch = log.type?.toLowerCase().includes(query);
+        const nameMatch = log.name?.toLowerCase().includes(query);
+        const fromMatch = log.from?.toLowerCase().includes(query);
+        const toMatch = log.to?.toLowerCase().includes(query);
+        const messageMatch = log.message?.toLowerCase().includes(query);
+        const responseMatch = log.response?.toLowerCase().includes(query);
+        const infoMatch = log.info?.toLowerCase().includes(query);
+        
+        if (typeMatch || nameMatch || fromMatch || toMatch || messageMatch || responseMatch || infoMatch) {
+          const snippet = `${log.from ? `[From: ${log.from}] ` : ''}${log.to ? `[To: ${log.to}] ` : ''}${log.type ? `[Type: ${log.type}] ` : ''}${log.message ? `Msg: ${log.message.substring(0, 100)} ` : ''}${log.response ? `Resp: ${log.response.substring(0, 100)} ` : ''}${log.info ? `Info: ${log.info.substring(0, 100)}` : ''}`;
+          results.push({
+            source: `Agent Log: ${log.type || 'activity'}`,
+            snippet
+          });
+        }
+      });
+    } catch {}
+  }
+  return results;
+}
+
+function injectRecalledMemory(query) {
+  const qLower = query.toLowerCase();
+  const triggerWords = ['remember', 'recall', 'previous', 'last', 'vault', 'history', 'happen', 'did we', 'did you', 'how did', 'error', 'fix'];
+  const hasTrigger = triggerWords.some(w => qLower.includes(w));
+  if (!hasTrigger) return query;
+
+  // Extract clean search words
+  const words = query.split(/\s+/);
+  const stopWords = ['what', 'is', 'the', 'how', 'to', 'in', 'on', 'at', 'for', 'with', 'of', 'about', 'last', 'time', 'remember', 'recall', 'did', 'we', 'you', 'me', 'my', 'do', 'does', 'a', 'an', 'was', 'were', 'our', 'us'];
+  const searchTerms = words
+    .map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, '').trim())
+    .filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
+
+  if (searchTerms.length === 0) return query;
+
+  // Search memory for the best keyword
+  const termToSearch = searchTerms[searchTerms.length - 1];
+  console.log(`[Memory Recall] Recall query triggered. Searching term: "${termToSearch}"...`);
+  const hits = searchMemoryInternal(termToSearch);
+  
+  if (hits.length === 0) return query;
+
+  // Deduplicate and select top 6 hits
+  const uniqueHits = [];
+  const seen = new Set();
+  for (const h of hits) {
+    const key = `${h.source}:${h.snippet}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueHits.push(h);
+    }
+    if (uniqueHits.length >= 6) break;
+  }
+
+  // Build recall context string
+  let context = `\n\n### # Dynamic Memory Recall (Found in Vault/Logs):\n`;
+  uniqueHits.forEach(h => {
+    context += `- **Source**: ${h.source}\n  **Snippet**: ${h.snippet}\n`;
+  });
+  context += `\n(Please use the above historical context to accurately answer the query.)\n\n`;
+
+  console.log(`[Memory Recall] Injected ${uniqueHits.length} matching snippets into the query.`);
+  return context + query;
+}
+
 app.post('/api/chat', async (req, res) => {
   const { query, agent: agentId } = req.body;
   if (!query) return res.status(400).json({ error: 'Query required' });
+  
+  // Compute memory context
+  const queryWithMemory = injectRecalledMemory(query);
   
   // Set event stream headers for SSE immediately
   res.setHeader('Content-Type', 'text/event-stream');
@@ -1600,7 +1707,7 @@ app.post('/api/chat', async (req, res) => {
     try {
       // 1. Plan Decomposition
       res.write(`data: ${JSON.stringify({ content: `🧠 **Gemini Orchestrator** is decomposing the goal...\n\n` })}\n\n`);
-      const plan = await getOrchestratorPlan(query);
+      const plan = await getOrchestratorPlan(queryWithMemory);
       
       // Save plan to shared workspace
       try {
@@ -1665,13 +1772,13 @@ app.post('/api/chat', async (req, res) => {
   let response;
   if (agentId && agentId !== 'hermes') {
     // Route to specific agent
-    const result = await sendMessage(agentId, query, 'user', (update) => {
+    const result = await sendMessage(agentId, queryWithMemory, 'user', (update) => {
       res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
     });
     response = result.response || result.error || 'No response';
   } else {
     // Default: Hermes handles it, routed through sendMessage to support tools and prevent raw XML leakage
-    const result = await sendMessage('hermes', query, 'user', (update) => {
+    const result = await sendMessage('hermes', queryWithMemory, 'user', (update) => {
       res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
     });
     response = result.response || result.error || 'No response';
@@ -2165,6 +2272,36 @@ app.get('/api/memory-search', (req, res) => {
             results.push({ source: `Obsidian: ${relativeName}`, file: relativeName, line: idx + 1, text, snippet: text });
           }
         });
+      });
+    } catch {}
+  }
+
+  // Index agent-log.json in reverse chronological order
+  if (existsSync(AGENT_LOG)) {
+    try {
+      const rawLogs = JSON.parse(readFileSync(AGENT_LOG, 'utf-8') || '[]');
+      const reversedLogs = [...rawLogs].reverse();
+      reversedLogs.forEach((log, revIdx) => {
+        const origIdx = rawLogs.length - 1 - revIdx;
+        const typeMatch = log.type?.toLowerCase().includes(query);
+        const nameMatch = log.name?.toLowerCase().includes(query);
+        const fromMatch = log.from?.toLowerCase().includes(query);
+        const toMatch = log.to?.toLowerCase().includes(query);
+        const messageMatch = log.message?.toLowerCase().includes(query);
+        const responseMatch = log.response?.toLowerCase().includes(query);
+        const infoMatch = log.info?.toLowerCase().includes(query);
+        
+        if (typeMatch || nameMatch || fromMatch || toMatch || messageMatch || responseMatch || infoMatch) {
+          const text = `${log.timestamp || ''} - ${log.message || log.info || log.response || ''}`;
+          const snippet = `${log.from ? `[From: ${log.from}] ` : ''}${log.to ? `[To: ${log.to}] ` : ''}${log.type ? `[Type: ${log.type}] ` : ''}${log.message ? `Msg: ${log.message.substring(0, 100)} ` : ''}${log.response ? `Resp: ${log.response.substring(0, 100)} ` : ''}${log.info ? `Info: ${log.info.substring(0, 100)}` : ''}`;
+          results.push({
+            source: `Agent Log: ${log.type || 'activity'}`,
+            file: 'agent-log.json',
+            line: origIdx + 1,
+            text,
+            snippet
+          });
+        }
       });
     } catch {}
   }

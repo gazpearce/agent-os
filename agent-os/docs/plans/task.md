@@ -80,6 +80,9 @@
 | T75 | Frontend (`App.tsx`) | Frontend Dashboard UI Memory Trigger | ✅ Completed | Add manual consolidate trigger & rebuild dashboard |
 | T76 | Backend (`server.mjs`) | Backend Local Ollama Fallback & Diagnostics | ✅ Completed | Implement local Ollama fallback in chatCompletion & diagnostic check |
 | T77 | Frontend (`App.tsx`) | Frontend Diagnostics Update & Rebuild | ✅ Completed | Add Ollama health indicator in App.tsx & build dashboard |
+| T78 | Backend (`server.mjs`) | Index Agent Logs in Memory Search | ✅ Completed | Support agent-log.json scanning in /api/memory-search |
+| T79 | Backend (`server.mjs`) | Dynamic Memory Recall Context Injection | ✅ Completed | Inject keywords search results into chat completions |
+| T80 | Build & Verification | Build & Verify Swarm Swarming | ✅ Completed | Rebuild React frontend and run interactive recall check |
 
 
 
