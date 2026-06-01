@@ -1691,6 +1691,47 @@ function injectRecalledMemory(query) {
   return context + query;
 }
 
+async function archiveGoal(goal, plan, outcome) {
+  console.log(`[Goals Archive] Archiving completed goal: "${goal}"`);
+  try {
+    const timestamp = new Date().toISOString();
+    const cleanDate = timestamp.split('T')[0];
+    const fileSlug = goal.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 30);
+    const filename = `goal-${cleanDate}-${fileSlug}-${Date.now()}.md`;
+    const archiveDir = join(SHARED, 'knowledge_base', 'goals');
+    const archivePath = join(archiveDir, filename);
+
+    if (!existsSync(archiveDir)) mkdirSync(archiveDir, { recursive: true });
+
+    let md = `# Swarm Goal: ${goal}\n\n`;
+    md += `- **Date**: ${new Date().toLocaleString()}\n`;
+    md += `- **Status**: Completed\n\n`;
+    md += `## Execution Plan\n`;
+    plan.forEach((step, idx) => {
+      md += `${idx + 1}. **${step.agent}**: ${step.task} *(${step.reason})*\n`;
+    });
+    md += `\n## Outcome Summary\n`;
+    md += `${outcome}\n`;
+
+    writeFileSync(archivePath, md, 'utf-8');
+    console.log(`[Goals Archive] Goal archived to ${archivePath}`);
+
+    // Update goals index
+    const indexPath = join(SHARED, 'knowledge_base', 'goals-index.md');
+    let indexMd = `# Goals Archive Index\n\n`;
+    if (existsSync(indexPath)) {
+      indexMd = readFileSync(indexPath, 'utf-8');
+    }
+    indexMd += `* [${goal}](goals/${filename}) - Executed on ${cleanDate}\n`;
+    writeFileSync(indexPath, indexMd.trim() + '\n', 'utf-8');
+
+    // Consolidate memory immediately so this goal is learned!
+    await runMemoryConsolidation();
+  } catch (e) {
+    console.error('[Goals Archive] Archiving failed:', e.message);
+  }
+}
+
 app.post('/api/chat', async (req, res) => {
   const { query, agent: agentId } = req.body;
   if (!query) return res.status(400).json({ error: 'Query required' });
@@ -1748,6 +1789,26 @@ app.post('/api/chat', async (req, res) => {
         res.write(`data: ${JSON.stringify({ tool: `Response from ${AGENTS[step.agent]?.name || step.agent}:\n${formattedResponse}` })}\n\n`);
         res.write(`data: ${JSON.stringify({ content: `✅ **${AGENTS[step.agent]?.name || step.agent}** completed step successfully.\n\n` })}\n\n`);
       }
+
+      // Summarize the outcome of the completed goal using LLM
+      let outcome = accumulatedContext.substring(0, 1000);
+      try {
+        const summaryPrompt = `You are a swarm manager summarizing the execution of a goal.
+Goal: "${query}"
+Plan steps: ${JSON.stringify(plan)}
+Accumulated execution output from agents:
+${accumulatedContext.substring(0, 4000)}
+
+Provide a concise, 2-3 sentence executive summary of what was accomplished and verified. Output only the summary.`;
+        const summary = await chatCompletion(summaryPrompt, "You are a concise executive summary compiler.");
+        if (summary && !summary.includes('All providers failed')) {
+          outcome = summary;
+        }
+      } catch {}
+
+      // Archive the goal
+      res.write(`data: ${JSON.stringify({ content: `📁 **Archiving swarm goal & outcome index...**\n` })}\n\n`);
+      await archiveGoal(query, plan, outcome);
 
       // 3. Self-Learning Loop execution
       res.write(`data: ${JSON.stringify({ content: `🔄 **Triggering swarm self-learning compiler...**\n` })}\n\n`);

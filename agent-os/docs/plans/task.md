@@ -83,6 +83,9 @@
 | T78 | Backend (`server.mjs`) | Index Agent Logs in Memory Search | ✅ Completed | Support agent-log.json scanning in /api/memory-search |
 | T79 | Backend (`server.mjs`) | Dynamic Memory Recall Context Injection | ✅ Completed | Inject keywords search results into chat completions |
 | T80 | Build & Verification | Build & Verify Swarm Swarming | ✅ Completed | Rebuild React frontend and run interactive recall check |
+| T81 | Backend (`server.mjs`) | Implement Swarm Goals Archiver Helper | ✅ Completed | Write archiveGoal helper function & summarize logs using LLM |
+| T82 | Backend (`server.mjs`) | Hook Goals Archiver into Orchestration Loop | ✅ Completed | Call archiveGoal inside orchestrator loop & test output |
+| T83 | Build & Verification | Rebuild & Diagnostic Check | ✅ Completed | Rebuild React frontend and confirm zero errors |
 
 
 
