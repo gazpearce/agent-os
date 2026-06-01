@@ -920,7 +920,8 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress
     try {
       if (onProgress) onProgress(`🔀 **OpenClaw CLI** is initializing...`);
       console.log(`[Swarm Execution] Running native OpenClaw CLI agent...`);
-      const escapedMessage = message.replace(/"/g, "'").replace(/\r?\n/g, ' ');
+      const cleanMessage = message.split('\n\nHere is the accumulated output')[0];
+      const escapedMessage = cleanMessage.replace(/"/g, "'").replace(/\r?\n/g, ' ').substring(0, 4000);
       const cmd = `openclaw agent --local --agent main --message "${escapedMessage}" < NUL`;
       if (onProgress) onProgress(`🔧 **OpenClaw CLI** is executing browser/routing steps...`);
       const output = await new Promise((resolve, reject) => {
@@ -942,7 +943,8 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress
       if (onProgress) onProgress(`🤖 **Aider CLI** is initializing codebase environment...`);
       console.log(`[Swarm Execution] Running native Aider CLI agent...`);
       const key = OR_KEYS[0] || '';
-      const escapedMessage = message.replace(/"/g, "'").replace(/\r?\n/g, ' ');
+      const cleanMessage = message.split('\n\nHere is the accumulated output')[0];
+      const escapedMessage = cleanMessage.replace(/"/g, "'").replace(/\r?\n/g, ' ').substring(0, 4000);
       const cmd = `set OPENROUTER_API_KEY=${key} && aider --model openrouter/google/gemma-4-31b-it:free --message "${escapedMessage}" --yes --no-git`;
       if (onProgress) onProgress(`🔧 **Aider CLI** is updating files in workspace...`);
       const output = await new Promise((resolve, reject) => {
@@ -996,7 +998,7 @@ Output ONLY the raw gh command. Do not write markdown, do not write code blocks,
   if (['agy', 'openclaw', 'hermes', 'claude', 'aider', 'github'].includes(toAgent) && (!['claude', 'openclaw', 'aider', 'github'].includes(toAgent) || runSimulated)) {
     try {
       let agentPrompt = '';
-      let maxTokens = 2048;
+      let maxTokens = 8192;
       if (toAgent === 'agy') {
         agentPrompt = 'You are Antigravity (AGY), the L1 CEO, Orchestrator, and Deep Planner of the Agent OS V2 Swarm. Analyze goals, generate correct code, and provide detailed planning. Be concise. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
       } else if (toAgent === 'openclaw') {
@@ -1004,14 +1006,16 @@ Output ONLY the raw gh command. Do not write markdown, do not write code blocks,
         maxTokens = 4096;
       } else if (toAgent === 'claude') {
         agentPrompt = 'You are Claude, the Expert Developer agent of the Agent OS V2 Swarm. Perform refactoring, write tests, and optimize code. Be concise. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
-        maxTokens = 4096;
+        maxTokens = 8192;
       } else if (toAgent === 'aider') {
         agentPrompt = 'You are Aider, the Multi-file Coding agent of the Agent OS V2 Swarm. Be concise. Synthesize code improvements across files.';
       } else if (toAgent === 'github') {
         agentPrompt = 'You are GitHub CLI Agent, managing pull requests and issues. Be concise.';
       } else {
         agentPrompt = 'You are Hermes, part of the Agent OS team. Be concise and helpful. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
+        maxTokens = 8192;
       }
+
 
       const customPromptPath = `${SHARED}\\hermes_system_prompt.txt`;
       if (toAgent === 'hermes' && existsSync(customPromptPath)) {
@@ -1083,8 +1087,18 @@ Only run one tool at a time. After calling a tool, the system will return the re
         loopCount++;
         currentResponse = await chatCompletionWithHistory(history, maxTokens);
         
-        // Find tool call in response
-        const toolCallMatch = currentResponse.match(/<longcat_tool_call>[\s\S]*?<\/longcat_tool_call>/i);
+        // Normalize potential standard tool tags to longcat equivalents
+        const normalizedResponse = currentResponse
+          .replace(/<tool_call>/gi, '<longcat_tool_call>')
+          .replace(/<\/tool_call>/gi, '</longcat_tool_call>')
+          .replace(/<arg_key>/gi, '<longcat_arg_key>')
+          .replace(/<\/arg_key>/gi, '</longcat_arg_key>')
+          .replace(/<arg_value>/gi, '<longcat_arg_value>')
+          .replace(/<\/arg_value>/gi, '</longcat_arg_value>')
+          .replace(/<tool_response>/gi, '<longcat_tool_response>')
+          .replace(/<\/tool_response>/gi, '</longcat_tool_response>');
+
+        const toolCallMatch = normalizedResponse.match(/<longcat_tool_call>[\s\S]*?<\/longcat_tool_call>/i);
         if (!toolCallMatch) {
           break; // No more tool calls, exit loop
         }
@@ -1668,17 +1682,24 @@ You MUST output ONLY a valid JSON array. Each element of the array must be an ob
 - "task": a clear, descriptive instruction for the agent to execute
 - "reason": brief explanation of why this step is necessary
 
+Agent Role Guidelines (Follow strictly when assigning tasks):
+1. "obsidian": Read-only agent. Use ONLY for searching vault memories, retrieving content guidelines, and loading local docs. Do NOT assign file-writing or terminal commands to obsidian.
+2. "hermes": Primary execution agent. Use for running terminal commands, writing files, and performing core implementation tasks.
+3. "agy": Antigravity (L1 CEO). Use for complex planning, writing files, or code integration steps.
+4. "openclaw": Use for browser automation, web search research, and routing verification.
+5. "ollama": Use for local reasoning fallback.
+
 Example JSON output:
 [
   {
     "agent": "obsidian",
-    "task": "Read the recent lessons learned in the vault to find any relevant setup tips",
-    "reason": "Ensure we use past learned rules before starting"
+    "task": "Search the vault for Content Guidelines to retrieve formatting rules.",
+    "reason": "Ensure we use past learned guidelines before starting"
   },
   {
     "agent": "hermes",
-    "task": "Create a file named shared/todo-plan.md listing all steps",
-    "reason": "Establish the task list in the shared workspace"
+    "task": "Create the file D:/Agent OS/shared/cctv-faq-blog.md and write the initial blog content.",
+    "reason": "Write the draft content in the shared workspace using write_file"
   }
 ]`;
 
