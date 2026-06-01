@@ -36,12 +36,103 @@ const CONFIG_PATH = `${HOME}\\AppData\\Local\\hermes\\config.yaml`;
 const AIONUI_DB = `${HOME}\\AppData\\Roaming\\AionUi\\aionui\\aionui-backend.db`;
 
 let aionuiDb = null;
+
+function writeDbErrorToVault(sql, error) {
+  try {
+    const errorVault = join(SHARED, 'error_vault');
+    if (!existsSync(errorVault)) mkdirSync(errorVault, { recursive: true });
+    
+    const sanitizedSql = sql.replace(/[^a-zA-Z0-9]/g, '-').substring(0, 30);
+    const slug = `db-error-${sanitizedSql}-${Date.now()}`;
+    const filePath = join(errorVault, `${slug}.md`);
+    
+    const content = `# Error: SQLite database operation failed
+
+## Symptoms
+The SQL statement failed with the following error:
+\`\`\`
+${error.stack || error.message}
+\`\`\`
+
+## Root Cause
+An error was thrown during SQLite database prepare or execution.
+SQL Statement:
+\`\`\`sql
+${sql}
+\`\`\`
+
+## Solution
+Inspect the SQL syntax, the schema of the database at ${AIONUI_DB}, and make sure the table exists and the schema matches. Check for database locks.
+`;
+    writeFileSync(filePath, content, 'utf-8');
+    console.log(`[Self-Evolution] Auto-logged SQLite failure to vault: ${filePath}`);
+  } catch (e) {
+    console.error('[Self-Evolution] Failed to write SQLite error to vault:', e.message);
+  }
+}
+
+function wrapStatement(stmt, sql) {
+  return new Proxy(stmt, {
+    get(target, prop, receiver) {
+      const val = Reflect.get(target, prop, receiver);
+      if (typeof val === 'function') {
+        return function(...args) {
+          try {
+            return val.apply(target, args);
+          } catch (e) {
+            console.error(`[SQLite Proxy] statement.${String(prop)} error:`, e.message, 'SQL:', sql);
+            writeDbErrorToVault(sql, e);
+            aionuiDb = null; // Reset connection
+            throw e;
+          }
+        };
+      }
+      return val;
+    }
+  });
+}
+
+function wrapDatabase(db) {
+  return new Proxy(db, {
+    get(target, prop, receiver) {
+      if (prop === 'prepare') {
+        return function(sql) {
+          try {
+            const stmt = target.prepare(sql);
+            return wrapStatement(stmt, sql);
+          } catch (e) {
+            console.error('[SQLite Proxy] prepare error:', e.message, 'SQL:', sql);
+            writeDbErrorToVault(sql, e);
+            aionuiDb = null; // Reset connection
+            throw e;
+          }
+        };
+      }
+      const val = Reflect.get(target, prop, receiver);
+      if (typeof val === 'function') {
+        return function(...args) {
+          try {
+            return val.apply(target, args);
+          } catch (e) {
+            console.error(`[SQLite Proxy] db.${String(prop)} error:`, e.message);
+            writeDbErrorToVault(`db.${String(prop)}(${args.join(', ')})`, e);
+            aionuiDb = null; // Reset connection
+            throw e;
+          }
+        };
+      }
+      return val;
+    }
+  });
+}
+
 function getAionuiDb() {
   if (aionuiDb) return aionuiDb;
   if (!existsSync(AIONUI_DB)) return null;
   try {
     const { DatabaseSync } = require('node:sqlite');
-    aionuiDb = new DatabaseSync(AIONUI_DB);
+    const rawDb = new DatabaseSync(AIONUI_DB);
+    aionuiDb = wrapDatabase(rawDb);
     return aionuiDb;
   } catch (e) {
     console.error('[SQLite] Failed to open AionUi database globally:', e.message);
@@ -2670,9 +2761,17 @@ app.get('/api/sessions', (req, res) => {
   try {
     const db = getAionuiDb();
     if (!db) return res.json([]);
-    const rows = db.prepare("SELECT id, title, created_at FROM conversations ORDER BY created_at DESC LIMIT 50").all();
-    res.json(rows);
-  } catch {
+    const rows = db.prepare("SELECT id, name, created_at FROM conversations ORDER BY created_at DESC LIMIT 50").all();
+    const mapped = rows.map(r => ({
+      id: r.id,
+      fileName: r.name || `Session ${r.id.slice(-6)}`,
+      date: new Date(r.created_at).toLocaleString('en-GB'),
+      rawDate: String(r.created_at),
+      sizeBytes: 1024
+    }));
+    res.json(mapped);
+  } catch (e) {
+    console.error('[Sessions Route] Failed to get sessions:', e.message);
     res.json([]);
   }
 });

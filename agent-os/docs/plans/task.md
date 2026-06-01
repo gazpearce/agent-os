@@ -99,3 +99,6 @@
 | T94 | Verification | Restart and verify backend latency improvements | ✅ Completed | Restarted server, verified healthy startup logs and no timeouts |
 | T95 | Frontend (`App.tsx`) | Visual CPU/Memory Progress Gauges | ✅ Completed | Implemented sleek HSL-colored progress indicators for load metrics |
 | T96 | Verification | Swarm Diagnostic Check | ✅ Completed | Executed scratch/test-diagnose.js verifying healthy CLI runtimes and resources |
+| T97 | Backend (`server.mjs`) | Implement Self-Healing SQLite database Proxy | ✅ Completed | Wraps database sync and statements in Proxies to reset connection on query fail |
+| T98 | Backend (`server.mjs`) | Fix Conversations SQL Table Column mismatch | ✅ Completed | Corrected `title` column to `name` in `/api/sessions` and mapped data properties |
+| T99 | Verification | End-to-End database self-healing & endpoints validation | ✅ Completed | Verified proxy captures invalid table queries, restarts server, and checks sessions endpoint output |
