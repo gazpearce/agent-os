@@ -2051,6 +2051,24 @@ function getCachedFileLines(filePath) {
   }
 }
 
+function findMarkdownFiles(dir, fileList = [], depth = 0) {
+  if (depth > 6) return fileList;
+  try {
+    const files = readdirSync(dir);
+    for (const file of files) {
+      if (['node_modules', '.git', 'dist', 'build', '.openclaw', '.fcc', 'tmp'].includes(file)) continue;
+      const fullPath = join(dir, file);
+      const stat = statSync(fullPath);
+      if (stat.isDirectory()) {
+        findMarkdownFiles(fullPath, fileList, depth + 1);
+      } else if (stat.isFile() && file.endsWith('.md')) {
+        fileList.push(fullPath);
+      }
+    }
+  } catch {}
+  return fileList;
+}
+
 // MEMORY SEARCH
 app.get('/api/memory-search', (req, res) => {
   const { q } = req.query;
@@ -2073,21 +2091,21 @@ app.get('/api/memory-search', (req, res) => {
   const obsidianPath = 'D:\\Agent OS';
   if (existsSync(obsidianPath)) {
     try {
-      const files = readdirSync(obsidianPath).filter(f => f.endsWith('.md'));
-      files.forEach(f => {
-        const filePath = join(obsidianPath, f);
+      const allMdFiles = findMarkdownFiles(obsidianPath);
+      allMdFiles.forEach(filePath => {
         const lines = getCachedFileLines(filePath);
         lines.forEach((line, idx) => {
           if (line.toLowerCase().includes(query)) {
             const text = line.trim();
-            results.push({ source: `Obsidian: ${f}`, file: f, line: idx + 1, text, snippet: text });
+            const relativeName = filePath.replace(obsidianPath + '\\', '').replace(obsidianPath + '/', '').replace(/\\/g, '/');
+            results.push({ source: `Obsidian: ${relativeName}`, file: relativeName, line: idx + 1, text, snippet: text });
           }
         });
       });
     } catch {}
   }
   
-  res.json({ results: results.slice(0, 30) });
+  res.json({ results: results.slice(0, 50) });
 });
 
 // PROXY
