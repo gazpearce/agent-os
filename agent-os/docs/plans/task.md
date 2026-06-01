@@ -97,3 +97,4 @@
 | T92 | Backend (`server.mjs`) | Optimize model fallback lists | ✅ Completed | Swapped deprecated Gemma 4 with Gemma 2 9B and Llama 3 8B free models |
 | T93 | Config (`config.yaml`) | Update default model fallback | ✅ Completed | Set model.default to google/gemma-2-9b-it:free to reduce latency |
 | T94 | Verification | Restart and verify backend latency improvements | ✅ Completed | Restarted server, verified healthy startup logs and no timeouts |
+| T95 | Frontend (`App.tsx`) | Visual CPU/Memory Progress Gauges | ✅ Completed | Implemented sleek HSL-colored progress indicators for load metrics |

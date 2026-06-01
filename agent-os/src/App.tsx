@@ -483,12 +483,42 @@ function SwarmDiagnosticsPanel() {
             <div>🦙 LM Studio: <span className={diag.proxies.lmStudio === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.lmStudio}</span></div>
             <div>🦙 Ollama: <span className={diag.proxies.ollama === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.ollama}</span></div>
           </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
+          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-2">
             <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">SYSTEM RESOURCES</span>
-            <div>💻 CPU Load: <span className="text-cyan-400">{diag.resources?.cpuPercent !== undefined ? `${diag.resources.cpuPercent}%` : 'N/A'}</span></div>
-            <div>📟 Memory: <span className="text-cyan-400">{diag.resources ? `${diag.resources.usedMemGB}/${diag.resources.totalMemGB} GB (${diag.resources.memPercent}%)` : 'N/A'}</span></div>
-            <div>🌐 Platform: <span className="text-gray-400 text-[9.5px]">{diag.resources ? `${diag.resources.platform} (${diag.resources.arch})` : 'N/A'}</span></div>
-            <div>⏱️ Uptime: <span className="text-gray-400">{diag.resources ? `${diag.resources.uptimeHours} hrs` : 'N/A'}</span></div>
+            
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px]">
+                <span>💻 CPU Load:</span>
+                <span className="text-cyan-400 font-bold">{diag.resources?.cpuPercent !== undefined ? `${diag.resources.cpuPercent}%` : 'N/A'}</span>
+              </div>
+              <div className="w-full bg-white/[0.03] h-1 rounded-full overflow-hidden border border-white/[0.02]">
+                <div 
+                  className="bg-cyan-500 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${diag.resources?.cpuPercent !== undefined ? Math.min(Math.max(diag.resources.cpuPercent, 0), 100) : 0}%` }} 
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex justify-between text-[9px]">
+                <span>📟 Memory:</span>
+                <span className="text-cyan-400 font-bold">{diag.resources ? `${diag.resources.memPercent}%` : 'N/A'}</span>
+              </div>
+              <div className="w-full bg-white/[0.03] h-1 rounded-full overflow-hidden border border-white/[0.02]">
+                <div 
+                  className="bg-indigo-500 h-full rounded-full transition-all duration-500" 
+                  style={{ width: `${diag.resources ? Math.min(Math.max(diag.resources.memPercent, 0), 100) : 0}%` }} 
+                />
+              </div>
+              <div className="text-[7.5px] text-gray-500 font-mono mt-0.5 text-right select-none">
+                {diag.resources ? `${diag.resources.usedMemGB}/${diag.resources.totalMemGB} GB` : ''}
+              </div>
+            </div>
+
+            <div className="border-t border-white/[0.02] pt-1.5 space-y-1 text-[9.5px]">
+              <div>🌐 Platform: <span className="text-gray-400">{diag.resources ? `${diag.resources.platform} (${diag.resources.arch})` : 'N/A'}</span></div>
+              <div>⏱️ Uptime: <span className="text-gray-400">{diag.resources ? `${diag.resources.uptimeHours} hrs` : 'N/A'}</span></div>
+            </div>
           </div>
         </div>
       )}
