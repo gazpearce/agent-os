@@ -680,7 +680,8 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
 
   const modelFallbacks = [
     model,
-    'google/gemma-4-31b-it:free',
+    'google/gemma-2-9b-it:free',
+    'meta-llama/llama-3-8b-instruct:free',
     'openrouter/free'
   ];
 
@@ -1177,7 +1178,8 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
 
   const modelFallbacks = [
     model,
-    'google/gemma-4-31b-it:free',
+    'google/gemma-2-9b-it:free',
+    'meta-llama/llama-3-8b-instruct:free',
     'openrouter/free'
   ];
 
@@ -1602,7 +1604,8 @@ Example JSON output:
 
   const modelFallbacks = [
     model,
-    'google/gemma-4-31b-it:free',
+    'google/gemma-2-9b-it:free',
+    'meta-llama/llama-3-8b-instruct:free',
     'openrouter/free'
   ];
 
