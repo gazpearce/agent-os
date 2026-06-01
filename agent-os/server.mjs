@@ -1809,6 +1809,24 @@ app.post('/api/n8n/trigger', async (req, res) => {
   res.json({ success: true, message: `Workflow ${workflowId} queued for execution` });
 });
 
+const searchCache = {}; // Cache map for search files
+function getCachedFileLines(filePath) {
+  try {
+    const stats = statSync(filePath);
+    const mtime = stats.mtimeMs;
+    const cached = searchCache[filePath];
+    if (cached && cached.mtime === mtime) {
+      return cached.lines;
+    }
+    const content = readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+    searchCache[filePath] = { mtime, lines };
+    return lines;
+  } catch (e) {
+    return [];
+  }
+}
+
 // MEMORY SEARCH
 app.get('/api/memory-search', (req, res) => {
   const { q } = req.query;
@@ -1819,8 +1837,7 @@ app.get('/api/memory-search', (req, res) => {
   
   const contextPath = 'C:\\Users\\Gary\\CONTEXT.md';
   if (existsSync(contextPath)) {
-    const content = readFileSync(contextPath, 'utf-8');
-    const lines = content.split('\n');
+    const lines = getCachedFileLines(contextPath);
     lines.forEach((line, idx) => {
       if (line.toLowerCase().includes(query)) {
         const text = line.trim();
@@ -1834,8 +1851,8 @@ app.get('/api/memory-search', (req, res) => {
     try {
       const files = readdirSync(obsidianPath).filter(f => f.endsWith('.md'));
       files.forEach(f => {
-        const content = readFileSync(join(obsidianPath, f), 'utf-8');
-        const lines = content.split('\n');
+        const filePath = join(obsidianPath, f);
+        const lines = getCachedFileLines(filePath);
         lines.forEach((line, idx) => {
           if (line.toLowerCase().includes(query)) {
             const text = line.trim();
