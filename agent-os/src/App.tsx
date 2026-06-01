@@ -1701,6 +1701,7 @@ export default function App() {
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [appNotification, setAppNotification] = useState<string | null>(null);
 
   // Skills & MCP list states
   const [activeSkills, setActiveSkills] = useState<string[]>([]);
@@ -1802,6 +1803,9 @@ export default function App() {
         }));
         if (data.activeModel) {
           setActiveModel(data.activeModel);
+        }
+        if (data.notification !== undefined) {
+          setAppNotification(data.notification);
         }
       }
     } catch (e) {
@@ -2558,6 +2562,19 @@ export default function App() {
           </div>
         </div>
       </header>
+
+      {appNotification && (
+        <div className="bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-300 px-5 py-2 text-xs flex items-center justify-between shrink-0 z-40 relative select-none">
+          <span className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+            </span>
+            🔧 <strong>System Maintenance Alert:</strong> {appNotification}
+          </span>
+          <button onClick={() => setAppNotification(null)} className="text-gray-400 hover:text-white text-xs select-none cursor-pointer">Dismiss</button>
+        </div>
+      )}
 
       {/* ═══ CORE LAYOUT ═══ */}
       <div className="flex-1 flex overflow-hidden relative p-3 gap-3 bg-[#03030b]/30">

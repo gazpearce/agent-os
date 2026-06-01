@@ -36,6 +36,7 @@ const CONFIG_PATH = `${HOME}\\AppData\\Local\\hermes\\config.yaml`;
 const AIONUI_DB = `${HOME}\\AppData\\Roaming\\AionUi\\aionui\\aionui-backend.db`;
 
 let aionuiDb = null;
+let systemNotification = null;
 
 function writeDbErrorToVault(sql, error) {
   try {
@@ -369,7 +370,8 @@ function readCrons() {
     { id: "3", name: "Free Model Scanner", interval: "6 hours", status: "idle", next: "" },
     { id: "4", name: "AionUI Health Monitor", interval: "5 min", status: "running", next: "" },
     { id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" },
-    { id: "6", name: "Swarm Auto-Evolution Engine", interval: "30 min", status: "running", next: "" }
+    { id: "6", name: "Swarm Auto-Evolution Engine", interval: "30 min", status: "running", next: "" },
+    { id: "7", name: "OS Maintenance System", interval: "15 min", status: "running", next: "" }
   ];
 }
 
@@ -406,6 +408,8 @@ function executeCronTask(job) {
     runExperienceCompiler();
   } else if (job.name === 'Swarm Auto-Evolution Engine') {
     runSwarmEvolution();
+  } else if (job.name === 'OS Maintenance System') {
+    runOSMaintenance();
   }
 }
 
@@ -419,6 +423,7 @@ function setupCrons() {
   let modified = false;
   const compilerExists = crons.some(j => j.name === 'Swarm Experience Compiler');
   const evolverExists = crons.some(j => j.name === 'Swarm Auto-Evolution Engine');
+  const maintenanceExists = crons.some(j => j.name === 'OS Maintenance System');
   
   if (!compilerExists) {
     crons.push({ id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" });
@@ -426,6 +431,10 @@ function setupCrons() {
   }
   if (!evolverExists) {
     crons.push({ id: "6", name: "Swarm Auto-Evolution Engine", interval: "30 min", status: "running", next: "" });
+    modified = true;
+  }
+  if (!maintenanceExists) {
+    crons.push({ id: "7", name: "OS Maintenance System", interval: "15 min", status: "running", next: "" });
     modified = true;
   }
   
@@ -444,12 +453,103 @@ function setupCrons() {
   });
 }
 
+function isPortListening(port) {
+  return new Promise((resolve) => {
+    exec(`powershell -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction Stop"`, (err) => {
+      resolve(!err);
+    });
+  });
+}
+
+function speakNotification(text) {
+  const escaped = text.replace(/'/g, "''");
+  exec(`powershell -Command "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('${escaped}')"`, { timeout: 5000 });
+}
+
+async function runOSMaintenance() {
+  console.log('[OS Maintenance] Running OS & memory maintenance checks...');
+  const logs = [];
+  
+  // 1. Check if LM Studio is running. If not, auto-start and set notification
+  const lmPath = 'C:\\Users\\Gary\\AppData\\Local\\Programs\\LM Studio\\LM Studio.exe';
+  const lmActive = await isPortListening(1234);
+  if (!lmActive) {
+    logs.push("LM Studio is offline.");
+    if (existsSync(lmPath)) {
+      console.log('[OS Maintenance] LM Studio is offline. Starting LM Studio in background...');
+      const child = spawn(lmPath, [], { detached: true, stdio: 'ignore' });
+      child.unref();
+      systemNotification = "LM Studio was closed. Started it in the background.";
+      speakNotification("L M Studio was closed. Starting L M Studio in the background.");
+      logs.push("Auto-started LM Studio.");
+    } else {
+      systemNotification = "LM Studio is offline and the executable was not found.";
+      logs.push("LM Studio missing executable.");
+    }
+  }
+
+  // 2. Check if Ollama is running. If not, auto-start
+  const ollamaPath = 'C:\\Users\\Gary\\AppData\\Local\\Programs\\Ollama\\ollama app.exe';
+  const ollamaActive = await isPortListening(11434);
+  if (!ollamaActive) {
+    logs.push("Ollama is offline.");
+    if (existsSync(ollamaPath)) {
+      console.log('[OS Maintenance] Ollama is offline. Starting Ollama in background...');
+      const child = spawn(ollamaPath, [], { detached: true, stdio: 'ignore' });
+      child.unref();
+      systemNotification = "Ollama was closed. Started it in the background.";
+      speakNotification("Ollama was closed. Starting Ollama in the background.");
+      logs.push("Auto-started Ollama.");
+    } else {
+      systemNotification = "Ollama is offline and the executable was not found.";
+      logs.push("Ollama missing executable.");
+    }
+  }
+
+  // If both are healthy, clear notifications
+  if (lmActive && ollamaActive) {
+    if (systemNotification && (systemNotification.includes("LM Studio") || systemNotification.includes("Ollama"))) {
+      systemNotification = null;
+    }
+  }
+
+  // 3. SQLite Database VACUUM optimization
+  try {
+    const db = getAionuiDb();
+    if (db) {
+      db.exec('VACUUM');
+      logs.push("SQLite database optimized (VACUUM completed).");
+    }
+  } catch (dbErr) {
+    logs.push(`SQLite optimization failed: ${dbErr.message}`);
+  }
+
+  // 4. Memory/Log file rotation & cleanup
+  try {
+    if (existsSync(AGENT_LOG)) {
+      const stats = statSync(AGENT_LOG);
+      if (stats.size > 5 * 1024 * 1024) {
+        const backupPath = `${AGENT_LOG}.bak`;
+        renameSync(AGENT_LOG, backupPath);
+        writeFileSync(AGENT_LOG, '[]', 'utf-8');
+        logs.push("Agent activity log rotated.");
+      }
+    }
+  } catch (logErr) {
+    logs.push(`Log rotation failed: ${logErr.message}`);
+  }
+
+  logActivity({ type: 'maintenance_run', status: 'success', info: logs.join(' | ') });
+  console.log('[OS Maintenance] OS Maintenance check complete.');
+}
+
 setupCrons();
 
 setTimeout(() => {
-  console.log('[Startup] Running initial Experience Compiler and Evolution checks...');
+  console.log('[Startup] Running initial Experience Compiler, Evolution, and Maintenance checks...');
   runExperienceCompiler();
   runSwarmEvolution();
+  runOSMaintenance();
 }, 5000);
 
 // Swarm Diagnostics Cron (Every 10 min)
@@ -1608,6 +1708,7 @@ app.get('/api/status', (req, res) => {
     agents: Object.fromEntries(Object.entries(AGENTS).map(([k, v]) => [k, { name: v.name, status: v.status, role: v.role }])),
     activeModel: m ? m[1] : 'google/gemini-2.0-flash-001',
     workspace: WORKSPACE,
+    notification: systemNotification,
   });
 });
 
@@ -3177,6 +3278,10 @@ app.listen(PORT, () => {
   console.log(`   Agents online: ${Object.values(AGENTS).filter(a => a.status === 'online').map(a => a.name).join(', ')}`);
   console.log(`   Shared workspace: ${SHARED}`);
   console.log(`   Agent-to-agent messaging: ✓ Live\n`);
+  
+  // Auto-launch user interface
+  console.log('[Startup] Launching user interface in browser...');
+  exec('start http://localhost:3001');
 });
 
 function warmupOpenRouter() {
