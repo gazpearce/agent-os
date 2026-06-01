@@ -3042,37 +3042,61 @@ export default function App() {
               <div className="glass rounded-2xl p-4 border-white/[0.04]">
                 <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-1.5"><Network size={12} className="text-indigo-400" /> Swarm Telemetry Nodes</h3>
                 <div className="grid grid-cols-5 gap-2 items-center justify-center py-6 text-center border border-white/[0.02] rounded-xl bg-black/20 overflow-x-auto min-w-[500px] select-none">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500/10 border-2 border-indigo-500 flex items-center justify-center text-indigo-400 animate-pulse">
-                      <Brain size={20} />
-                    </div>
-                    <span className="text-[10px] font-bold text-white">Antigravity (CEO)</span>
-                    <span className="text-[8px] text-gray-500 font-mono">Routing L1</span>
-                  </div>
+                  {(() => {
+                    const lastMail = mailbox[0];
+                    const activeNode = lastMail ? (lastMail.from_agent_id || '').toLowerCase() : '';
+                    const isAgyActive = activeNode === 'agy' || activeNode === 'orchestrator' || activeNode === 'dashboard';
+                    const isOpenClawActive = activeNode === 'openclaw';
+                    const isHermesActive = activeNode === 'hermes';
 
-                  <div className="h-0.5 bg-gradient-to-r from-indigo-500 to-green-500 relative">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
-                  </div>
+                    return (
+                      <>
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+                            isAgyActive 
+                              ? "bg-indigo-500/25 border-2 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-110" 
+                              : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-400"
+                          }`}>
+                            <Brain size={20} className={isAgyActive ? "text-indigo-300 animate-pulse" : "text-indigo-400"} />
+                          </div>
+                          <span className="text-[10px] font-bold text-white">Antigravity (CEO)</span>
+                          <span className="text-[8px] text-gray-500 font-mono">Routing L1</span>
+                        </div>
 
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full bg-green-500/10 border-2 border-green-500 flex items-center justify-center text-green-400">
-                      <Workflow size={20} />
-                    </div>
-                    <span className="text-[10px] font-bold text-white">OpenClaw (Router)</span>
-                    <span className="text-[8px] text-gray-500 font-mono">Pipeline L2</span>
-                  </div>
+                        <div className="h-0.5 bg-gradient-to-r from-indigo-500 to-green-500 relative">
+                          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-indigo-400 ${isAgyActive ? "animate-ping" : "opacity-30"}`} />
+                        </div>
 
-                  <div className="h-0.5 bg-gradient-to-r from-green-500 to-purple-500 relative">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-purple-400 animate-ping" />
-                  </div>
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+                            isOpenClawActive 
+                              ? "bg-green-500/25 border-2 border-green-400 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-110" 
+                              : "bg-green-500/10 border border-green-500/30 text-green-400"
+                          }`}>
+                            <Workflow size={20} className={isOpenClawActive ? "text-green-300 animate-pulse" : "text-green-400"} />
+                          </div>
+                          <span className="text-[10px] font-bold text-white">OpenClaw (Router)</span>
+                          <span className="text-[8px] text-gray-500 font-mono">Pipeline L2</span>
+                        </div>
 
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="w-12 h-12 rounded-full bg-purple-500/10 border-2 border-purple-500 flex items-center justify-center text-purple-400">
-                      <Zap size={20} />
-                    </div>
-                    <span className="text-[10px] font-bold text-white">Hermes (Executor)</span>
-                    <span className="text-[8px] text-gray-500 font-mono">CLI Tasks L3</span>
-                  </div>
+                        <div className="h-0.5 bg-gradient-to-r from-green-500 to-purple-500 relative">
+                          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-purple-400 ${isOpenClawActive ? "animate-ping" : "opacity-30"}`} />
+                        </div>
+
+                        <div className="flex flex-col items-center gap-1">
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
+                            isHermesActive 
+                              ? "bg-purple-500/25 border-2 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-110" 
+                              : "bg-purple-500/10 border border-purple-500/30 text-purple-400"
+                          }`}>
+                            <Zap size={20} className={isHermesActive ? "text-purple-300 animate-pulse" : "text-purple-400"} />
+                          </div>
+                          <span className="text-[10px] font-bold text-white">Hermes (Executor)</span>
+                          <span className="text-[8px] text-gray-500 font-mono">CLI Tasks L3</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 <div className="mt-4 space-y-2">
