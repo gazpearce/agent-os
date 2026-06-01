@@ -106,3 +106,5 @@
 | T101 | Evolution | Optimize Fallback Search Paths & Timeouts | ✅ Completed | Re-ordered models list to prioritize openrouter/free and reduced timeout to 10s |
 | T102 | Evolution | Parallelize Experience Compiler Loop | ✅ Completed | Converted learning_loop.js to async Promise.all, cutting compile duration from ~3 mins to 12s |
 | T103 | Verification | Compile Speed & Failover Verifications | ✅ Completed | Re-ran learning loop manually, verified concurrent fetch successes and dynamic prompt writes |
+| T104 | Memory | Upgrade injectRecalledMemory Recall Engine | ✅ Completed | Implemented hybrid triggers, specificity ranking, and multi-keyword concurrent searches |
+| T105 | Verification | Multi-Keyword recall scratch script check | ✅ Completed | Executed scratch/test-memory-recall.js and verified correct specificity selections |
