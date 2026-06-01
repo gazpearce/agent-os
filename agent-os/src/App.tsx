@@ -1235,6 +1235,49 @@ export default function App() {
   const [isRightCollapsed, setIsRightCollapsed] = useState(false);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
 
+  // Voice Input (Speech-to-Text) State
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<any>(null);
+
+  const toggleListening = () => {
+    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+      alert("Speech recognition is not supported in this browser. Try Chrome.");
+      return;
+    }
+    
+    if (isListening) {
+      recognitionRef.current?.stop();
+      setIsListening(false);
+    } else {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const rec = new SpeechRecognition();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+      
+      rec.onstart = () => {
+        setIsListening(true);
+      };
+      
+      rec.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setChatInput(prev => (prev ? prev + ' ' : '') + transcript);
+      };
+      
+      rec.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+      
+      rec.onend = () => {
+        setIsListening(false);
+      };
+      
+      recognitionRef.current = rec;
+      rec.start();
+    }
+  };
+
   // Chat state
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -2499,10 +2542,15 @@ export default function App() {
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                       <button 
                         type="button" 
-                        title="Voice Input (Mic)"
-                        className="p-2 text-gray-500 hover:text-gray-300 transition-colors cursor-pointer"
+                        onClick={toggleListening}
+                        title={isListening ? "Listening... Click to stop" : "Voice Input (Mic)"}
+                        className={`p-2 transition-all cursor-pointer rounded-lg ${
+                          isListening 
+                            ? "text-red-500 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.2)]" 
+                            : "text-gray-500 hover:text-gray-300"
+                        }`}
                       >
-                        <Radio size={14} />
+                        <Radio size={14} className={isListening ? "animate-pulse" : ""} />
                       </button>
                       <button 
                         type="button" 
