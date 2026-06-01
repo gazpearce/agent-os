@@ -13,7 +13,7 @@
 
 import express from 'express';
 import cors from 'cors';
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink } from 'fs';
 import { exec, execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -1751,6 +1751,7 @@ app.post('/api/run-code', async (req, res) => {
     writeFileSync(file, code, 'utf-8');
     const cmd = language === 'python' ? `python "${file}"` : `node "${file}"`;
     exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
+      unlink(file, () => {}); // clean up the temp script file after run completes
       res.json({ output: (stdout || stderr || 'Code completed with no output').trim() });
     });
   } catch (e) {
