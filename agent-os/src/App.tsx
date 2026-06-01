@@ -1162,15 +1162,15 @@ function AgentTelemetryPanel({ agents }: { agents: any[] }) {
 function ProviderPanel() {
   const providers = [
     { id: 'openrouter/owl-alpha', name: 'Owl Alpha', ctx: '1M', free: false },
-    { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4', ctx: '1M', free: true },
-    { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder', ctx: '1M', free: true },
-    { id: 'nvidia/nemotron-3-super-120b-a12b:free', name: 'Nemotron 3 Super', ctx: '1M', free: true },
-    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', ctx: '131K', free: true },
-    { id: 'google/gemma-4-26b-a4b-it:free', name: 'Gemma 4 26B', ctx: '262K', free: true },
+    { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 (Reasoning)', ctx: '128K', free: true },
+    { id: 'qwen/qwen-2.5-coder-32b-instruct:free', name: 'Qwen 2.5 Coder 32B', ctx: '128K', free: true },
+    { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4 Flash', ctx: '1M', free: true },
+    { id: 'qwen/qwen3-coder:free', name: 'Qwen3 Coder 480B', ctx: '1M', free: true },
+    { id: 'nvidia/nemotron-3-super-120b-a12b:free', name: 'NVIDIA Nemotron 3 Super', ctx: '1M', free: true },
+    { id: 'moonshotai/kimi-k2.6:free', name: 'Kimi K2.6', ctx: '262K', free: true },
+    { id: 'google/gemma-4-26b-a4b-it:free', name: 'Gemma 4 26B A4B', ctx: '262K', free: true },
     { id: 'openai/gpt-oss-120b:free', name: 'GPT-OSS 120B', ctx: '131K', free: true },
-    { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', ctx: '1M', free: false },
-    { id: 'grok-3', name: 'Grok 3', ctx: '1M', free: false },
-    { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', ctx: '200K', free: false },
+    { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B', ctx: '131K', free: true },
   ];
 
   const [activeProvider, setActiveProvider] = useState('openrouter/owl-alpha');
