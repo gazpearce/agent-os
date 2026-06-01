@@ -416,7 +416,7 @@ function SwarmDiagnosticsPanel() {
       </div>
 
       {diag && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[10px] font-mono select-none">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-[10px] font-mono select-none">
           <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
             <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">RUNTIMES</span>
             <div>🐍 Python: <span className="text-indigo-300">{diag.runtimes.python}</span></div>
@@ -433,6 +433,13 @@ function SwarmDiagnosticsPanel() {
             <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">PROXIES</span>
             <div>🤖 fcc-server: <span className={diag.proxies.fccServer === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.fccServer}</span></div>
             <div>🦙 LM Studio: <span className={diag.proxies.lmStudio === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.lmStudio}</span></div>
+          </div>
+          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
+            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">SYSTEM RESOURCES</span>
+            <div>💻 CPU Load: <span className="text-cyan-400">{diag.resources?.cpuPercent !== undefined ? `${diag.resources.cpuPercent}%` : 'N/A'}</span></div>
+            <div>📟 Memory: <span className="text-cyan-400">{diag.resources ? `${diag.resources.usedMemGB}/${diag.resources.totalMemGB} GB (${diag.resources.memPercent}%)` : 'N/A'}</span></div>
+            <div>🌐 Platform: <span className="text-gray-400 text-[9.5px]">{diag.resources ? `${diag.resources.platform} (${diag.resources.arch})` : 'N/A'}</span></div>
+            <div>⏱️ Uptime: <span className="text-gray-400">{diag.resources ? `${diag.resources.uptimeHours} hrs` : 'N/A'}</span></div>
           </div>
         </div>
       )}

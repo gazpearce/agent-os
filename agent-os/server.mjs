@@ -13,6 +13,7 @@
 
 import express from 'express';
 import cors from 'cors';
+import os from 'os';
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink } from 'fs';
 import { exec, execSync, spawn } from 'child_process';
 import { fileURLToPath } from 'url';
@@ -54,6 +55,31 @@ const AGENT_LOG = `${SHARED}\\agent-log.json`;
 
 // Ensure directories exist
 [WORKSPACE, SHARED].forEach(d => { try { mkdirSync(d, { recursive: true }); } catch {} });
+
+// Real non-blocking CPU load tracking loop for telemetry metrics
+let cpuUsageEstimate = 0;
+function calculateCpuUsage() {
+  const cpus = os.cpus();
+  let totalIdle = 0, totalTick = 0;
+  cpus.forEach(cpu => {
+    for (const type in cpu.times) {
+      totalTick += cpu.times[type];
+    }
+    totalIdle += cpu.times.idle;
+  });
+  return { idle: totalIdle, total: totalTick };
+}
+
+let startCpu = calculateCpuUsage();
+setInterval(() => {
+  const endCpu = calculateCpuUsage();
+  const idleDifference = endCpu.idle - startCpu.idle;
+  const totalDifference = endCpu.total - startCpu.total;
+  if (totalDifference > 0) {
+    cpuUsageEstimate = Math.round(100 - (100 * idleDifference / totalDifference));
+  }
+  startCpu = endCpu;
+}, 2000);
 
 function readConfig() {
   try {
@@ -2477,6 +2503,21 @@ app.get('/api/swarm/diagnose', async (req, res) => {
     const ping = await fetch('http://localhost:1234/v1/models');
     diagnostics.proxies.lmStudio = ping.ok ? 'online' : 'offline';
   } catch { diagnostics.proxies.lmStudio = 'offline'; }
+
+  // Inject system resource statistics
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = totalMem - freeMem;
+  diagnostics.resources = {
+    cpuPercent: cpuUsageEstimate,
+    memPercent: Math.round((usedMem / totalMem) * 100),
+    totalMemGB: Math.round(totalMem / (1024 * 1024 * 1024)),
+    freeMemGB: Math.round((freeMem / (1024 * 1024 * 1024)) * 10) / 10,
+    usedMemGB: Math.round((usedMem / (1024 * 1024 * 1024)) * 10) / 10,
+    arch: os.arch(),
+    platform: os.platform(),
+    uptimeHours: Math.round((os.uptime() / 3600) * 10) / 10
+  };
 
   res.json(diagnostics);
 });
