@@ -770,10 +770,9 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
   } catch {}
 
   const modelFallbacks = [
+    'openrouter/free',
     model,
-    'google/gemma-2-9b-it:free',
-    'meta-llama/llama-3-8b-instruct:free',
-    'openrouter/free'
+    'google/gemma-2-9b-it:free'
   ];
 
   const uniqueModels = [...new Set(modelFallbacks)];
@@ -783,7 +782,7 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
       try {
         console.log(`[OR Chat] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
@@ -1268,10 +1267,9 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
   }
 
   const modelFallbacks = [
+    'openrouter/free',
     model,
-    'google/gemma-2-9b-it:free',
-    'meta-llama/llama-3-8b-instruct:free',
-    'openrouter/free'
+    'google/gemma-2-9b-it:free'
   ];
 
   const uniqueModels = [...new Set(modelFallbacks)];
@@ -1281,7 +1279,7 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
       try {
         console.log(`[OR ChatCompletion] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
@@ -1694,10 +1692,9 @@ Example JSON output:
   } catch {}
 
   const modelFallbacks = [
+    'openrouter/free',
     model,
-    'google/gemma-2-9b-it:free',
-    'meta-llama/llama-3-8b-instruct:free',
-    'openrouter/free'
+    'google/gemma-2-9b-it:free'
   ];
 
   const uniqueModels = [...new Set(modelFallbacks)];
@@ -1709,7 +1706,7 @@ Example JSON output:
       try {
         console.log(`[Orchestrator] Attempt ${attempt}: trying model ${currentModel} with key ${key.substring(0, 15)}...`);
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
         const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: { 
@@ -2429,6 +2426,25 @@ app.get('/api/swarm/errors/content', (req, res) => {
     } else {
       res.status(404).json({ error: 'Error file not found' });
     }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// COMPILE RULE
+app.post('/api/swarm/compile-rule', async (req, res) => {
+  const { title, content } = req.body;
+  if (!content) return res.status(400).json({ error: 'content required' });
+  try {
+    const prompt = `You are the Swarm Experience Compiler. Convert this error report and solution into a single-sentence actionable rule/preventative directive for developer agents.
+
+Title: ${title}
+Content:
+${content}
+
+Format the rule starting with 'Action: [Clear directive to prevent this error]'. Keep it under 150 characters. Be concise and precise. Return ONLY the rule text, no introduction or quotes.`;
+    const response = await chatCompletion(prompt, "You are a helpful coding assistant compiling developer rules.");
+    res.json({ rule: response.trim() });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

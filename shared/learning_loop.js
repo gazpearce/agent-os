@@ -7,7 +7,7 @@ const KNOWLEDGE_BASE = join(SHARED, 'knowledge_base');
 const GUIDE_PATH = join(SHARED, 'AGENTS_GUIDE.md');
 const SYSTEM_PROMPT_PATH = join(SHARED, 'hermes_system_prompt.txt');
 
-function run() {
+async function run() {
   console.log('Starting learning loop...');
   
   let learnedRules = [];
@@ -108,23 +108,47 @@ function run() {
     }
   }
 
+  // Helper to query rule compiler
+  async function compileRule(title, content) {
+    try {
+      const res = await fetch('http://localhost:3001/api/swarm/compile-rule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, content })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.rule) return data.rule;
+      }
+    } catch (e) {
+      console.warn(`[Learning Loop] Fallback to raw text: Failed to compile rule via API:`, e.message);
+    }
+    return null;
+  }
+
   // Format short prompt bullet points for system prompt
   let promptBullets = `\n\n### # Dynamic Learned Rules (DO NOT IGNORE):\n`;
   if (learnedRules.length === 0) {
     promptBullets += `* No specific dynamic rules yet. Continue scanning vault.\n`;
   } else {
-    for (const rule of learnedRules) {
-      // Create concise bullet point summary of the rules
+    const promises = learnedRules.map(async (rule) => {
       let brief = '';
       if (rule.title.includes('Win32 NoConsoleScreenBufferError')) {
         brief = 'Win32 NoConsoleScreenBufferError: Avoid running CLI tools in background shell redirections directly. Use start cmd.exe or PowerShell start-process window instead.';
       } else if (rule.title.includes('VitePress Schema')) {
         brief = 'VitePress Metadata: Inject JSON-LD & OG tags dynamically using transformHead hook. Avoid double prefixing URL posts/ slug. Wrap descriptions containing colons in quotes.';
       } else {
-        brief = rule.content.replace(/\r?\n/g, ' ').substring(0, 150) + '...';
+        const compiled = await compileRule(rule.title, rule.content);
+        if (compiled) {
+          brief = compiled;
+        } else {
+          brief = rule.content.replace(/\r?\n/g, ' ').substring(0, 150) + '...';
+        }
       }
-      promptBullets += `* **${rule.title}**: ${brief}\n`;
-    }
+      return `* **${rule.title}**: ${brief}\n`;
+    });
+    const results = await Promise.all(promises);
+    promptBullets += results.join('');
   }
 
   // Update hermes_system_prompt.txt
@@ -147,4 +171,4 @@ function run() {
   console.log('Learning loop complete!');
 }
 
-run();
+run().catch(console.error);
