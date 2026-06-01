@@ -1210,8 +1210,45 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
     });
     clearTimeout(timeoutId);
     const d = await r.json();
-    return d.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
-  } catch (e) { return `All providers failed: ${e.message}`; }
+    if (d.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return d.candidates[0].content.parts[0].text;
+    }
+  } catch (err) {
+    console.log('[OR ChatCompletion] Direct Gemini API failed:', err.message);
+  }
+
+  // Local Ollama fallback (Offline/no-key safety net)
+  try {
+    console.log('[OR ChatCompletion] Falling back to local Ollama (qwen2.5-coder:7b)...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const r = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'qwen2.5-coder:7b',
+        prompt: `${systemPrompt}\n\nUser Query: ${query}`,
+        stream: false,
+        options: {
+          num_ctx: 8192,
+          temperature: 0.3
+        }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (r.status === 200) {
+      const d = await r.json();
+      if (d.response) {
+        console.log('[OR ChatCompletion] Success with local Ollama fallback');
+        return d.response;
+      }
+    }
+  } catch (err) {
+    console.log('[OR ChatCompletion] Local Ollama fallback failed:', err.message);
+  }
+
+  return 'All providers (OpenRouter, GitHub, Groq, Gemini, and Local Ollama) failed.';
 }
 
 function execAsync(cmd, options = {}) {
@@ -2522,7 +2559,7 @@ app.get('/api/swarm/diagnose', async (req, res) => {
   const diagnostics = {
     runtimes: { python: 'checking', node: 'checking' },
     clis: { aider: 'checking', claude: 'checking', gh: 'checking', openclaw: 'checking' },
-    proxies: { fccServer: 'checking', lmStudio: 'checking' }
+    proxies: { fccServer: 'checking', lmStudio: 'checking', ollama: 'checking' }
   };
 
   // Check Python
@@ -2567,6 +2604,12 @@ app.get('/api/swarm/diagnose', async (req, res) => {
     const ping = await fetch('http://localhost:1234/v1/models');
     diagnostics.proxies.lmStudio = ping.ok ? 'online' : 'offline';
   } catch { diagnostics.proxies.lmStudio = 'offline'; }
+
+  // Check Ollama (port 11434)
+  try {
+    const ping = await fetch('http://localhost:11434/api/tags');
+    diagnostics.proxies.ollama = ping.ok ? 'online' : 'offline';
+  } catch { diagnostics.proxies.ollama = 'offline'; }
 
   // Inject system resource statistics
   const totalMem = os.totalmem();

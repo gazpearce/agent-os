@@ -456,6 +456,7 @@ function SwarmDiagnosticsPanel() {
             <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">PROXIES</span>
             <div>🤖 fcc-server: <span className={diag.proxies.fccServer === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.fccServer}</span></div>
             <div>🦙 LM Studio: <span className={diag.proxies.lmStudio === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.lmStudio}</span></div>
+            <div>🦙 Ollama: <span className={diag.proxies.ollama === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.ollama}</span></div>
           </div>
           <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
             <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">SYSTEM RESOURCES</span>

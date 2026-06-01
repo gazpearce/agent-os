@@ -78,6 +78,8 @@
 | T73 | Backend (`server.mjs`) | Backend Memory Consolidation Endpoint | ✅ Completed | Implement `/api/memory/consolidate` route and test script |
 | T74 | Backend (`server.mjs`) | Upgrade Tool Execution Bash Handler | ✅ Completed | Accept `cwd` and extend timeout to 90s in executeToolCall |
 | T75 | Frontend (`App.tsx`) | Frontend Dashboard UI Memory Trigger | ✅ Completed | Add manual consolidate trigger & rebuild dashboard |
+| T76 | Backend (`server.mjs`) | Backend Local Ollama Fallback & Diagnostics | ✅ Completed | Implement local Ollama fallback in chatCompletion & diagnostic check |
+| T77 | Frontend (`App.tsx`) | Frontend Diagnostics Update & Rebuild | ✅ Completed | Add Ollama health indicator in App.tsx & build dashboard |
 
 
 
