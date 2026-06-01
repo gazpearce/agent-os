@@ -17,4 +17,5 @@ We are developing the UK CCTV & Home Security SEO Network (deployed at https://u
 
 ### # Dynamic Learned Rules (DO NOT IGNORE):
 * **Error: prompt_toolkit Win32 NoConsoleScreenBufferError**: Win32 NoConsoleScreenBufferError: Avoid running CLI tools in background shell redirections directly. Use start cmd.exe or PowerShell start-process window instead.
+* **Swarm & User Memories**: ## 🧠 User Profile *No specific user profile data recorded yet.*  ## ⚙️ System Preferences & Guidelines *No custom guidelines or preferences establish...
 * **VitePress Schema & OG Meta Tag Injection via transformHead**: VitePress Metadata: Inject JSON-LD & OG tags dynamically using transformHead hook. Avoid double prefixing URL posts/ slug. Wrap descriptions containing colons in quotes.

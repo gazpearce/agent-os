@@ -54,19 +54,23 @@ function run() {
         const title = lines.find(l => l.startsWith('# '))?.replace('# ', '').trim() || f;
         
         let details = '';
-        let capturing = false;
-        for (const line of lines) {
-          if (line.startsWith('## Critical Fixes') || line.startsWith('## Context') || line.startsWith('## Implementation Details')) {
-            capturing = true;
-            details += line + '\n';
-          } else if (line.startsWith('#') && capturing && !line.startsWith('## Critical Fixes') && !line.startsWith('## Context') && !line.startsWith('## Implementation Details') && !line.startsWith('###')) {
-            capturing = false;
-          } else if (capturing) {
-            details += line + '\n';
+        if (f === 'user-memories.md') {
+          details = lines.filter(l => !l.startsWith('# ')).join('\n');
+        } else {
+          let capturing = false;
+          for (const line of lines) {
+            if (line.startsWith('## Critical Fixes') || line.startsWith('## Context') || line.startsWith('## Implementation Details')) {
+              capturing = true;
+              details += line + '\n';
+            } else if (line.startsWith('#') && capturing && !line.startsWith('## Critical Fixes') && !line.startsWith('## Context') && !line.startsWith('## Implementation Details') && !line.startsWith('###')) {
+              capturing = false;
+            } else if (capturing) {
+              details += line + '\n';
+            }
           }
-        }
-        if (!details) {
-          details = lines.slice(2, 8).join('\n');
+          if (!details) {
+            details = lines.slice(2, 8).join('\n');
+          }
         }
         learnedRules.push({ type: 'Knowledge Setup', title, content: details.trim() });
       }

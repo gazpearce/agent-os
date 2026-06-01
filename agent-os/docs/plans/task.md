@@ -75,5 +75,9 @@
 | T70 | Backend (`server.mjs`) | Add Background Diagnostic Cron Check & Registries | ✅ Completed | Registered aider/github, added 10-minute self-check cron |
 | T71 | Frontend (`App.tsx`) | Upgrade Frontend App.tsx UI & Panels | ✅ Completed | Integrated MediaEngine tabbed panel and Swarm Diagnostics panel |
 | T72 | Build & Verification | Compile & Run Verification | ✅ Completed | Production build compiles with zero errors, verified diagnostics and servers |
+| T73 | Backend (`server.mjs`) | Backend Memory Consolidation Endpoint | ✅ Completed | Implement `/api/memory/consolidate` route and test script |
+| T74 | Backend (`server.mjs`) | Upgrade Tool Execution Bash Handler | ✅ Completed | Accept `cwd` and extend timeout to 90s in executeToolCall |
+| T75 | Frontend (`App.tsx`) | Frontend Dashboard UI Memory Trigger | ✅ Completed | Add manual consolidate trigger & rebuild dashboard |
+
 
 

@@ -378,6 +378,8 @@ function SwarmDiagnosticsPanel() {
   const [healLogs, setHealLogs] = useState<string[]>([]);
   const [healing, setHealing] = useState(false);
 
+  const [consolidating, setConsolidating] = useState(false);
+
   const runDiag = async () => {
     setLoading(true);
     try {
@@ -399,6 +401,24 @@ function SwarmDiagnosticsPanel() {
     finally { setHealing(false); }
   };
 
+  const runConsolidate = async () => {
+    setConsolidating(true);
+    setHealLogs(prev => [...prev, "Initiating swarm memory consolidation & prompt recompilation..."]);
+    try {
+      const res = await fetch('/api/memory/consolidate', { method: 'POST' });
+      const data = await res.json();
+      if (data.message) {
+        setHealLogs(prev => [...prev, `Success: ${data.message}`]);
+      } else if (data.error) {
+        setHealLogs(prev => [...prev, `Error: ${data.error}`]);
+      }
+    } catch (e: any) {
+      setHealLogs(prev => [...prev, `Consolidation error: ${e.message || e}`]);
+    } finally {
+      setConsolidating(false);
+    }
+  };
+
   useEffect(() => { runDiag(); }, []);
 
   return (
@@ -411,6 +431,9 @@ function SwarmDiagnosticsPanel() {
           </button>
           <button onClick={runHeal} disabled={healing} className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[9px] font-mono cursor-pointer transition-colors">
             {healing ? "Healing..." : "Run Auto-Healing"}
+          </button>
+          <button onClick={runConsolidate} disabled={consolidating} className="px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-[9px] font-mono cursor-pointer transition-colors">
+            {consolidating ? "Consolidating..." : "Consolidate Memory"}
           </button>
         </div>
       </div>

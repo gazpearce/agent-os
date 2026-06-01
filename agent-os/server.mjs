@@ -494,11 +494,12 @@ async function executeToolCall(toolCallText, onProgress = null, fromAgent = 'her
   const toolLower = toolType.toLowerCase();
   if (toolLower === 'bash' || toolLower === 'command') {
     const cmd = normalizedArgs.command;
+    const cwd = args.cwd || args.dir_path || args.working_dir || WORKSPACE;
     if (!cmd) return '<longcat_tool_response>\nError: command arg missing\n</longcat_tool_response>';
-    if (onProgress) onProgress(`💻 Running terminal command: \`${cmd.substring(0, 80)}${cmd.length > 80 ? '...' : ''}\``);
+    if (onProgress) onProgress(`💻 Running terminal command: \`${cmd.substring(0, 80)}${cmd.length > 80 ? '...' : ''}\` in \`${cwd}\``);
     try {
       const output = await new Promise((resolve) => {
-        exec(cmd, { timeout: 30000 }, (err, stdout, stderr) => {
+        exec(cmd, { timeout: 90000, cwd }, (err, stdout, stderr) => {
           resolve(stdout || stderr || (err ? `Error: ${err.message}` : 'Command completed successfully'));
         });
       });
@@ -2132,6 +2133,65 @@ app.get('/api/memory-search', (req, res) => {
   }
   
   res.json({ results: results.slice(0, 50) });
+});
+
+// MEMORY CONSOLIDATION
+async function runMemoryConsolidation() {
+  console.log('[Memory Consolidation] Starting swarm memory synthesis...');
+  try {
+    if (!existsSync(AGENT_LOG)) return { success: false, message: 'Logs file not found' };
+    const rawLogs = JSON.parse(readFileSync(AGENT_LOG, 'utf-8') || '[]');
+    if (rawLogs.length === 0) return { success: false, message: 'No logs to consolidate' };
+
+    const slice = rawLogs.slice(-100);
+    const memoriesPath = join(SHARED, 'knowledge_base', 'user-memories.md');
+    let existingContent = '';
+    if (existsSync(memoriesPath)) {
+      existingContent = readFileSync(memoriesPath, 'utf-8');
+    }
+
+    const prompt = `You are the Swarm Memory Synthesizer for Agent OS V2.
+Your goal is to inspect the recent agent logs and consolidate them with our existing user memories.
+Examine what files were edited, what commands succeeded, what preferences the user expressed, or what custom guidelines were worked on.
+
+Here are the recent logs:
+${JSON.stringify(slice.map(l => ({ timestamp: l.timestamp, type: l.type, from: l.from, to: l.to, msg: (l.message || '').substring(0, 150), resp: (l.response || '').substring(0, 150) })), null, 2)}
+
+Here is the existing consolidated memories file content:
+${existingContent || '(Empty - starting a new memory file)'}
+
+Write an updated, complete 'user-memories.md' file.
+Merge the new insights, files edited, preferences, and guidelines into the appropriate sections. Keep previous historic entries unless they are directly superseded. Keep the document highly structured and clean.
+Output ONLY the raw markdown of the file, starting with '# Swarm & User Memories'. Do not add any conversational text or formatting outside the markdown content.`;
+
+    const response = await chatCompletion(prompt, "You are a professional database organizer and system memory manager.");
+    if (response && response.trim() && !response.includes('All providers failed')) {
+      const targetDir = dirname(memoriesPath);
+      if (!existsSync(targetDir)) mkdirSync(targetDir, { recursive: true });
+      writeFileSync(memoriesPath, response.trim(), 'utf-8');
+      console.log(`[Memory Consolidation] Saved consolidated memories: ${memoriesPath}`);
+      logActivity({ type: 'memory_consolidated', file: 'knowledge_base/user-memories.md' });
+
+      // Automatically run learning_loop.js to compile it
+      await new Promise((resolve) => {
+        exec(`node "${SHARED}/learning_loop.js"`, (err) => {
+          if (err) console.error('[Memory Consolidation] Triggering learning_loop failed:', err.message);
+          else console.log('[Memory Consolidation] Swarm memory compiled successfully.');
+          resolve();
+        });
+      });
+      return { success: true, message: 'Memory consolidated and swarm prompts re-compiled successfully.' };
+    }
+    return { success: false, message: 'LLM output was empty or failed.' };
+  } catch (e) {
+    console.error('[Memory Consolidation] Error:', e.message);
+    return { success: false, error: e.message };
+  }
+}
+
+app.post('/api/memory/consolidate', async (req, res) => {
+  const result = await runMemoryConsolidation();
+  res.json(result);
 });
 
 // PROXY
