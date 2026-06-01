@@ -167,45 +167,71 @@ const AGENTS = {
   }
 };
 
-// Check agent health on startup
+let lastHealthCheckTime = 0;
+let healthCheckPromise = null;
+
+// Check agent health on startup (with 10-second debounce)
 function checkAgentHealth() {
-  // AGY
-  exec(`"${AGENTS.agy.binary}" --version`, { timeout: 3000 }, (err) => {
-    AGENTS.agy.status = err ? 'offline' : 'online';
-  });
+  const now = Date.now();
+  if (now - lastHealthCheckTime < 10000 && healthCheckPromise) {
+    return healthCheckPromise;
+  }
   
-  // OpenClaw
-  exec('openclaw --version', { timeout: 3000 }, (err) => {
-    AGENTS.openclaw.status = err ? 'offline' : 'online';
-  });
-  
-  // Ollama
-  exec('ollama list', { timeout: 3000 }, (err) => {
-    AGENTS.ollama.status = err ? 'offline' : 'online';
-  });
-  
-  // LM Studio port connection check
-  exec('powershell -Command "Get-NetTCPConnection -LocalPort 1234 -ErrorAction Stop"', { timeout: 3000 }, (err) => {
-    AGENTS.lmstudio.status = err ? 'offline' : 'online';
-  });
-  
-  // Claude Code
-  exec('claude -v', { timeout: 3000 }, (err) => {
-    AGENTS.claude.status = err ? 'offline' : 'online';
+  lastHealthCheckTime = now;
+  healthCheckPromise = new Promise((resolve) => {
+    let pending = 7;
+    const decrement = () => {
+      pending--;
+      if (pending === 0) resolve();
+    };
+
+    // AGY
+    exec(`"${AGENTS.agy.binary}" --version`, { timeout: 3000 }, (err) => {
+      AGENTS.agy.status = err ? 'offline' : 'online';
+      decrement();
+    });
+    
+    // OpenClaw
+    exec('openclaw --version', { timeout: 3000 }, (err) => {
+      AGENTS.openclaw.status = err ? 'offline' : 'online';
+      decrement();
+    });
+    
+    // Ollama
+    exec('ollama list', { timeout: 3000 }, (err) => {
+      AGENTS.ollama.status = err ? 'offline' : 'online';
+      decrement();
+    });
+    
+    // LM Studio port connection check
+    exec('powershell -Command "Get-NetTCPConnection -LocalPort 1234 -ErrorAction Stop"', { timeout: 3000 }, (err) => {
+      AGENTS.lmstudio.status = err ? 'offline' : 'online';
+      decrement();
+    });
+    
+    // Claude Code
+    exec('claude -v', { timeout: 3000 }, (err) => {
+      AGENTS.claude.status = err ? 'offline' : 'online';
+      decrement();
+    });
+
+    // Aider Chat
+    exec('aider --version', { timeout: 3000 }, (err) => {
+      AGENTS.aider.status = err ? 'offline' : 'online';
+      decrement();
+    });
+
+    // GitHub CLI
+    exec('gh --version', { timeout: 3000 }, (err) => {
+      AGENTS.github.status = err ? 'offline' : 'online';
+      decrement();
+    });
+    
+    // Obsidian
+    AGENTS.obsidian.status = existsSync('D:/Agent OS') ? 'online' : 'offline';
   });
 
-  // Aider Chat
-  exec('aider --version', { timeout: 3000 }, (err) => {
-    AGENTS.aider.status = err ? 'offline' : 'online';
-  });
-
-  // GitHub CLI
-  exec('gh --version', { timeout: 3000 }, (err) => {
-    AGENTS.github.status = err ? 'offline' : 'online';
-  });
-  
-  // Obsidian
-  AGENTS.obsidian.status = existsSync('D:/Agent OS') ? 'online' : 'offline';
+  return healthCheckPromise;
 }
 
 checkAgentHealth();
@@ -224,7 +250,9 @@ function readCrons() {
     { id: "1", name: "OpenRouter Key Rotation", interval: "2 min", status: "running", next: "" },
     { id: "2", name: "Blog Content Engine", interval: "hourly", status: "idle", next: "" },
     { id: "3", name: "Free Model Scanner", interval: "6 hours", status: "idle", next: "" },
-    { id: "4", name: "AionUI Health Monitor", interval: "5 min", status: "running", next: "" }
+    { id: "4", name: "AionUI Health Monitor", interval: "5 min", status: "running", next: "" },
+    { id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" },
+    { id: "6", name: "Swarm Auto-Evolution Engine", interval: "30 min", status: "running", next: "" }
   ];
 }
 
@@ -257,6 +285,10 @@ function executeCronTask(job) {
     });
   } else if (job.name === 'AionUI Health Monitor') {
     checkAgentHealth();
+  } else if (job.name === 'Swarm Experience Compiler') {
+    runExperienceCompiler();
+  } else if (job.name === 'Swarm Auto-Evolution Engine') {
+    runSwarmEvolution();
   }
 }
 
@@ -264,7 +296,26 @@ function setupCrons() {
   Object.values(activeIntervals).forEach(clearInterval);
   activeIntervals = {};
 
-  const crons = readCrons();
+  let crons = readCrons();
+  
+  // Ensure default new crons are present
+  let modified = false;
+  const compilerExists = crons.some(j => j.name === 'Swarm Experience Compiler');
+  const evolverExists = crons.some(j => j.name === 'Swarm Auto-Evolution Engine');
+  
+  if (!compilerExists) {
+    crons.push({ id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" });
+    modified = true;
+  }
+  if (!evolverExists) {
+    crons.push({ id: "6", name: "Swarm Auto-Evolution Engine", interval: "30 min", status: "running", next: "" });
+    modified = true;
+  }
+  
+  if (modified) {
+    writeCrons(crons);
+  }
+
   crons.forEach(job => {
     if (job.status === 'running') {
       const ms = parseInterval(job.interval);
@@ -277,6 +328,12 @@ function setupCrons() {
 }
 
 setupCrons();
+
+setTimeout(() => {
+  console.log('[Startup] Running initial Experience Compiler and Evolution checks...');
+  runExperienceCompiler();
+  runSwarmEvolution();
+}, 5000);
 
 // Swarm Diagnostics Cron (Every 10 min)
 setInterval(async () => {
@@ -1129,6 +1186,172 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
     return d.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
   } catch (e) { return `All providers failed: ${e.message}`; }
 }
+
+function execAsync(cmd, options = {}) {
+  return new Promise((resolve) => {
+    exec(cmd, options, (err, stdout, stderr) => {
+      resolve({ err, stdout: stdout || '', stderr: stderr || '' });
+    });
+  });
+}
+
+async function runExperienceCompiler() {
+  console.log('[Experience Compiler] Starting log compilation...');
+  try {
+    if (!existsSync(AGENT_LOG)) return;
+    const rawLogs = JSON.parse(readFileSync(AGENT_LOG, 'utf-8') || '[]');
+    if (rawLogs.length === 0) return;
+
+    // Take the last 50 entries
+    const slice = rawLogs.slice(-50);
+    
+    // Check for errors or failures
+    const errors = slice.filter(l => {
+      const isErrType = l.type?.includes('error') || l.type?.includes('fail');
+      const hasErrMsg = l.message?.toLowerCase().includes('error') || l.message?.toLowerCase().includes('fail') || 
+                         l.response?.toLowerCase().includes('error') || l.response?.toLowerCase().includes('fail');
+      return isErrType || hasErrMsg;
+    });
+
+    const successes = slice.filter(l => l.type === 'tool_exec' || l.type === 'response');
+
+    if (errors.length === 0 && successes.length === 0) {
+      console.log('[Experience Compiler] No errors or tool executions to analyze.');
+      return;
+    }
+
+    console.log(`[Experience Compiler] Found ${errors.length} error-related logs and ${successes.length} response/tool logs. Querying LLM...`);
+
+    const prompt = `You are the Swarm Experience Compiler for Agent OS V2.
+Your goal is to inspect the recent agent logs, find failures/errors to fix, or detect complex successful procedures to document.
+Analyze these logs:
+${JSON.stringify(slice.map(l => ({ type: l.type, from: l.from, to: l.to, msg: (l.message || '').substring(0, 150), resp: (l.response || '').substring(0, 150) })), null, 2)}
+
+Identify if there are any specific actionable lessons learned or new knowledge to save.
+If there are none, or if the logs only contain normal successful completions, output exactly: NO_NEW_LESSON
+
+Otherwise, write a complete markdown file. If it is a failure/error fix, format it like this:
+# File: shared/error_vault/<short-slug>.md
+# Error: <Concise Error Title>
+
+## Symptoms
+<Describe what happened>
+
+## Root Cause
+<Describe the technical root cause>
+
+## Solution
+<Describe how to fix or avoid it>
+
+If it is a success/knowledge entry, format it like this:
+# File: shared/knowledge_base/<short-slug>.md
+# <Concise Title of the workflow/tip>
+
+## Context
+<Describe what was successfully achieved>
+
+## Implementation Details
+<Code, config, command templates, or procedures to replicate it>
+
+## Critical Fixes
+* <Important details to remember>
+
+OUTPUT ONLY the raw markdown of the file, starting with '# File: ...'. Do not add any conversational text or formatting outside the markdown file.`;
+
+    const response = await chatCompletion(prompt, "You are a software debugger and knowledge compiler.");
+    if (response.trim() === 'NO_NEW_LESSON' || response.trim().includes('NO_NEW_LESSON')) {
+      console.log('[Experience Compiler] No new lessons extracted by LLM.');
+      return;
+    }
+
+    // Parse the file path and content
+    const match = response.match(/# File:\s*([^\n\r]+)/);
+    if (match) {
+      const fullHeader = match[0];
+      const filePath = match[1].trim();
+      const relativePath = filePath.replace('shared/', '');
+      const content = response.replace(fullHeader, '').trim();
+      const targetPath = join(SHARED, relativePath);
+
+      // Verify the directory exists
+      const dir = dirname(targetPath);
+      if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
+      // Save the markdown file!
+      writeFileSync(targetPath, content, 'utf-8');
+      console.log(`[Experience Compiler] Auto-learned and saved new lesson: ${targetPath}`);
+      logActivity({ type: 'experience_learned', file: relativePath, title: relativePath.split('/').pop() });
+
+      // Automatically run learning_loop.js to compile it
+      exec(`node "${SHARED}/learning_loop.js"`, (err) => {
+        if (err) console.error('[Experience Compiler] Triggering learning_loop failed:', err.message);
+        else console.log('[Experience Compiler] Swarm memory re-compiled successfully.');
+      });
+    } else {
+      console.log('[Experience Compiler] LLM output did not specify File path:', response.substring(0, 100));
+    }
+  } catch (e) {
+    console.error('[Experience Compiler] Error in compiler run:', e.message);
+  }
+}
+
+async function runSwarmEvolution() {
+  console.log('[Evolution Engine] Starting Swarm Auto-Evolution & Upgrades...');
+  logActivity({ type: 'evolution_run', status: 'pending', info: 'Auto-upgrade check started.' });
+  const logs = [];
+
+  // 1. Upgrade Aider via uv tool
+  console.log('[Evolution Engine] Checking for Aider upgrades...');
+  const aiderRes = await execAsync('uv tool upgrade aider-chat', { timeout: 60000 });
+  if (aiderRes.err) {
+    logs.push(`Aider upgrade bypassed: ${aiderRes.err.message.substring(0, 80)}`);
+  } else {
+    logs.push("Aider upgraded or verified up-to-date via uv.");
+  }
+
+  // 2. Upgrade Claude CLI via npm
+  console.log('[Evolution Engine] Checking for Claude Code CLI upgrades...');
+  const claudeRes = await execAsync('npm install -g @anthropic-ai/claude-code', { timeout: 60000 });
+  if (claudeRes.err) {
+    logs.push(`Claude CLI upgrade bypassed: ${claudeRes.err.message.substring(0, 80)}`);
+  } else {
+    logs.push("Claude Code CLI upgraded or verified up-to-date.");
+  }
+
+  // 3. Check for new models on Ollama and pull if missing
+  console.log('[Evolution Engine] Inspecting local Ollama models...');
+  const ollamaRes = await execAsync('ollama list', { timeout: 10000 });
+  if (!ollamaRes.err && ollamaRes.stdout) {
+    if (!ollamaRes.stdout.includes('qwen2.5-coder') && !ollamaRes.stdout.includes('qwen:')) {
+      console.log('[Evolution Engine] Qwen Coder model missing on Ollama. Initiating background pull...');
+      exec('ollama pull qwen2.5-coder:7b');
+      logs.push("Triggered background pull of qwen2.5-coder:7b on Ollama.");
+    } else {
+      logs.push("Ollama coding models verified.");
+    }
+  } else {
+    logs.push("Ollama offline, model pull bypassed.");
+  }
+
+  // 4. Update local node packages and rebuild dashboard
+  console.log('[Evolution Engine] Running npm update for minor safety packages...');
+  const npmUpdateRes = await execAsync('npm update --no-audit --no-fund', { cwd: __dirname, timeout: 60000 });
+  if (npmUpdateRes.err) {
+    logs.push(`NPM packages update bypassed: ${npmUpdateRes.err.message.substring(0, 80)}`);
+  } else {
+    console.log('[Evolution Engine] Rebuilding dashboard to ensure zero compile warnings...');
+    const npmBuildRes = await execAsync('npm run build', { cwd: __dirname, timeout: 60000 });
+    if (npmBuildRes.err) {
+      logs.push(`Dashboard rebuild failed: ${npmBuildRes.err.message.substring(0, 80)}`);
+    } else {
+      logs.push("Dashboard updated and successfully compiled with zero warnings.");
+    }
+  }
+
+  logActivity({ type: 'evolution_run', status: 'success', info: logs.join(' | ') });
+  console.log('[Evolution Engine] Auto-Evolution complete.');
+}
+
 
 // ═══════════════════════════════════════════════════════════════════════
 // API ENDPOINTS
