@@ -2302,6 +2302,44 @@ app.get('/api/goals/content', (req, res) => {
   }
 });
 
+// ERROR VAULT API
+app.get('/api/swarm/errors', (req, res) => {
+  const vaultDir = join(SHARED, 'error_vault');
+  try {
+    if (!existsSync(vaultDir)) return res.json({ errors: [] });
+    const files = readdirSync(vaultDir).filter(f => f.endsWith('.md'));
+    const errors = [];
+    for (const f of files) {
+      const content = readFileSync(join(vaultDir, f), 'utf-8');
+      const lines = content.split('\n');
+      const title = lines.find(l => l.startsWith('# Error: '))?.replace('# Error: ', '').trim() || f;
+      const stat = statSync(join(vaultDir, f));
+      errors.push({ filename: f, title, mtime: stat.mtime });
+    }
+    // Sort reverse chronological
+    errors.sort((a, b) => b.mtime - a.mtime);
+    res.json({ errors });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/swarm/errors/content', (req, res) => {
+  const { file } = req.query;
+  if (!file) return res.status(400).json({ error: 'file parameter required' });
+  const safePath = join(SHARED, 'error_vault', basename(file));
+  try {
+    if (existsSync(safePath)) {
+      const content = readFileSync(safePath, 'utf-8');
+      res.json({ content });
+    } else {
+      res.status(404).json({ error: 'Error file not found' });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // CODE RUNNER
 app.post('/api/run-code', async (req, res) => {
   const { code, language } = req.body;

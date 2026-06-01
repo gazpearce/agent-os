@@ -91,3 +91,6 @@
 | T86 | Build & Verification | Swarm compilation and validation checks | ✅ Completed | Production compilation passes cleanly with zero warnings/errors |
 | T87 | Backend (`server.mjs`) | Implement automated tool call error interceptor | ✅ Completed | Wrapped executeToolCall to write raw errors to shared/error_vault/ for dynamic compile learning |
 | T88 | Verification | Restart and verify backend startup & logger | ✅ Completed | Confirmed syntax integrity, restarted task, verified logs are error-free |
+| T89 | Backend (`server.mjs`) | Implement Error Vault endpoints | ✅ Completed | Added /api/swarm/errors and /api/swarm/errors/content |
+| T90 | Frontend (`App.tsx`) | Integrate Error list and details into Diagnostics panel | ✅ Completed | Rendered list of recent resolutions using stat.mtime sorting |
+| T91 | Verification | Verify error routes and compilation checks | ✅ Completed | Rebuilt dashboard clean, verified endpoint output via check-errors-api.js |

@@ -378,8 +378,29 @@ function SwarmDiagnosticsPanel() {
   const [loading, setLoading] = useState(false);
   const [healLogs, setHealLogs] = useState<string[]>([]);
   const [healing, setHealing] = useState(false);
-
   const [consolidating, setConsolidating] = useState(false);
+  const [errors, setErrors] = useState<any[]>([]);
+  const [selectedError, setSelectedError] = useState<any>(null);
+  
+  const fetchErrors = async () => {
+    try {
+      const res = await fetch('/api/swarm/errors');
+      const data = await res.json();
+      setErrors(data.errors || []);
+    } catch (e) {
+      console.error("Failed to fetch errors:", e);
+    }
+  };
+
+  const loadErrorContent = async (filename: string) => {
+    try {
+      const res = await fetch(`/api/swarm/errors/content?file=${encodeURIComponent(filename)}`);
+      const data = await res.json();
+      setSelectedError({ filename, content: data.content });
+    } catch (e) {
+      console.error("Failed to load error content:", e);
+    }
+  };
 
   const runDiag = async () => {
     setLoading(true);
@@ -420,7 +441,10 @@ function SwarmDiagnosticsPanel() {
     }
   };
 
-  useEffect(() => { runDiag(); }, []);
+  useEffect(() => { 
+    runDiag(); 
+    fetchErrors();
+  }, []);
 
   return (
     <div className="bg-[#0c0c16]/75 border border-white/[0.04] rounded-2xl p-4 space-y-4 shadow-xl">
@@ -476,6 +500,41 @@ function SwarmDiagnosticsPanel() {
               🚀 {log}
             </div>
           ))}
+        </div>
+      )}
+
+      {errors.length > 0 && (
+        <div className="border-t border-white/[0.04] pt-3.5 space-y-2.5">
+          <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5 select-none">
+            ⚠️ Recent Swarm Error Vault resolutions
+          </span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+              {errors.map(err => (
+                <button
+                  key={err.filename}
+                  onClick={() => loadErrorContent(err.filename)}
+                  className={`w-full text-left p-2 rounded-lg border text-[9px] font-mono transition-all cursor-pointer block truncate ${
+                    selectedError?.filename === err.filename
+                      ? "bg-rose-950/20 border-rose-500/30 text-rose-300"
+                      : "bg-white/[0.01] border-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]"
+                  }`}
+                >
+                  🔴 {err.title.substring(0, 35)}{err.title.length > 35 ? '...' : ''} ({new Date(err.mtime).toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' })})
+                </button>
+              ))}
+            </div>
+            <div className="bg-black/30 border border-white/[0.03] rounded-xl p-3 max-h-32 overflow-y-auto text-[9px] font-mono text-gray-400 select-text">
+              {selectedError ? (
+                <div>
+                  <div className="font-bold text-white mb-2 border-b border-white/[0.04] pb-1">{selectedError.filename}</div>
+                  <pre className="whitespace-pre-wrap leading-relaxed">{selectedError.content}</pre>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-600 select-none">Select an error log to view symptoms & resolution details.</div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
