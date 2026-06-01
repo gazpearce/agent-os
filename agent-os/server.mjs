@@ -2313,19 +2313,23 @@ app.get('/api/vault', (req, res) => {
   }
   try {
     if (!existsSync(d)) return res.json([]);
-    const files = readdirSync(d).filter(x => x.endsWith('.md'));
-    const notes = files.map(name => {
+    const allMdFiles = findMarkdownFiles(d);
+    const notes = allMdFiles.map(filePath => {
       try {
-        const stats = statSync(join(d, name));
+        const stats = statSync(filePath);
+        const relativeName = filePath.replace(d + '\\', '').replace(d + '/', '').replace(/\\/g, '/');
         return {
-          name,
+          name: relativeName,
           sizeBytes: stats.size,
           mtime: stats.mtime.toISOString()
         };
       } catch {
-        return { name, sizeBytes: 0, mtime: new Date().toISOString() };
+        const relativeName = filePath.replace(d + '\\', '').replace(d + '/', '').replace(/\\/g, '/');
+        return { name: relativeName, sizeBytes: 0, mtime: new Date().toISOString() };
       }
     });
+    // Sort by modify time desc (newest notes first)
+    notes.sort((a, b) => new Date(b.mtime).getTime() - new Date(a.mtime).getTime());
     res.json(notes);
   } catch {
     res.json([]);
