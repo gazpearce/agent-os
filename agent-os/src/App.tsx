@@ -1160,7 +1160,6 @@ function AgentTelemetryPanel({ agents }: { agents: any[] }) {
 
 /* ─────────── PROVIDER SWITCHER ─────────── */
 function ProviderPanel() {
-  const [activeProvider, setActiveProvider] = useState('deepseek/deepseek-v4-flash:free');
   const providers = [
     { id: 'openrouter/owl-alpha', name: 'Owl Alpha', ctx: '1M', free: false },
     { id: 'deepseek/deepseek-v4-flash:free', name: 'DeepSeek V4', ctx: '1M', free: true },
@@ -1173,6 +1172,30 @@ function ProviderPanel() {
     { id: 'grok-3', name: 'Grok 3', ctx: '1M', free: false },
     { id: 'claude-sonnet-4-20250514', name: 'Claude Sonnet 4', ctx: '200K', free: false },
   ];
+
+  const [activeProvider, setActiveProvider] = useState('openrouter/owl-alpha');
+  
+  useEffect(() => {
+    const fetchActiveModel = async () => {
+      try {
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          const data = await res.json();
+          const match = data.content?.match(/default:\s*([^\s\n]+)/);
+          if (match && match[1]) {
+            const matchedModel = match[1].trim();
+            const exists = providers.some(p => p.id === matchedModel);
+            if (exists) {
+              setActiveProvider(matchedModel);
+            } else {
+              setActiveProvider('openrouter/owl-alpha');
+            }
+          }
+        }
+      } catch (_) {}
+    };
+    fetchActiveModel();
+  }, []);
   const switchProvider = async (p: any) => {
     setActiveProvider(p.id);
     try {

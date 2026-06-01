@@ -108,3 +108,5 @@
 | T103 | Verification | Compile Speed & Failover Verifications | ✅ Completed | Re-ran learning loop manually, verified concurrent fetch successes and dynamic prompt writes |
 | T104 | Memory | Upgrade injectRecalledMemory Recall Engine | ✅ Completed | Implemented hybrid triggers, specificity ranking, and multi-keyword concurrent searches |
 | T105 | Verification | Multi-Keyword recall scratch script check | ✅ Completed | Executed scratch/test-memory-recall.js and verified correct specificity selections |
+| T106 | Frontend | Dynamic sidebar model lighting for Owl Alpha | ✅ Completed | Default to Owl Alpha in config.yaml and fallback in ProviderPanel |
+
