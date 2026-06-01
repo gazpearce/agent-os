@@ -1813,7 +1813,10 @@ function searchMemoryInternal(q) {
 
 function injectRecalledMemory(query) {
   const qLower = query.toLowerCase();
-  const triggerWords = ['remember', 'recall', 'previous', 'last', 'vault', 'history', 'happen', 'did we', 'did you', 'how did', 'error', 'fix'];
+  const triggerWords = [
+    'remember', 'recall', 'previous', 'last', 'vault', 'history', 'happen', 'did we', 'did you', 'how did', 'error', 'fix', 'solved', 'resolution',
+    'sqlite', 'database', 'db', 'vitepress', 'openrouter', 'ollama', 'aider', 'claude', 'github', 'conversation', 'mailbox', 'team', 'diagnostic', 'telemetry', 'error_vault', 'memory'
+  ];
   const hasTrigger = triggerWords.some(w => qLower.includes(w));
   if (!hasTrigger) return query;
 
@@ -1826,14 +1829,26 @@ function injectRecalledMemory(query) {
 
   if (searchTerms.length === 0) return query;
 
-  // Search memory for the best keyword
-  const termToSearch = searchTerms[searchTerms.length - 1];
-  console.log(`[Memory Recall] Recall query triggered. Searching term: "${termToSearch}"...`);
-  const hits = searchMemoryInternal(termToSearch);
+  // Rank search terms by specificity (capitalization and length descending)
+  const sortedTerms = [...searchTerms].sort((a, b) => {
+    const aCap = /^[A-Z]/.test(a) ? 1 : 0;
+    const bCap = /^[A-Z]/.test(b) ? 1 : 0;
+    if (aCap !== bCap) return bCap - aCap;
+    return b.length - a.length;
+  });
+
+  // Query database using top 2 ranked distinctive terms
+  const termsToSearch = sortedTerms.slice(0, 2);
+  console.log(`[Memory Recall] Recall query triggered. Searching term(s): ${termsToSearch.map(t => `"${t}"`).join(', ')}...`);
+  
+  let hits = [];
+  for (const term of termsToSearch) {
+    hits = hits.concat(searchMemoryInternal(term));
+  }
   
   if (hits.length === 0) return query;
 
-  // Deduplicate and select top 6 hits
+  // Deduplicate and select top 8 hits
   const uniqueHits = [];
   const seen = new Set();
   for (const h of hits) {
@@ -1842,7 +1857,7 @@ function injectRecalledMemory(query) {
       seen.add(key);
       uniqueHits.push(h);
     }
-    if (uniqueHits.length >= 6) break;
+    if (uniqueHits.length >= 8) break;
   }
 
   // Build recall context string
