@@ -30,6 +30,7 @@ interface Agent {
 }
 
 interface ChatMessage {
+  id?: string;
   agent: string;
   msg: string;
   time: string;
@@ -2005,9 +2006,12 @@ export default function App() {
   // Send message to Hermes CLI API
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || chatInput;
-    if (!textToSend.trim() || chatLoading) return;
+    if (!textToSend.trim()) return;
     
-    setChatMessages(prev => [...prev, { agent: "user", msg: textToSend, time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) }]);
+    const userMsgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    const assistantMsgId = 'msg-' + (Date.now() + 1) + '-' + Math.random().toString(36).substring(2, 7);
+
+    setChatMessages(prev => [...prev, { id: userMsgId, agent: "user", msg: textToSend, time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) }]);
     if (!customText) setChatInput("");
     setChatLoading(true);
 
@@ -2024,6 +2028,7 @@ export default function App() {
         if (contentType.includes("text/event-stream") && res.body?.getReader) {
           // Streaming response (old-style)
           setChatMessages(prev => [...prev, {
+            id: assistantMsgId,
             agent: activeAgent, msg: "",
             time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
             tools: []
@@ -2066,11 +2071,11 @@ export default function App() {
                   }
                   setChatMessages(prev => {
                     const updated = [...prev];
-                    if (updated.length > 0) {
-                      const lastIdx = updated.length - 1;
-                      const current = updated[lastIdx];
+                    const idx = updated.findIndex(m => m.id === assistantMsgId);
+                    if (idx !== -1) {
+                      const current = updated[idx];
                       const newTools = parsed.tool ? [...(current.tools || []), parsed.tool] : current.tools || [];
-                      updated[lastIdx] = { 
+                      updated[idx] = { 
                         ...current, 
                         msg: accumulatedResponse,
                         tools: newTools
@@ -2098,6 +2103,7 @@ export default function App() {
           const data = await res.json();
           if (data.error) {
             setChatMessages(prev => [...prev, {
+              id: assistantMsgId,
               agent: activeAgent,
               msg: `Error: ${data.error}`,
               time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
@@ -2105,6 +2111,7 @@ export default function App() {
             }]);
           } else {
             setChatMessages(prev => [...prev, {
+              id: assistantMsgId,
               agent: data.agent || activeAgent,
               msg: data.response || "No response received",
               time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
@@ -2128,6 +2135,7 @@ export default function App() {
       }
     } catch (e: any) {
       setChatMessages(prev => [...prev, {
+        id: assistantMsgId,
         agent: activeAgent,
         msg: `Failed: ${e.message}`,
         time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
@@ -2924,11 +2932,10 @@ export default function App() {
                     <span className="text-gray-500 font-mono pl-4 pr-1 select-none text-[15px]">&gt;</span>
                     <input
                       value={chatInput}
-                      disabled={chatLoading}
                       onChange={e => setChatInput(e.target.value)}
                       onKeyDown={e => e.key === "Enter" && handleSendMessage()}
                       placeholder={`Type your command or ask ${currentAgent.name}...`}
-                      className="w-full bg-transparent pl-2 pr-32 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none disabled:opacity-50"
+                      className="w-full bg-transparent pl-2 pr-32 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none"
                     />
                     
                     {/* Floating Controls Row */}
@@ -2954,8 +2961,7 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => handleSendMessage()}
-                        disabled={chatLoading}
-                        className="p-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white transition-all disabled:opacity-50 cursor-pointer shadow-[0_0_15px_rgba(124,58,237,0.3)] flex items-center justify-center"
+                        className="p-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white transition-all cursor-pointer shadow-[0_0_15px_rgba(124,58,237,0.3)] flex items-center justify-center"
                         title="Send Message"
                       >
                         <Zap size={14} className="fill-white" />

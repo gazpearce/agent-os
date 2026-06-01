@@ -16,6 +16,34 @@ We are developing the UK CCTV & Home Security SEO Network (deployed at https://u
 * No duplicate content across domains.
 
 ### # Dynamic Learned Rules (DO NOT IGNORE):
+* **Error: AGY Execution Loop Error**: Action: Initialize `agentPrompt` in the AGY script before use and add try/catch logging to prevent undefined-variable loop errors.
+* **Error: AGY Execution Loop Failure – Undefined `agentPrompt`**: Action: Validate every agy call includes a defined agentPrompt before loop execution; add a pre‑exec check and default fallback to avoid undefined errors.
+* **Error: AGY Agent Execution Loop Failure – Undefined `agentPrompt`**: Action: Ensure every AGY agent message contains an `agentPrompt` field or provide a default prompt in initialization to avoid execution loop failures.
+* **Error: SQLite database operation failed**: Action: Verify target tables exist and match the schema, and ensure no DB locks before preparing or executing SQLite statements.
+* **Error: SQLite database operation failed**: Action: Validate table existence and schema accuracy before executing any SQLite query, and confirm no locks are blocking the database.
+* **Error: SQLite database operation failed**: Action: Verify target table exists in the schema and DB is unlocked before preparing/executing any SQLite query.
+* **Error: SQLite database operation failed**: Action: Verify tables exist and schemas match before executing queries; avoid referencing non‑existent tables and ensure DB isn’t locked.
+* **Error: SQLite database operation failed**: Action: Verify table existence and schema before running queries and ensure the SQLite DB is unlocked to avoid prepare/execute failures.
+* **Error: SQLite database operation failed**: Action: Verify SQL syntax, table existence, and schema before execution; ensure no locks, and check DB path accessibility to prevent SQLite prepare failures.
+* **Error: SQLite database operation failed**: Action: Verify the table exists, confirm the schema matches the query fields, validate SQL syntax, and ensure no DB lock before executing the SQLite statement.
+* **Error: SQLite database operation failed**: Action: Verify table existence, schema alignment, and SQL syntax for queries, and ensure the SQLite DB isn’t locked before execution.
+* **Error: SQLite database operation failed**: Action: Verify table existence, schema match, and no locks before every SQLite query to avoid prepare/execution failures.
+* **Error: SQLite database operation failed**: Action: Verify table and schema exist before queries and ensure no DB locks by checking/creating the conversations table and matching columns.
+* **Error: SQLite database operation failed**: Action: Verify the target table exists, matches schema, and DB is unlocked before preparing/executing any SQLite query.
 * **Error: prompt_toolkit Win32 NoConsoleScreenBufferError**: Win32 NoConsoleScreenBufferError: Avoid running CLI tools in background shell redirections directly. Use start cmd.exe or PowerShell start-process window instead.
-* **Swarm & User Memories**: ## 🧠 User Profile *No specific user profile data recorded yet.*  ## ⚙️ System Preferences & Guidelines *No custom guidelines or preferences establish...
+* **Error: OpenClaw CLI Returned No Data – Research Step Failed**: Action: Validate OpenClaw inputs for correct format, capture non‑zero exit codes, propagate structured errors, retry with back‑off, and fallback to an alternate search tool.
+* **Error: OpenClaw CLI Failure during FAQ Retrieval**: Action: Ensure outbound internet, set valid OpenClaw API keys, verify OpenClaw installation, and use retries with verbose logging before CLI calls.
+* **Error: Tool read_file failed on D:/Agent OS/shared/faq_research.md**: Action: Verify file path exists, ensure read permissions, correct command syntax, and confirm the workspace isn’t locked before using read_file.
+* **Error: Tool send_agent_message failed on unknown**: Action: Verify path validity, command syntax, permissions, and workspace lock state before invoking send_agent_message.
+* **Agent Coordination and Failure Recovery in Multi-Agent Workflows**: Action: Ensure every tool step has an explicit fallback, log failures immediately, and keep parallel helper agents ready to continue the workflow.
+* **Agent OS V2 Blog Post Drafting and Publishing Workflow**: Action: Add explicit timeout to `swarm_executor` and log only non‑empty messages, tagging heartbeats as `SYSTEM_HEARTBEAT` to avoid polling loops.
+* **Successful creation and persistence of a markdown blog post with embedded assets**: Action: Verify file exists immediately after writing and run keyword density checks before final commit.
+* **Brand Guideline Extraction and Storage Pipeline**: Action: Pass accumulated output to each agent, retrieve files before synthesis, and invoke memory_consolidated at chain end.
+* **Brand Guideline Extraction and Documentation Workflow**: Action: Always forward cumulative output and context to every subsequent agent and save results in structured Markdown to preserve detail.
+* **Error: Openclaw CLI Execution Failure**: Action: Calibrate AGY for multi‑step distillation and validate Ollama's output schema before finalizing I/O to prevent CLI failures.
+* **CCTV FAQ Blog Post Generation via Orchestrated Multi-Agent Pipeline**: Action: Enforce Agy to add required YAML frontmatter and correct image spacing per brand rules before Hermes writes, and cap post‑task cron runs to avoid excess cycles.
+* **Successful Retrieval of Content Guidelines for Uni-Blog**: Action: Include a pre‑generation validation step that fetches and enforces the Image Spacing Rule from the Obsidian memory before any blog content is finalized.
+* **Goals Archive Index**: Action: Detect and reject duplicate identical blog‑post goals in the same session to prevent repeated executions.
+* **Key Rotation Configuration Recall**: Action: Keep CONTEXT.md continuously updated with the exact paths of security scripts like rotate_keys.py to ensure accurate dynamic memory recall.
+* **Swarm & User Memories**: Action: On any tool error, immediately log the failure, create a placeholder file for the expected output, and continue the workflow without aborting.
 * **VitePress Schema & OG Meta Tag Injection via transformHead**: VitePress Metadata: Inject JSON-LD & OG tags dynamically using transformHead hook. Avoid double prefixing URL posts/ slug. Wrap descriptions containing colons in quotes.

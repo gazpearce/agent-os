@@ -1,27 +1,22 @@
 [
   {
-    "agent": "obsidian",
-    "task": "Search the vault for existing templates and content guidelines files related to blog post structure, frontmatter schema, and previously created UK networking or WiFi blog posts",
-    "reason": "Identify established patterns and templates to ensure consistency with the existing blog structure and content guidelines"
-  },
-  {
     "agent": "openclaw",
-    "task": "Research WiFi 6 technology for UK residential homes including UK prices, British standards, local infographics resources, and Unsplash images",
-    "reason": "Gather the specific content requirements like UK pricing, British standards, and available images"
+    "task": "Perform a web search for the latest CCTV FAQ articles and retrieve the top 5-7 relevant FAQs, noting their content and sources. Also search the local knowledge base (e.g., D:/Agent OS/shared) for any recent CCTV FAQ documents.",
+    "reason": "We need up‑to‑date FAQ material to craft a accurate and comprehensive blog post."
   },
   {
-    "agent": "hermes",
-    "task": "Create a file at Research/wifi-6-uk-research.md containing all research findings including UK prices and local statistics for WiFi 6 upgrades",
-    "reason": "Save research in a shared file for easy access during blog post creation"
+    "agent": "obsidian",
+    "task": "Search the vault for any internal style guides or brand guidelines (e.g., file:///D:/Agent%20OS/shared/brand_guidelines.md) that dictate tone, formatting, and link conventions.",
+    "reason": "Ensures the blog follows company standards and provides correct mock link format."
   },
   {
     "agent": "agy",
-    "task": "Based on the research file, create the blog post following the template with frontmatter, schema, hero image, and all sections (1000-3000 words) and save it to C:/Users/Gary/uni-blog/blog/posts/wifi/wifi-6-residential.md",
-    "reason": "Generate the final blog post with required frontmatter, schema, local images, pricing, standards, and FAQ"
+    "task": "Draft a 1000‑3000 word blog post titled with \"CCTV FAQ\", incorporating the collected FAQs, a mock video embed, image, infographic, Gary Pearce mention, SEO‑optimized keyword density (1% for \"CCTV FAQ\"), required headings (H1, H2), five FAQ items each linking to mock internal URLs, and one external authority link.",
+    "reason": "Creates the complete, SEO‑compliant content ready for file creation."
   },
   {
-    "agent": "obsidian",
-    "task": "Index the new blog post in any relevant tracking documents or indexes in the vault",
-    "reason": "Ensure the new content is discoverable within the vault system"
+    "agent": "hermes",
+    "task": "Write the drafted blog content to the file D:/Agent OS/shared/cctv-faq-blog.md, ensuring the file is saved in markdown format with all required embeds and links.",
+    "reason": "Persists the final output to the specified location for the user."
   }
 ]
