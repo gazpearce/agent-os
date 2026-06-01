@@ -102,3 +102,7 @@
 | T97 | Backend (`server.mjs`) | Implement Self-Healing SQLite database Proxy | ✅ Completed | Wraps database sync and statements in Proxies to reset connection on query fail |
 | T98 | Backend (`server.mjs`) | Fix Conversations SQL Table Column mismatch | ✅ Completed | Corrected `title` column to `name` in `/api/sessions` and mapped data properties |
 | T99 | Verification | End-to-End database self-healing & endpoints validation | ✅ Completed | Verified proxy captures invalid table queries, restarts server, and checks sessions endpoint output |
+| T100 | Evolution | Add /api/swarm/compile-rule API Endpoint | ✅ Completed | Created route in server.mjs to summarize errors into dev-actionable rules |
+| T101 | Evolution | Optimize Fallback Search Paths & Timeouts | ✅ Completed | Re-ordered models list to prioritize openrouter/free and reduced timeout to 10s |
+| T102 | Evolution | Parallelize Experience Compiler Loop | ✅ Completed | Converted learning_loop.js to async Promise.all, cutting compile duration from ~3 mins to 12s |
+| T103 | Verification | Compile Speed & Failover Verifications | ✅ Completed | Re-ran learning loop manually, verified concurrent fetch successes and dynamic prompt writes |
