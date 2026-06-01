@@ -6,7 +6,8 @@ import {
   CheckCircle2, AlertTriangle, ChevronDown, ChevronUp,
   Layers, Radio, Shield, Terminal, Database, Workflow, TerminalSquare, RefreshCw,
   ChevronLeft, ChevronRight, Plus, Trash2, Save, Play, Users, Kanban,
-  Network, FileText, X, ExternalLink, Globe, Puzzle, Download, Search, Filter
+  Network, FileText, X, ExternalLink, Globe, Puzzle, Download, Search, Filter,
+  Target
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -1327,10 +1328,124 @@ function VaultPanel() {
   );
 }
 
+function GoalsPanel() {
+  const [goals, setGoals] = useState<any[]>([]);
+  const [selectedGoal, setSelectedGoal] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const fetchGoals = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/goals');
+      const data = await res.json();
+      setGoals(data.goals || []);
+    } catch (e) {
+      console.error("Failed to fetch goals:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const selectGoal = async (filename: string) => {
+    try {
+      const res = await fetch(`/api/goals/content?file=${encodeURIComponent(filename)}`);
+      const data = await res.json();
+      setSelectedGoal({ filename, content: data.content });
+    } catch (e) {
+      console.error("Failed to load goal content:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchGoals();
+  }, []);
+
+  const filteredGoals = goals.filter(g => 
+    g.title.toLowerCase().includes(search.toLowerCase()) ||
+    g.filename.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="flex-1 flex overflow-hidden min-h-0 bg-[#04040c]/15">
+      {/* Left panel: List goals */}
+      <div className="w-80 border-r border-white/[0.05] flex flex-col shrink-0 bg-[#060610]/45">
+        <div className="p-3 border-b border-white/[0.05] flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={12} />
+            <input
+              type="text"
+              placeholder="Search goals..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full bg-white/[0.02] border border-white/[0.05] focus:border-indigo-500/30 rounded-lg pl-8 pr-2.5 py-1.5 text-[11px] text-white focus:outline-none placeholder-gray-600 font-mono"
+            />
+          </div>
+          <button 
+            onClick={fetchGoals} 
+            className="p-1.5 rounded-lg border border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] text-gray-400 cursor-pointer"
+            title="Refresh goals list"
+          >
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
+        <div className="flex-grow overflow-y-auto p-2 space-y-1">
+          {filteredGoals.length === 0 ? (
+            <div className="text-[10px] text-gray-600 text-center py-8 select-none">No goals matching search.</div>
+          ) : (
+            filteredGoals.map(g => (
+              <button
+                key={g.filename}
+                onClick={() => selectGoal(g.filename)}
+                className={`w-full text-left p-2.5 rounded-xl border text-[11px] transition-all cursor-pointer block ${
+                  selectedGoal?.filename === g.filename
+                    ? "bg-indigo-600/15 border-indigo-500/30 text-white shadow-md"
+                    : "bg-white/[0.01] border-white/[0.03] text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]"
+                }`}
+              >
+                <div className="font-semibold truncate flex items-center gap-1.5">
+                  🏆 {g.title}
+                </div>
+                <div className="text-[9px] text-gray-500 font-mono mt-1.5 flex justify-between select-none">
+                  <span>{g.filename}</span>
+                  <span>{g.date}</span>
+                </div>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Right panel: Goal contents */}
+      <div className="flex-grow flex flex-col bg-[#04040c]/25 overflow-hidden">
+        {selectedGoal ? (
+          <div className="flex-grow flex flex-col overflow-hidden">
+            <div className="p-4 border-b border-white/[0.05] flex justify-between items-center bg-[#070713]/55">
+              <div>
+                <h3 className="text-xs font-bold text-white tracking-wide font-mono">{selectedGoal.filename}</h3>
+                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-1">Archived Goal Summary</span>
+              </div>
+            </div>
+            <div className="flex-grow overflow-y-auto p-6 select-text max-w-4xl mx-auto w-full">
+              <Markdown text={selectedGoal.content} />
+            </div>
+          </div>
+        ) : (
+          <div className="flex-grow flex flex-col items-center justify-center text-gray-500 p-8 select-none text-center">
+            <CheckCircle2 size={32} className="text-gray-700 mb-3 animate-pulse" />
+            <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Swarm Swarming Goals Archive</div>
+            <div className="text-[10px] text-gray-600 mt-1 max-w-xs">Select an archived goal from the left sidebar to view its summary, final outcomes, and logs.</div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
   const [activeAgent, setActiveAgent] = useState("hermes");
-  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault">("chat");
+  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals">("chat");
   const [rightTab, setRightTab] = useState<"sessions" | "models" | "skills" | "mcp-catalog" | "vault">("models");
   
   const [voiceUpdatesEnabled, setVoiceUpdatesEnabled] = useState(() => {
@@ -2506,6 +2621,7 @@ export default function App() {
                 { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
                 { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> },
                 { id: "vault", label: "Memory", icon: <Database size={12} /> },
+                { id: "goals", label: "Goals", icon: <Target size={12} /> },
                 { id: "monitor", label: "Telemetry", icon: <Activity size={12} /> }
               ].map(tab => (
                 <button
@@ -3001,6 +3117,11 @@ export default function App() {
           {/* ─── TAB 3.5: SWARM SHARED MEMORY VAULT ─── */}
           {centerTab === "vault" && (
             <VaultPanel />
+          )}
+
+          {/* ─── TAB 3.6: GOALS ARCHIVE ─── */}
+          {centerTab === "goals" && (
+            <GoalsPanel />
           )}
 
           {/* ─── TAB 4: SWARM TELEMETRY & SYSTEM LOAD ─── */}

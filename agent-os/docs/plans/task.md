@@ -86,6 +86,6 @@
 | T81 | Backend (`server.mjs`) | Implement Swarm Goals Archiver Helper | ✅ Completed | Write archiveGoal helper function & summarize logs using LLM |
 | T82 | Backend (`server.mjs`) | Hook Goals Archiver into Orchestration Loop | ✅ Completed | Call archiveGoal inside orchestrator loop & test output |
 | T83 | Build & Verification | Rebuild & Diagnostic Check | ✅ Completed | Rebuild React frontend and confirm zero errors |
-
-
-
+| T84 | Frontend (`App.tsx`) | Implement GoalsPanel React Component | ✅ Completed | Created left/right layout with search, refresh, and markdown rendering |
+| T85 | Frontend (`App.tsx`) | Integrate Goals tab in central panel selection | ✅ Completed | Expanded centerTab union and added tab button to central nav bar |
+| T86 | Build & Verification | Swarm compilation and validation checks | ✅ Completed | Production compilation passes cleanly with zero warnings/errors |
