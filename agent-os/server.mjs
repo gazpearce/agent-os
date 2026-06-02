@@ -14,8 +14,12 @@
 import express from 'express';
 import cors from 'cors';
 import os from 'os';
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink } from 'fs';
+import { EventEmitter } from 'events';
+
+EventEmitter.defaultMaxListeners = 30;
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink, unlinkSync } from 'fs';
 import { exec, execSync, spawn } from 'child_process';
+import pty from 'node-pty';
 import { fileURLToPath } from 'url';
 import { dirname, join, basename } from 'path';
 import { createRequire } from 'module';
@@ -192,7 +196,65 @@ const OR_KEYS = [
   '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',
   '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',
 ];
-const GEMINI_KEY = 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo';
+const GEMINI_KEYS_PATH = `${HOME}\\AppData\\Local\\hermes\\gemini-keys.json`;
+let geminiKeys = ['AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo'];
+let geminiKeyIndex = 0;
+
+function loadGeminiKeys() {
+  try {
+    if (existsSync(GEMINI_KEYS_PATH)) {
+      const data = JSON.parse(readFileSync(GEMINI_KEYS_PATH, 'utf-8'));
+      if (Array.isArray(data) && data.length > 0) {
+        geminiKeys = data;
+        console.log(`[Gemini Keys] Loaded ${geminiKeys.length} keys from config.`);
+      }
+    }
+  } catch (e) {
+    console.log('[Gemini Keys] Failed to load gemini keys:', e.message);
+  }
+}
+loadGeminiKeys();
+
+function getNextGeminiKey() {
+  if (!geminiKeys || geminiKeys.length === 0) {
+    return 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo';
+  }
+  const key = geminiKeys[geminiKeyIndex % geminiKeys.length];
+  geminiKeyIndex = (geminiKeyIndex + 1) % geminiKeys.length;
+  return key;
+}
+
+async function fetchGeminiWithRotation(urlSuffix, bodyData, controllerSignal) {
+  let attempts = Math.max(geminiKeys.length, 1);
+  let lastError = null;
+  
+  for (let i = 0; i < attempts; i++) {
+    const key = getNextGeminiKey();
+    try {
+      console.log(`[Gemini API] Requesting via key ending in ...${key.slice(-6)} (Attempt ${i + 1}/${attempts})`);
+      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${urlSuffix}?key=${key}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData),
+        signal: controllerSignal
+      });
+      
+      if (r.status === 200) {
+        return r;
+      }
+      
+      const errText = await r.text();
+      console.log(`[Gemini API] Key ...${key.slice(-6)} returned status ${r.status}: ${errText}`);
+      lastError = new Error(`Status ${r.status}: ${errText}`);
+    } catch (e) {
+      console.log(`[Gemini API] Key ...${key.slice(-6)} failed:`, e.message);
+      lastError = e;
+    }
+  }
+  throw lastError || new Error('All Gemini keys failed');
+}
+
+const NOUS_API_KEY = 'sk-nous-CPu13S1xH9dIVCoSfkU0AQqRGd719rSg';
 
 // ═══════════════════════════════════════════════════════════════════════
 // AGENT REGISTRY — All agents on the team
@@ -287,6 +349,12 @@ const AGENTS = {
 
 let lastHealthCheckTime = 0;
 let healthCheckPromise = null;
+
+// Gemini credit / rate-limit tracking
+let geminiCreditsDepleted = false;
+let geminiCreditsCheckedAt = 0;
+const modelStatus = {}; // { [modelId]: { status, cooldownUntil, message } }
+const activeProcesses = new Set(); // Track spawned child processes
 
 // Check agent health on startup (with 10-second debounce)
 function checkAgentHealth() {
@@ -859,26 +927,103 @@ async function _executeToolCallRaw(toolCallText, onProgress = null, fromAgent = 
 }
 
 // Chat with fallback (supporting conversation history messages array)
+// Key rotation helpers
+const keyLimitedUntil = {}; // { key: timestamp }
+function getAvailableKeys() {
+  const now = Date.now();
+  const available = OR_KEYS.filter(k => !keyLimitedUntil[k] || now > keyLimitedUntil[k]);
+  return available.length > 0 ? available : OR_KEYS; // Fallback: use all keys
+}
+function markKeyLimited(key, durationMs = 30000) {
+  keyLimitedUntil[key] = Date.now() + durationMs;
+  console.log(`[KeyRotation] Key ${key.substring(0, 15)}... limited for ${durationMs/1000}s`);
+}
+function recordKeyCallSuccess(key) { delete keyLimitedUntil[key]; }
+async function rotateOpenRouterKeys() {
+  // No-op: key rotation is handled by getAvailableKeys filtering
+}
+
+// Maps model IDs to valid OpenRouter model names (using :free variants for free keys)
+function getOpenRouterModelName(modelId) {
+  if (typeof modelId !== 'string') return modelId;
+  let clean = modelId;
+  // Map Gemini 3.x names to a free OR equivalent
+  if (clean.startsWith('google/gemini-3.') || clean.startsWith('google/gemini-3-')) {
+    return 'google/gemini-2.5-flash:free';
+  }
+  if (clean.endsWith('-standard')) clean = clean.replace('-standard', '');
+  // Map paid Google models to free OR variants (free-tier keys can't afford paid calls)
+  const freeMap = {
+    'google/gemini-2.5-flash': 'google/gemini-2.5-flash:free',
+    'google/gemini-2.5-pro':   'google/gemini-2.5-pro:free',
+    'google/gemini-2.0-flash': 'google/gemini-2.0-flash:free',
+    'google/gemini-2.5-flash-lite': 'google/gemini-2.5-flash-lite:free',
+  };
+  return freeMap[clean] || clean;
+}
+
 async function chatCompletionWithHistory(messages, maxTokens = 2048) {
   let model = 'google/gemini-2.0-flash-001';
   try {
     const cfg = readConfig();
     const m = cfg.match(/default:\s*([^\s\n]+)/);
-    if (m && m[1]) {
-      model = m[1];
-    }
+    if (m && m[1]) model = m[1];
   } catch {}
 
-  const modelFallbacks = [
-    'openrouter/free',
-    model,
-    'google/gemma-2-9b-it:free'
-  ];
-
-  const uniqueModels = [...new Set(modelFallbacks)];
+  const uniqueModels = [...new Set([model, 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
 
   for (const currentModel of uniqueModels) {
-    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 2)) {
+    // Try NousResearch proxy first for nousresearch models or stepfun models that are hosted there
+    if (currentModel.startsWith('stepfun/') || currentModel.includes('nous') || currentModel.startsWith('nousresearch/')) {
+      try {
+        console.log(`[OR Chat] Trying NousResearch Inference for ${currentModel}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('https://inference.nous.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${NOUS_API_KEY}`
+          },
+          body: JSON.stringify({ model: currentModel, messages, max_tokens: maxTokens }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[OR Chat] Success with NousResearch for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        }
+      } catch (err) { console.log(`[OR Chat] NousResearch proxy error:`, err.message); }
+      // continue to see if we can fall back
+    }
+    // Try Puter proxy first for puter/ models
+    if (currentModel.startsWith('puter/')) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const r = await fetch('http://127.0.0.1:18889/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: currentModel, messages, stream: false }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.status === 200) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[OR Chat] Success with Puter proxy for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          console.log(`[OR Chat] Puter proxy returned ${r.status} for ${currentModel}`);
+        }
+      } catch (err) { console.log(`[OR Chat] Puter proxy error:`, err.message); }
+      continue; // Don't try OpenRouter for puter/ models
+    }
+    for (const key of getAvailableKeys().slice(0, OR_KEYS.length <= 2 ? OR_KEYS.length : 2)) {
       try {
         console.log(`[OR Chat] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
         const controller = new AbortController();
@@ -886,17 +1031,20 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
         const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
-          body: JSON.stringify({ model: currentModel, messages, max_tokens: maxTokens }),
+          body: JSON.stringify({ model: getOpenRouterModelName(currentModel), messages, max_tokens: maxTokens }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
+        if (r.status === 429) { markKeyLimited(key, 30000); rotateOpenRouterKeys().catch(console.error); continue; }
         const d = await r.json();
         if (d.error) {
           console.log(`[OR Chat] Error with model ${currentModel}:`, d.error.message);
+          if (d.error.code === 429 || d.error.message?.includes('429')) { markKeyLimited(key, 30000); rotateOpenRouterKeys().catch(console.error); }
           continue;
         }
         if (d.choices?.[0]?.message?.content) {
           console.log(`[OR Chat] Success with model ${currentModel}`);
+          recordKeyCallSuccess(key);
           return d.choices[0].message.content;
         }
       } catch (err) {
@@ -968,15 +1116,13 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
 
   // Gemini fallback
   try {
-    console.log('[OR Chat] All OpenRouter and primary fallbacks failed. Falling back to direct Gemini API...');
+    console.log('[OR Chat] All OpenRouter and primary fallbacks failed. Falling back to direct Gemini API with rotation...');
     const flattenedText = messages.map(m => `${m.role === 'system' ? 'System Instructions' : m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n\n');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: flattenedText }] }] }),
-      signal: controller.signal
-    });
+    const r = await fetchGeminiWithRotation('gemini-2.0-flash:generateContent', {
+      contents: [{ parts: [{ text: flattenedText }] }]
+    }, controller.signal);
     clearTimeout(timeoutId);
     const d = await r.json();
     return d.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
@@ -995,7 +1141,69 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress
   let response;
   let runSimulated = false;
 
-  if (toAgent === 'claude') {
+  if (toAgent === 'agy') {
+    try {
+      if (onProgress) onProgress(`🧠 **Antigravity CLI** is initializing...`);
+      console.log(`[Swarm Execution] Running native Antigravity CLI agent...`);
+      const escapedMessage = message.replace(/'/g, "''").replace(/\r?\n/g, ' ');
+      const agyBin = AGENTS.agy.binary;
+      if (onProgress) onProgress(`🔧 **Antigravity CLI** is running strategy/planning tasks...`);
+      const output = await new Promise((resolve, reject) => {
+        let result = '';
+        let finished = false;
+        const done = (val) => { if (!finished) { finished = true; resolve(val); } };
+        try {
+          // Use PTY so agy can write to a real terminal and we capture output
+          const ptyProc = pty.spawn(agyBin, ['--dangerously-skip-permissions', '--print-timeout', '60s', '-p', escapedMessage], {
+            name: 'xterm-256color', cols: 220, rows: 50,
+            cwd: WORKSPACE, env: { ...process.env, NO_COLOR: '1', TERM: 'dumb' }
+          });
+          activeProcesses.add(ptyProc);
+          ptyProc.on('data', (data) => {
+            // Strip ANSI CSI sequences, OSC title sequences, and control chars
+            let clean = data
+              .replace(/\x1b\][^\x07]*\x07/g, '')           // OSC sequences (e.g. ]0;title\x07)
+              .replace(/\x1b\][^\x1b]*\x1b\\/g, '')          // OSC with ST terminator
+              .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')        // CSI sequences
+              .replace(/\x1b\([0-9A-Z]/g, '')                // G0/G1 charset
+              .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '') // control chars
+              .replace(/\r\n/g, '\n').replace(/\r/g, '\n');   // normalize newlines
+            result += clean;
+          });
+          const timeoutId = setTimeout(() => {
+            try { ptyProc.kill(); } catch {}
+            activeProcesses.delete(ptyProc);
+            done(result.trim() || 'Request timed out');
+          }, 75000);
+          ptyProc.on('exit', (code) => {
+            clearTimeout(timeoutId);
+            activeProcesses.delete(ptyProc);
+            done(result.trim() || (code !== 0 ? `agy exited with code ${code}` : 'Done'));
+          });
+        } catch (ptyErr) {
+          console.log('[Swarm] PTY spawn failed, using plain spawn:', ptyErr.message);
+          let stdout = '', stderr = '';
+          const cp = spawn(agyBin, ['--dangerously-skip-permissions', '--print-timeout', '60s', '-p', escapedMessage], {
+            cwd: WORKSPACE, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env }
+          });
+          activeProcesses.add(cp);
+          cp.stdout.on('data', (d) => { stdout += d.toString(); });
+          cp.stderr.on('data', (d) => { stderr += d.toString(); });
+          cp.stdin.end();
+          const t = setTimeout(() => { cp.kill(); done(stdout || stderr || 'Timeout'); }, 75000);
+          cp.on('close', (code) => { clearTimeout(t); activeProcesses.delete(cp); done((stdout || stderr || '').trim() || 'Done'); });
+          cp.on('error', (err) => { clearTimeout(t); activeProcesses.delete(cp); reject(err); });
+        }
+      });
+      response = output.trim();
+      logActivity({ type: 'agy_cli_run', success: true });
+      return { success: true, from: toAgent, response };
+    } catch (e) {
+      console.log(`[Swarm Execution] Antigravity CLI failed: ${e.message}. Falling back to simulated API chat...`);
+      if (onProgress) onProgress(`⚠️ **Antigravity CLI** failed. Falling back to simulated Antigravity agent...`);
+      runSimulated = true;
+    }
+  } else if (toAgent === 'claude') {
     try {
       if (onProgress) onProgress(`🤖 **Claude Code CLI** is initializing...`);
       console.log(`[Swarm Execution] Running native Claude Code CLI agent...`);
@@ -1389,6 +1597,36 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
+    if (currentModel.startsWith('stepfun/') || currentModel.includes('nous') || currentModel.startsWith('nousresearch/')) {
+      try {
+        console.log(`[OR ChatCompletion] Trying NousResearch Inference for ${currentModel}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('https://inference.nous.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${NOUS_API_KEY}`
+          },
+          body: JSON.stringify({
+            model: currentModel,
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[OR ChatCompletion] Success with NousResearch for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        }
+      } catch (err) {
+        console.log(`[OR ChatCompletion] NousResearch proxy error:`, err.message);
+      }
+    }
     for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 2)) {
       try {
         console.log(`[OR ChatCompletion] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
@@ -1479,14 +1717,12 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
 
   // Gemini fallback
   try {
-    console.log('[OR ChatCompletion] All OpenRouter and primary fallbacks failed. Falling back to direct Gemini API...');
+    console.log('[OR ChatCompletion] All OpenRouter and primary fallbacks failed. Falling back to direct Gemini API with rotation...');
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
-    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ contents: [{ parts: [{ text: `${systemPrompt}\n\nUser Query: ${query}` }] }] }),
-      signal: controller.signal
-    });
+    const r = await fetchGeminiWithRotation('gemini-2.0-flash:generateContent', {
+      contents: [{ parts: [{ text: `${systemPrompt}\n\nUser Query: ${query}` }] }]
+    }, controller.signal);
     clearTimeout(timeoutId);
     const d = await r.json();
     if (d.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -1712,8 +1948,84 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// AGY CLI live info — version & model (auto-tracks CLI upgrades)
+app.get('/api/agy-cli-info', async (req, res) => {
+  try {
+    // Get CLI version
+    let cliVersion = 'unknown';
+    try {
+      const { stdout } = await execAsync('agy --version', { timeout: 5000 });
+      cliVersion = stdout.trim() || 'unknown';
+    } catch {}
+
+    // Read model from AGY CLI settings file
+    const agySettingsPath = `${process.env.USERPROFILE || 'C:\\Users\\Gary'}\\.gemini\\antigravity-cli\\settings.json`;
+    let cliModel = null;
+    try {
+      if (existsSync(agySettingsPath)) {
+        const settings = JSON.parse(readFileSync(agySettingsPath, 'utf-8'));
+        cliModel = settings.model || settings.defaultModel || null;
+      }
+    } catch {}
+
+    // Fall back: read from GEMINI.md or infer from version
+    if (!cliModel) {
+      const geminiMdPath = `${process.env.USERPROFILE || 'C:\\Users\\Gary'}\\.gemini\\GEMINI.md`;
+      try {
+        if (existsSync(geminiMdPath)) {
+          const md = readFileSync(geminiMdPath, 'utf-8');
+          const mMatch = md.match(/model[:\s]+([a-z0-9._/-]+)/i);
+          if (mMatch) cliModel = mMatch[1].trim();
+        }
+      } catch {}
+    }
+
+    // Version-to-model map (known defaults for each released version)
+    const VERSION_MODEL_MAP = {
+      '1.0.4': 'gemini-2.5-flash-preview-05-20',
+      '1.0.3': 'gemini-2.5-flash-preview-05-20',
+      '1.0.2': 'gemini-2.5-flash-preview-04-17',
+      '1.0.1': 'gemini-2.0-flash',
+      '1.0.0': 'gemini-2.0-flash',
+    };
+
+    if (!cliModel) {
+      cliModel = VERSION_MODEL_MAP[cliVersion] || 'gemini-2.5-flash-preview-05-20';
+    }
+
+    // Clean up model name display
+    const modelDisplay = cliModel.replace(/^models\//, '');
+    const ctxMap = {
+      'gemini-2.5-flash': '1M', 'gemini-2.5-pro': '1M',
+      'gemini-2.0-flash': '1M', 'gemini-1.5-flash': '1M',
+    };
+    const ctx = Object.entries(ctxMap).find(([k]) => modelDisplay.includes(k))?.[1] || '1M';
+
+    res.json({
+      version: cliVersion,
+      model: modelDisplay,
+      ctx,
+      provider: 'Antigravity / Google',
+      note: `AGY v${cliVersion}`,
+    });
+  } catch (e) {
+    res.json({ version: 'unknown', model: 'gemini-2.5-flash-preview-05-20', ctx: '1M', provider: 'Antigravity / Google', note: 'AGY CLI' });
+  }
+});
+
 // Full agent registry
 app.get('/api/agents', (req, res) => res.json({ agents: AGENTS, workspace: WORKSPACE, shared: SHARED }));
+
+// Reset Gemini model status — clears all cooldowns and allows immediate retry
+app.post('/api/gemini-reset', (req, res) => {
+  geminiCreditsDepleted = false;
+  geminiCreditsCheckedAt = 0;
+  for (const key of Object.keys(modelStatus)) {
+    if (key.startsWith('google/')) delete modelStatus[key];
+  }
+  console.log('[Gemini] Manual reset: all Gemini model cooldowns cleared.');
+  res.json({ success: true, message: 'All Gemini model cooldowns cleared. Direct API calls will retry immediately.' });
+});
 
 // Agent health check
 app.get('/api/agents/health', (req, res) => {
@@ -2132,15 +2444,19 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
   }
 
   // DEFAULT CHAT ROUTE
+  // "Model provider" UI agents (nousresearch, gemini, openrouter, github, etc.) are not
+  // executable server agents — they are just UI-side model catalog views. If the agentId
+  // doesn't exist in the AGENTS map, fall back to Hermes with the active model.
+  const executableAgents = Object.keys(AGENTS);
   let response;
-  if (agentId && agentId !== 'hermes') {
-    // Route to specific agent
+  if (agentId && agentId !== 'hermes' && executableAgents.includes(agentId.toLowerCase())) {
+    // Route to specific executable agent (agy, openclaw, claude, aider, obsidian, ollama, lmstudio)
     const result = await sendMessage(agentId, queryWithMemory, 'user', (update) => {
       res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
     });
     response = result.response || result.error || 'No response';
   } else {
-    // Default: Hermes handles it, routed through sendMessage to support tools and prevent raw XML leakage
+    // Default: Hermes/OpenRouter handles chat (also covers nousresearch, gemini, openrouter UI agents)
     const result = await sendMessage('hermes', queryWithMemory, 'user', (update) => {
       res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
     });
@@ -2157,6 +2473,86 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
 
   res.write('data: [DONE]\n\n');
   res.end();
+});
+
+let cachedModels = null;
+let cachedModelsExpiry = 0;
+
+// GET MODELS (dynamic discovery of free models)
+app.get('/api/models', async (req, res) => {
+  const now = Date.now();
+  if (cachedModels && now < cachedModelsExpiry) {
+    return res.json({ models: cachedModels });
+  }
+
+  try {
+    let openRouterModels = [];
+    let nousModels = [];
+
+    // 1. Fetch OpenRouter Models
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${OR_KEYS[0]}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // filter for free models
+        openRouterModels = (data.data || [])
+          .filter(m => m.id.endsWith(':free'))
+          .map(m => ({
+            id: m.id,
+            name: m.name,
+            provider: 'openrouter',
+            pricing: m.pricing || { prompt: '0', completion: '0' }
+          }));
+      }
+    } catch (err) {
+      console.error('[Models Discovery] Failed to fetch OpenRouter models:', err.message);
+    }
+
+    // 2. Fetch NousResearch Models (OpenRouter-compatible API proxying inference.nous.ai)
+    try {
+      const response = await fetch('https://inference.nous.ai/api/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${NOUS_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        nousModels = (data.data || []).map(m => ({
+          id: m.id,
+          name: m.name,
+          provider: 'nousresearch',
+          pricing: m.pricing || { prompt: '0', completion: '0' }
+        }));
+      }
+    } catch (err) {
+      console.error('[Models Discovery] Failed to fetch NousResearch models:', err.message);
+    }
+
+    // Combine and deduplicate (by model ID)
+    const combined = [...nousModels, ...openRouterModels];
+    const seen = new Set();
+    const unique = [];
+    for (const m of combined) {
+      if (!seen.has(m.id)) {
+        seen.add(m.id);
+        unique.push(m);
+      }
+    }
+
+    cachedModels = unique;
+    cachedModelsExpiry = now + 10 * 60 * 1000; // cache for 10 mins
+
+    res.json({ models: unique });
+  } catch (err) {
+    console.error('[Models Discovery] Error combining models:', err);
+    res.status(500).json({ error: 'Failed to discover models' });
+  }
 });
 
 // SELECT MODEL
@@ -2869,6 +3265,28 @@ app.post('/api/config', (req, res) => {
   try {
     writeFileSync(CONFIG_PATH, content, 'utf-8');
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// GET GEMINI KEYS
+app.get('/api/gemini-keys', (req, res) => {
+  res.json({ keys: geminiKeys });
+});
+
+// POST GEMINI KEYS
+app.post('/api/gemini-keys', (req, res) => {
+  const { keys } = req.body;
+  if (!Array.isArray(keys)) return res.status(400).json({ error: 'keys array required' });
+  try {
+    const cleanedKeys = keys.map(k => k.trim()).filter(Boolean);
+    if (cleanedKeys.length === 0) {
+      cleanedKeys.push('AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo'); // default/fallback
+    }
+    geminiKeys = cleanedKeys;
+    writeFileSync(GEMINI_KEYS_PATH, JSON.stringify(geminiKeys, null, 2), 'utf-8');
+    res.json({ success: true, keys: geminiKeys });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

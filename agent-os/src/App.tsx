@@ -113,8 +113,11 @@ const INITIAL_AGENTS: Agent[] = [
   { id: "openclaw", name: "OpenClaw", role: "Execution · Router", icon: <Workflow size={18} />, status: "offline", version: "2026.5.20", layer: "L2", color: "#10b981", tokens: 19430, tasks: 42, skills: 8 },
   { id: "claude", name: "Claude Code", role: "Developer · Refactoring", icon: <Bot size={18} />, status: "online", version: "2.1.159", layer: "L3", color: "#ea580c", tokens: 53102, tasks: 14, skills: 12 },
   { id: "aider", name: "Aider Chat", role: "Multi-file Coding Agent", icon: <Terminal size={18} />, status: "online", version: "0.68.0", layer: "L3", color: "#10b981", tokens: 0, tasks: 0, skills: 8 },
+  { id: "opencode", name: "OpenCode", role: "Terminal · AI Coder", icon: <TerminalSquare size={18} />, status: "online", version: "MIT · 75+ providers", layer: "L3", color: "#06b6d4", tokens: 0, tasks: 0, skills: 7 },
   { id: "github", name: "GitHub CLI", role: "Repo Operations & PRs", icon: <Layers size={18} />, status: "online", version: "2.92.0", layer: "L3", color: "#64748b", tokens: 0, tasks: 0, skills: 5 },
   { id: "hermes", name: "Hermes", role: "Research · Executor", icon: <Zap size={18} />, status: "offline", version: "active", layer: "L3", color: "#a855f7", tokens: 142893, tasks: 23, skills: 31 },
+  { id: "nousresearch", name: "Nous Research", role: "Inference · Free API", icon: <Network size={18} />, status: "online", version: "portal", layer: "Cloud", color: "#f97316", tokens: 0, tasks: 0, skills: 6 },
+  { id: "gemini", name: "Google Gemini", role: "AI Studio · Free Tier", icon: <Sparkles size={18} />, status: "online", version: "2.5 Flash", layer: "Cloud", color: "#4285f4", tokens: 0, tasks: 0, skills: 8 },
   { id: "obsidian", name: "Obsidian", role: "Memory · Vault", icon: <Database size={18} />, status: "online", version: "installed", layer: "L4", color: "#f59e0b", tokens: 0, tasks: 0, skills: 5 },
   { id: "ollama", name: "Ollama", role: "Local · Inference", icon: <Cpu size={18} />, status: "offline", version: "0.24.0", layer: "L6", color: "#22d3ee", tokens: 0, tasks: 0, skills: 4 },
   { id: "lmstudio", name: "LM Studio", role: "Local · UI", icon: <Terminal size={18} />, status: "offline", version: "installed", layer: "L6", color: "#ec4899", tokens: 0, tasks: 0, skills: 3 },
@@ -1075,6 +1078,108 @@ function SettingsPanel() {
   );
 }
 
+/* ─────────── GEMINI API KEYS MANAGER ─────────── */
+function GeminiKeysPanel() {
+  const [keys, setKeys] = useState<string[]>([]);
+  const [newKey, setNewKey] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState('');
+
+  const loadKeys = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/gemini-keys');
+      if (res.ok) {
+        const data = await res.json();
+        setKeys(data.keys || []);
+      }
+    } catch (_) {}
+    finally { setLoading(false); }
+  };
+
+  const saveKeys = async (updatedKeys: string[]) => {
+    try {
+      const res = await fetch('/api/gemini-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keys: updatedKeys })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setKeys(data.keys || []);
+        setSaved('Saved!');
+        setTimeout(() => setSaved(''), 2000);
+      }
+    } catch (_) {
+      setSaved('Error saving');
+    }
+  };
+
+  useEffect(() => {
+    loadKeys();
+  }, []);
+
+  const handleAdd = () => {
+    if (!newKey.trim()) return;
+    const updated = [...keys, newKey.trim()];
+    saveKeys(updated);
+    setNewKey('');
+  };
+
+  const handleDelete = (index: number) => {
+    const updated = keys.filter((_, i) => i !== index);
+    saveKeys(updated);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+        <span className="flex items-center gap-1">🔑 Gemini API Keys ({keys.length})</span>
+        <div className="flex items-center gap-1.5">
+          {loading && <span className="text-[8px] text-gray-400">...</span>}
+          {saved && <span className="text-[8px] text-green-400">{saved}</span>}
+        </div>
+      </div>
+      
+      <div className="space-y-1">
+        {keys.map((key, i) => (
+          <div key={i} className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-black/40 border border-white/[0.03] text-[9px] font-mono">
+            <span className="text-gray-400 truncate w-[180px]">
+              {key.length > 12 ? `${key.slice(0, 6)}...${key.slice(-6)}` : key}
+            </span>
+            <button 
+              onClick={() => handleDelete(i)} 
+              className="text-red-400 hover:text-red-300 hover:scale-105 cursor-pointer text-[8px] border-none bg-transparent"
+              title="Delete key"
+            >
+              ✕
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex gap-1 pt-1">
+        <input 
+          type="text" 
+          placeholder="Add Gemini API Key (AIzaSy...)" 
+          value={newKey} 
+          onChange={e => setNewKey(e.target.value)} 
+          className="flex-1 bg-black/40 border border-white/[0.05] rounded px-2 py-1 text-[9px] text-gray-300 font-mono focus:outline-none focus:border-white/10"
+        />
+        <button 
+          onClick={handleAdd} 
+          className="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 rounded px-2.5 py-1 text-[9px] font-semibold transition-all cursor-pointer"
+        >
+          Add
+        </button>
+      </div>
+      <div className="text-[8px] text-gray-500 italic select-none">
+        Keys rotate automatically.
+      </div>
+    </div>
+  );
+}
+
 /* ─────────── PERSONALITY SWITCHER ─────────── */
 function PersonalityPanel() {
   const [active, setActive] = useState('helpful');
@@ -2004,10 +2109,13 @@ export default function App() {
     setChatLoading(true);
 
     try {
+      // "Model provider" UI agents are view-only catalogs — chat always runs through hermes/OpenRouter
+      const EXECUTABLE_AGENTS = ["agy", "hermes", "openclaw", "claude", "aider", "obsidian", "ollama", "lmstudio", "orchestrator"];
+      const effectiveAgent = EXECUTABLE_AGENTS.includes(activeAgent) ? activeAgent : "hermes";
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: textToSend, model: activeModel, agent: activeAgent })
+        body: JSON.stringify({ query: textToSend, model: activeModel, agent: effectiveAgent })
       });
       
       if (res.ok) {
@@ -2613,6 +2721,8 @@ export default function App() {
                         key={agent.id}
                         onClick={() => {
                           setActiveAgent(agent.id);
+                          // Switch to models tab when clicking any agent so user sees available models
+                          setRightTab("models");
                           if (agent.id === "agy" || agent.id === "hermes" || agent.id === "openclaw") {
                             setCenterTab("chat");
                           }
@@ -3567,42 +3677,78 @@ export default function App() {
                       // Define static free model catalogs for each provider/agent
                       let title = "OpenRouter Free Models";
                       let description = "Models available free via OpenRouter API key.";
-                      let modelList: Array<{ id: string; name: string; ctx: string; tier?: string; provider?: string }> = [];
+                      let modelList: Array<{ id: string; name: string; ctx: string; tier?: string; provider?: string; note?: string }> = [];
 
                       if (agentId === "gemini") {
-                        title = "Google Gemini Free Models";
-                        description = "Generous free tier via Google AI Studio API key.";
+                        title = "Google Gemini — AI Studio Free Tier";
+                        description = "All models below are free via Google AI Studio API key. Includes generous daily quotas.";
                         modelList = [
-                          { id: "gemini-2.5-flash-preview-05-20", name: "Gemini 2.5 Flash Preview", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "gemini-2.5-flash-preview-05-20", name: "Gemini 2.5 Flash Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Latest" },
+                          { id: "gemini-2.5-pro-preview-06-05", name: "Gemini 2.5 Pro Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Pro" },
+                          { id: "gemini-2.0-pro-exp-02-05", name: "Gemini 2.0 Pro (Experimental)", ctx: "2M", tier: "free", provider: "gemini" },
+                          { id: "gemini-2.0-flash-thinking-exp-01-21", name: "Gemini 2.0 Flash Thinking (Experimental)", ctx: "1M", tier: "free", provider: "gemini" },
                           { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", ctx: "1M", tier: "free", provider: "gemini" },
-                          { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", ctx: "1M", tier: "free", provider: "gemini", note: "Fastest" },
                           { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", ctx: "1M", tier: "free", provider: "gemini" },
                           { id: "gemini-1.5-flash-8b", name: "Gemini 1.5 Flash-8B", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "imagen-3.0-generate-002", name: "Imagen 3 (Image Generation)", ctx: "N/A", tier: "free", provider: "gemini", note: "Images" },
                           { id: "gemma-3-27b-it", name: "Gemma 3 27B IT", ctx: "131K", tier: "free", provider: "gemini" },
                           { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "gemini" },
-                          { id: "gemma-3-4b-it", name: "Gemma 3 4B IT", ctx: "131K", tier: "free", provider: "gemini" }
+                          { id: "gemma-3-4b-it", name: "Gemma 3 4B IT", ctx: "131K", tier: "free", provider: "gemini" },
+                          { id: "gemma-3n-e4b-it", name: "Gemma 3n E4B IT", ctx: "8K", tier: "free", provider: "gemini", note: "Edge" }
                         ];
                       } else if (agentId === "openclaw") {
-                        title = "OpenClaw Aggregated Free Models";
-                        description = "Free model endpoints configured in OpenClaw.";
+                        title = "OpenClaw — Aggregated Free Models";
+                        description = "Free model endpoints auto-routed through OpenClaw.";
                         modelList = [
-                          { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash Exp (OpenClaw)", ctx: "1M", tier: "free", provider: "openclaw" },
-                          { id: "google/gemma-3-27b-it:free", name: "Gemma 3 27B (OpenClaw)", ctx: "131K", tier: "free", provider: "openclaw" },
-                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (OpenClaw)", ctx: "131K", tier: "free", provider: "openclaw" },
-                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (OpenClaw)", ctx: "64K", tier: "free", provider: "openclaw" },
-                          { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B (OpenClaw)", ctx: "32K", tier: "free", provider: "openclaw" }
+                          { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash Exp", ctx: "1M", tier: "free", provider: "openclaw" },
+                          { id: "google/gemma-3-27b-it:free", name: "Gemma 3 27B", ctx: "131K", tier: "free", provider: "openclaw" },
+                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openclaw" },
+                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "64K", tier: "free", provider: "openclaw" },
+                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openclaw", note: "Code" },
+                          { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B", ctx: "32K", tier: "free", provider: "openclaw" },
+                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 70B", ctx: "131K", tier: "free", provider: "openclaw" }
+                        ];
+                      } else if (agentId === "opencode") {
+                        title = "OpenCode — Model-Agnostic Free AI Coder";
+                        description = "OpenCode is a free, open-source terminal AI coding agent (MIT). It connects to any provider — use free OpenRouter or local Ollama models at zero cost.";
+                        modelList = [
+                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Best for code" },
+                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" },
+                          { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", tier: "free", provider: "openrouter" },
+                          { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash Exp", ctx: "1M", tier: "free", provider: "openrouter" },
+                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openrouter" },
+                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 70B", ctx: "131K", tier: "free", provider: "openrouter" },
+                          { id: "llama3.3:latest", name: "Llama 3.3 70B (Ollama local)", ctx: "131K", tier: "free", provider: "ollama", note: "Local" },
+                          { id: "qwen3:30b", name: "Qwen3 30B (Ollama local)", ctx: "40K", tier: "free", provider: "ollama", note: "Local" },
+                          { id: "deepseek-r1:14b", name: "DeepSeek R1 14B (Ollama local)", ctx: "64K", tier: "free", provider: "ollama", note: "Local" }
                         ];
                       } else if (agentId === "hermes") {
-                        title = "Nous Research / Hermes Free Models";
-                        description = "Nous Research Hermes model variants on free tiers.";
+                        title = "Hermes — Nous Research Models";
+                        description = "Hermes agent uses Nous Research inference. Free via OpenRouter or Nous portal.";
                         modelList = [
-                          { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "hermes" },
+                          { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "hermes", note: "Flagship" },
                           { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "hermes" },
-                          { id: "nousresearch/hermes-2-pro-llama-3-8b:free", name: "Hermes 2 Pro Llama 3 8B", ctx: "131K", tier: "free", provider: "hermes" }
+                          { id: "nousresearch/hermes-2-pro-llama-3-8b:free", name: "Hermes 2 Pro Llama 3 8B", ctx: "131K", tier: "free", provider: "hermes" },
+                          { id: "stepfun/step-3.7-flash:free", name: "StepFun Step 3.7 Flash", ctx: "32K", tier: "free", provider: "nous", note: "New" },
+                          { id: "qwen/qwen2.5-vl-3b-instruct:free", name: "Qwen 2.5 VL 3B", ctx: "8K", tier: "free", provider: "nous" }
+                        ];
+                      } else if (agentId === "nousresearch") {
+                        title = "Nous Research — Inference Portal";
+                        description = "Free models via inference.nous.ai (API key: sk-nous). Auto-discovers promoted free models.";
+                        modelList = [
+                          { id: "stepfun/step-3.7-flash:free", name: "StepFun Step 3.7 Flash", ctx: "32K", tier: "free", provider: "nous", note: "⭐ New" },
+                          { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "nous", note: "Flagship" },
+                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "nous" },
+                          { id: "nousresearch/hermes-3-llama-3.1-8b:free", name: "Hermes 3 Llama 3.1 8B", ctx: "131K", tier: "free", provider: "nous" },
+                          { id: "nousresearch/hermes-2-pro-llama-3-8b:free", name: "Hermes 2 Pro Llama 3 8B", ctx: "131K", tier: "free", provider: "nous" },
+                          { id: "nousresearch/nous-hermes-2-mixtral-8x7b-dpo:free", name: "Hermes 2 Mixtral 8x7B DPO", ctx: "32K", tier: "free", provider: "nous" },
+                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B Instruct", ctx: "131K", tier: "free", provider: "nous" },
+                          { id: "qwen/qwen2.5-vl-3b-instruct:free", name: "Qwen 2.5 VL 3B", ctx: "8K", tier: "free", provider: "nous", note: "Vision" }
                         ];
                       } else if (agentId === "lmstudio") {
-                        title = "LM Studio Local Models";
-                        description = "Run open source models locally with zero API cost.";
+                        title = "LM Studio — Local Models";
+                        description = "Run open source models locally with zero API cost. Download via LM Studio UI.";
                         modelList = [
                           { id: "meta-llama-3.1-8b-instruct", name: "Llama 3.1 8B Instruct", ctx: "128K", tier: "free", provider: "lmstudio" },
                           { id: "meta-llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", ctx: "131K", tier: "free", provider: "lmstudio" },
@@ -3613,9 +3759,15 @@ export default function App() {
                           { id: "mistral-7b-instruct-v0.3", name: "Mistral 7B Instruct v0.3", ctx: "32K", tier: "free", provider: "lmstudio" },
                           { id: "phi-4", name: "Phi-4 14B", ctx: "131K", tier: "free", provider: "lmstudio" }
                         ];
-                      } else if (agentId === "agy" || agentId === "ollama") {
-                        title = "Ollama Local Models (Antigravity)";
-                        description = "Ollama models installed locally in AGY CLI.";
+                      } else if (agentId === "agy") {
+                        title = "Antigravity AGY — Built-in Model";
+                        description = "The model currently active in the AGY CLI inference engine.";
+                        modelList = [
+                          { id: activeModel, name: activeModel.split('/').pop()?.replace(':free','') || activeModel, ctx: "varies", tier: "free", provider: "agy", note: "Active" }
+                        ];
+                      } else if (agentId === "ollama") {
+                        title = "Ollama — Local Inference";
+                        description = "Ollama models installed locally. Start Ollama to use these.";
                         modelList = [
                           { id: "llama3.3:latest", name: "Llama 3.3 70B (Local)", ctx: "131K", tier: "free", provider: "ollama" },
                           { id: "llama3.1:8b", name: "Llama 3.1 8B (Local)", ctx: "128K", tier: "free", provider: "ollama" },
@@ -3626,20 +3778,21 @@ export default function App() {
                           { id: "phi4:latest", name: "Phi-4 14B (Local)", ctx: "131K", tier: "free", provider: "ollama" }
                         ];
                       } else {
-                        // Default to OpenRouter or other global catalog
-                        title = "OpenRouter Free Models";
-                        description = "Models available free via OpenRouter API key.";
+                        // Default to OpenRouter free catalog
+                        title = "OpenRouter — Free Models Catalog";
+                        description = "All models below are free via OpenRouter API. Updated automatically when new free models launch.";
                         modelList = [
-                          { id: "openrouter/owl-alpha", name: "Owl Alpha", ctx: "1M", tier: "free", provider: "openrouter" },
-                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (Reasoning)", ctx: "128K", tier: "free", provider: "openrouter" },
+                          { id: "openrouter/owl-alpha", name: "Owl Alpha", ctx: "1M", tier: "free", provider: "openrouter", note: "OR Pick" },
+                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Reasoning" },
                           { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", tier: "free", provider: "openrouter" },
                           { id: "deepseek/deepseek-v4-flash:free", name: "DeepSeek V4 Flash", ctx: "1M", tier: "free", provider: "openrouter" },
-                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter" },
+                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" },
                           { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "NVIDIA Nemotron 3 Super", ctx: "1M", tier: "free", provider: "openrouter" },
                           { id: "moonshotai/kimi-k2.6:free", name: "Kimi K2.6", ctx: "262K", tier: "free", provider: "openrouter" },
                           { id: "google/gemma-4-26b-a4b-it:free", name: "Gemma 4 26B A4B", ctx: "262K", tier: "free", provider: "openrouter" },
                           { id: "openai/gpt-oss-120b:free", name: "GPT-OSS 120B", ctx: "131K", tier: "free", provider: "openrouter" },
-                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openrouter" }
+                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openrouter" },
+                          { id: "stepfun/step-3.7-flash:free", name: "StepFun Step 3.7 Flash", ctx: "32K", tier: "free", provider: "openrouter", note: "New" }
                         ];
                       }
 
@@ -3669,6 +3822,9 @@ export default function App() {
                                       {model.name}
                                       {model.tier === 'free' && (
                                         <span className="text-[7px] px-1 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-400 font-bold">FREE</span>
+                                      )}
+                                      {model.note && (
+                                        <span className="text-[7px] px-1 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold shrink-0">{model.note}</span>
                                       )}
                                     </div>
                                     <div className="text-[9px] text-gray-500 font-mono truncate mt-0.5">{model.id}</div>
@@ -3791,6 +3947,9 @@ export default function App() {
 
                     {/* Settings / Config Viewer */}
                     <SettingsPanel />
+
+                    {/* Gemini API Keys Manager */}
+                    <GeminiKeysPanel />
 
                     {/* Spotify / Music */}
                     <SpotifyPanel />

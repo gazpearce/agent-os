@@ -140,5 +140,12 @@
   "google": {
     "api_key": "AQ.Ab8RN6JVslhK5JC50c3QYz5hxLzl22fWr3bSNKKVWMPbpP_MQA",
     "type": "google_api"
+  },
+  "nousresearch": {
+    "provider": "NousResearch",
+    "base_url": "https://inference.nous.ai/api/v1",
+    "api_key": "sk-nous-CPu13S1xH9dIVCoSfkU0AQqRGd719rSg",
+    "capabilities": ["text", "reasoning"],
+    "auto_discover_free": true
   }
 }

@@ -110,5 +110,6 @@
 | T105 | Verification | Multi-Keyword recall scratch script check | ✅ Completed | Executed scratch/test-memory-recall.js and verified correct specificity selections |
 | T106 | Frontend | Dynamic sidebar model lighting for Owl Alpha | ✅ Completed | Default to Owl Alpha, align sidebar list to 10 models, & add fallback |
 | T107 | Backend & UI | OS startup auto-launcher & background maintenance | ✅ Completed | Auto-open UI, startup check for nodes, speech warnings, and self-healing cron |
+| T108 | Background Agent & Nodes | Multi-Node Auto-Recovery & Background LLM Evolution Monitor | ✅ Completed | Spawns Puter & Claude proxies, checks all 4 nodes on startup/cron, speaks warnings, and runs LLM-based system updates check |
 
 
