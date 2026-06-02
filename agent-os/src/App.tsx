@@ -121,18 +121,6 @@ const INITIAL_AGENTS: Agent[] = [
   { id: "openrouter", name: "OpenRouter", role: "Cloud · API", icon: <Radio size={18} />, status: "online", version: "27 models", layer: "Cloud", color: "#8b5cf6", tokens: 89234, tasks: 156, skills: 27 },
 ];
 
-const MODELS = [
-  { id: "openrouter/owl-alpha", name: "Owl Alpha", ctx: "1M", type: "agentic", selected: false },
-  { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (Reasoning)", ctx: "128K", type: "reasoning", selected: false },
-  { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", type: "coding", selected: false },
-  { id: "deepseek/deepseek-v4-flash:free", name: "DeepSeek V4 Flash", ctx: "1M", type: "reasoning", selected: false },
-  { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", type: "coding", selected: false },
-  { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "NVIDIA Nemotron 3 Super", ctx: "1M", type: "agentic", selected: false },
-  { id: "moonshotai/kimi-k2.6:free", name: "Kimi K2.6", ctx: "262K", type: "multimodal", selected: false },
-  { id: "google/gemma-4-26b-a4b-it:free", name: "Gemma 4 26B A4B", ctx: "262K", type: "vision", selected: false },
-  { id: "openai/gpt-oss-120b:free", name: "GPT-OSS 120B", ctx: "131K", type: "agentic", selected: false },
-  { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", type: "general", selected: false },
-];
 
 const TOKEN_DATA = [
   { time: "02:00", hermes: 1200, openclaw: 800, agy: 400 },
@@ -3571,40 +3559,137 @@ export default function App() {
                 {/* TAB 2: ACTIVE MODELS CATALOG */}
                 {rightTab === "models" && (
                   <div className="space-y-3">
-                    <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 select-none">OpenRouter Provider Catalog</div>
-                    <div className="space-y-1.5">
-                      {MODELS.map(model => {
-                        const isSelected = activeModel === model.id;
-                        const isSwitching = switchingModelId === model.id;
-                        return (
-                          <button
-                            key={model.id}
-                            onClick={() => handleSwitchModel(model.id)}
-                            disabled={isSwitching}
-                            className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all duration-200 text-left cursor-pointer ${
-                              isSelected
-                                ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-[0_0_15px_rgba(99,102,241,0.06)]"
-                                : "bg-white/[0.015] hover:bg-white/[0.03] border-white/[0.02] hover:border-white/[0.04] text-gray-400 hover:text-gray-200"
-                            }`}
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="text-xs font-semibold truncate">{model.name}</div>
-                              <div className="text-[9px] text-gray-500 font-mono truncate mt-0.5">{model.id}</div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0 ml-2 select-none">
-                              <span className="text-[8.5px] text-gray-500 font-mono">{model.ctx}</span>
-                              {isSwitching ? (
-                                <RefreshCw size={11} className="animate-spin text-indigo-400" />
-                              ) : isSelected ? (
-                                <CheckCircle2 size={12} className="text-green-400" />
-                              ) : (
-                                <div className="w-3 h-3 rounded-full border border-white/10" />
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
+                    {/* Dynamic Provider Section based on left-selected activeAgent */}
+                    {(() => {
+                      // Normalize the active agent identifier
+                      const agentId = activeAgent.toLowerCase();
+                      
+                      // Define static free model catalogs for each provider/agent
+                      let title = "OpenRouter Free Models";
+                      let description = "Models available free via OpenRouter API key.";
+                      let modelList: Array<{ id: string; name: string; ctx: string; tier?: string; provider?: string }> = [];
+
+                      if (agentId === "gemini") {
+                        title = "Google Gemini Free Models";
+                        description = "Generous free tier via Google AI Studio API key.";
+                        modelList = [
+                          { id: "gemini-2.5-flash-preview-05-20", name: "Gemini 2.5 Flash Preview", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "gemini-1.5-flash-8b", name: "Gemini 1.5 Flash-8B", ctx: "1M", tier: "free", provider: "gemini" },
+                          { id: "gemma-3-27b-it", name: "Gemma 3 27B IT", ctx: "131K", tier: "free", provider: "gemini" },
+                          { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "gemini" },
+                          { id: "gemma-3-4b-it", name: "Gemma 3 4B IT", ctx: "131K", tier: "free", provider: "gemini" }
+                        ];
+                      } else if (agentId === "openclaw") {
+                        title = "OpenClaw Aggregated Free Models";
+                        description = "Free model endpoints configured in OpenClaw.";
+                        modelList = [
+                          { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash Exp (OpenClaw)", ctx: "1M", tier: "free", provider: "openclaw" },
+                          { id: "google/gemma-3-27b-it:free", name: "Gemma 3 27B (OpenClaw)", ctx: "131K", tier: "free", provider: "openclaw" },
+                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B (OpenClaw)", ctx: "131K", tier: "free", provider: "openclaw" },
+                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (OpenClaw)", ctx: "64K", tier: "free", provider: "openclaw" },
+                          { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B (OpenClaw)", ctx: "32K", tier: "free", provider: "openclaw" }
+                        ];
+                      } else if (agentId === "hermes") {
+                        title = "Nous Research / Hermes Free Models";
+                        description = "Nous Research Hermes model variants on free tiers.";
+                        modelList = [
+                          { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "hermes" },
+                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "hermes" },
+                          { id: "nousresearch/hermes-2-pro-llama-3-8b:free", name: "Hermes 2 Pro Llama 3 8B", ctx: "131K", tier: "free", provider: "hermes" }
+                        ];
+                      } else if (agentId === "lmstudio") {
+                        title = "LM Studio Local Models";
+                        description = "Run open source models locally with zero API cost.";
+                        modelList = [
+                          { id: "meta-llama-3.1-8b-instruct", name: "Llama 3.1 8B Instruct", ctx: "128K", tier: "free", provider: "lmstudio" },
+                          { id: "meta-llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", ctx: "131K", tier: "free", provider: "lmstudio" },
+                          { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "lmstudio" },
+                          { id: "gemma-3-27b-it", name: "Gemma 3 27B IT", ctx: "131K", tier: "free", provider: "lmstudio" },
+                          { id: "qwen3-30b", name: "Qwen3 30B", ctx: "40K", tier: "free", provider: "lmstudio" },
+                          { id: "deepseek-r1-distill-qwen-14b", name: "DeepSeek R1 Distill 14B", ctx: "64K", tier: "free", provider: "lmstudio" },
+                          { id: "mistral-7b-instruct-v0.3", name: "Mistral 7B Instruct v0.3", ctx: "32K", tier: "free", provider: "lmstudio" },
+                          { id: "phi-4", name: "Phi-4 14B", ctx: "131K", tier: "free", provider: "lmstudio" }
+                        ];
+                      } else if (agentId === "agy" || agentId === "ollama") {
+                        title = "Ollama Local Models (Antigravity)";
+                        description = "Ollama models installed locally in AGY CLI.";
+                        modelList = [
+                          { id: "llama3.3:latest", name: "Llama 3.3 70B (Local)", ctx: "131K", tier: "free", provider: "ollama" },
+                          { id: "llama3.1:8b", name: "Llama 3.1 8B (Local)", ctx: "128K", tier: "free", provider: "ollama" },
+                          { id: "gemma3:27b", name: "Gemma 3 27B (Local)", ctx: "131K", tier: "free", provider: "ollama" },
+                          { id: "qwen3:30b", name: "Qwen3 30B (Local)", ctx: "40K", tier: "free", provider: "ollama" },
+                          { id: "deepseek-r1:14b", name: "DeepSeek R1 14B (Local)", ctx: "64K", tier: "free", provider: "ollama" },
+                          { id: "mistral:7b", name: "Mistral 7B (Local)", ctx: "32K", tier: "free", provider: "ollama" },
+                          { id: "phi4:latest", name: "Phi-4 14B (Local)", ctx: "131K", tier: "free", provider: "ollama" }
+                        ];
+                      } else {
+                        // Default to OpenRouter or other global catalog
+                        title = "OpenRouter Free Models";
+                        description = "Models available free via OpenRouter API key.";
+                        modelList = [
+                          { id: "openrouter/owl-alpha", name: "Owl Alpha", ctx: "1M", tier: "free", provider: "openrouter" },
+                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1 (Reasoning)", ctx: "128K", tier: "free", provider: "openrouter" },
+                          { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", tier: "free", provider: "openrouter" },
+                          { id: "deepseek/deepseek-v4-flash:free", name: "DeepSeek V4 Flash", ctx: "1M", tier: "free", provider: "openrouter" },
+                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter" },
+                          { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "NVIDIA Nemotron 3 Super", ctx: "1M", tier: "free", provider: "openrouter" },
+                          { id: "moonshotai/kimi-k2.6:free", name: "Kimi K2.6", ctx: "262K", tier: "free", provider: "openrouter" },
+                          { id: "google/gemma-4-26b-a4b-it:free", name: "Gemma 4 26B A4B", ctx: "262K", tier: "free", provider: "openrouter" },
+                          { id: "openai/gpt-oss-120b:free", name: "GPT-OSS 120B", ctx: "131K", tier: "free", provider: "openrouter" },
+                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openrouter" }
+                        ];
+                      }
+
+                      return (
+                        <div>
+                          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 select-none flex items-center gap-1.5">
+                            <Radio size={10} className="text-indigo-400" /> {title}
+                          </div>
+                          <div className="text-[9px] text-gray-500 mb-3 select-none">{description}</div>
+                          <div className="space-y-1.5">
+                            {modelList.map(model => {
+                              const isSelected = activeModel === model.id;
+                              const isSwitching = switchingModelId === model.id;
+                              return (
+                                <button
+                                  key={model.id}
+                                  onClick={() => handleSwitchModel(model.id)}
+                                  disabled={isSwitching}
+                                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all duration-200 text-left cursor-pointer ${
+                                    isSelected
+                                      ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-[0_0_15px_rgba(99,102,241,0.06)]"
+                                      : "bg-white/[0.015] hover:bg-white/[0.03] border-white/[0.02] hover:border-white/[0.04] text-gray-400 hover:text-gray-200"
+                                  }`}
+                                >
+                                  <div className="min-w-0 flex-1">
+                                    <div className="text-xs font-semibold truncate flex items-center gap-1.5">
+                                      {model.name}
+                                      {model.tier === 'free' && (
+                                        <span className="text-[7px] px-1 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-400 font-bold">FREE</span>
+                                      )}
+                                    </div>
+                                    <div className="text-[9px] text-gray-500 font-mono truncate mt-0.5">{model.id}</div>
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0 ml-2 select-none">
+                                    <span className="text-[8.5px] text-gray-500 font-mono">{model.ctx}</span>
+                                    {isSwitching ? (
+                                      <RefreshCw size={11} className="animate-spin text-indigo-400" />
+                                    ) : isSelected ? (
+                                      <CheckCircle2 size={12} className="text-green-400" />
+                                    ) : (
+                                      <div className="w-3 h-3 rounded-full border border-white/10" />
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
