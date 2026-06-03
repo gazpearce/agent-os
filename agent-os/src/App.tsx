@@ -3731,7 +3731,7 @@ export default function App() {
                           { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "hermes" },
                           { id: "nousresearch/hermes-2-pro-llama-3-8b:free", name: "Hermes 2 Pro Llama 3 8B", ctx: "131K", tier: "free", provider: "hermes" },
                           { id: "stepfun/step-3.7-flash:free", name: "StepFun Step 3.7 Flash", ctx: "32K", tier: "free", provider: "nous", note: "New" },
-                          { id: "minimax/minimax-m2.5:free", name: "MiniMax M2.5", ctx: "245K", tier: "free", provider: "openrouter", note: "Chinese" },
+                          { id: "minimax/minimax-01:free", name: "MiniMax-01", ctx: "1M", tier: "free", provider: "openrouter", note: "Chinese" },
                           { id: "qwen/qwen2.5-vl-3b-instruct:free", name: "Qwen 2.5 VL 3B", ctx: "8K", tier: "free", provider: "nous" }
                         ];
                       } else if (agentId === "nousresearch") {
@@ -3789,7 +3789,7 @@ export default function App() {
                           { id: "deepseek/deepseek-v4-flash:free", name: "DeepSeek V4 Flash", ctx: "1M", tier: "free", provider: "openrouter" },
                           { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" },
                           { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "NVIDIA Nemotron 3 Super", ctx: "1M", tier: "free", provider: "openrouter" },
-                          { id: "minimax/minimax-m2.5:free", name: "MiniMax M2.5", ctx: "245K", tier: "free", provider: "openrouter", note: "Chinese" },
+                          { id: "minimax/minimax-01:free", name: "MiniMax-01", ctx: "1M", tier: "free", provider: "openrouter", note: "Chinese" },
                           { id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", name: "Dolphin Mistral 24B", ctx: "32K", tier: "free", provider: "openrouter", note: "Uncensored" },
                           { id: "liquid/lfm-2.5-1.2b-thinking:free", name: "Liquid LFM 2.5 Thinking", ctx: "32K", tier: "free", provider: "openrouter", note: "Thinking" },
                           { id: "moonshotai/kimi-k2.6:free", name: "Kimi K2.6", ctx: "262K", tier: "free", provider: "openrouter" },
