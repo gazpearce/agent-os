@@ -1653,6 +1653,23 @@ export default function App() {
   const [activeAgent, setActiveAgent] = useState("hermes");
   const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals">("chat");
   const [rightTab, setRightTab] = useState<"sessions" | "models" | "skills" | "mcp-catalog" | "vault">("models");
+  const [discoveredModels, setDiscoveredModels] = useState<any[]>([]);
+
+  const fetchDiscoveredModels = async () => {
+    try {
+      const res = await fetch('/api/models');
+      if (res.ok) {
+        const data = await res.json();
+        setDiscoveredModels(data.models || []);
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    fetchDiscoveredModels();
+    const interval = setInterval(fetchDiscoveredModels, 60000);
+    return () => clearInterval(interval);
+  }, []);
   
   const [voiceUpdatesEnabled, setVoiceUpdatesEnabled] = useState(() => {
     return localStorage.getItem("voice_updates_enabled") === "true";
@@ -3782,7 +3799,53 @@ export default function App() {
                         // Default to OpenRouter free catalog
                         title = "OpenRouter — Free Models Catalog";
                         description = "All models below are free via OpenRouter API. Updated automatically when new free models launch.";
-                        modelList = [
+                        // Build dynamic list from discovered models
+                        const dynamicFree = discoveredModels
+                          .filter(m => m.provider === "openrouter")
+                          .map(m => {
+                            // Find matching metadata from hardcoded static details if they exist
+                            const staticMeta = [
+                              { id: "openrouter/owl-alpha", ctx: "1M", note: "OR Pick" },
+                              { id: "deepseek/deepseek-r1:free", ctx: "128K", note: "Reasoning" },
+                              { id: "qwen/qwen-2.5-coder-32b-instruct:free", ctx: "128K" },
+                              { id: "deepseek/deepseek-v4-flash:free", ctx: "1M" },
+                              { id: "qwen/qwen3-coder:free", ctx: "1M", note: "Code" },
+                              { id: "nvidia/nemotron-3-super-120b-a12b:free", ctx: "1M" },
+                              { id: "minimax/minimax-01:free", ctx: "1M", note: "Chinese" },
+                              { id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", ctx: "32K", note: "Uncensored" },
+                              { id: "liquid/lfm-2.5-1.2b-thinking:free", ctx: "32K", note: "Thinking" },
+                              { id: "moonshotai/kimi-k2.6:free", ctx: "262K" },
+                              { id: "google/gemma-4-26b-a4b-it:free", ctx: "262K" },
+                              { id: "openai/gpt-oss-120b:free", ctx: "131K" },
+                              { id: "meta-llama/llama-3.3-70b-instruct:free", ctx: "131K" },
+                              { id: "stepfun/step-3.7-flash:free", ctx: "32K", note: "New" }
+                            ].find(s => s.id === m.id);
+
+                            let ctxString = "varies";
+                            if (staticMeta?.ctx) {
+                              ctxString = staticMeta.ctx;
+                            } else if (m.context_length) {
+                              ctxString = m.context_length >= 1024 * 1024 
+                                ? `${(m.context_length / (1024 * 1024)).toFixed(0)}M` 
+                                : `${(m.context_length / 1024).toFixed(0)}K`;
+                            }
+
+                            // Clean model name
+                            let displayName = m.name || m.id.split('/').pop() || m.id;
+                            displayName = displayName.replace(':free', '').replace(' (free)', '');
+
+                            return {
+                              id: m.id,
+                              name: displayName,
+                              ctx: ctxString,
+                              tier: "free",
+                              provider: "openrouter",
+                              note: staticMeta?.note || (m.id.includes('thinking') ? 'Thinking' : undefined)
+                            };
+                          });
+
+                        // Fallback to static list if endpoint hasn't returned anything yet
+                        modelList = dynamicFree.length > 0 ? dynamicFree : [
                           { id: "openrouter/owl-alpha", name: "Owl Alpha", ctx: "1M", tier: "free", provider: "openrouter", note: "OR Pick" },
                           { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Reasoning" },
                           { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", tier: "free", provider: "openrouter" },

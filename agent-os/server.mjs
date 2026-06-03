@@ -2501,11 +2501,12 @@ app.get('/api/models', async (req, res) => {
         const data = await response.json();
         // filter for free models
         openRouterModels = (data.data || [])
-          .filter(m => m.id.endsWith(':free'))
+          .filter(m => m.id.endsWith(':free') || (m.pricing && Number(m.pricing.prompt) === 0 && Number(m.pricing.completion) === 0))
           .map(m => ({
             id: m.id,
             name: m.name,
             provider: 'openrouter',
+            context_length: m.context_length || 0,
             pricing: m.pricing || { prompt: '0', completion: '0' }
           }));
       }
