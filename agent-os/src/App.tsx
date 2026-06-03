@@ -122,6 +122,8 @@ const INITIAL_AGENTS: Agent[] = [
   { id: "ollama", name: "Ollama", role: "Local · Inference", icon: <Cpu size={18} />, status: "offline", version: "0.24.0", layer: "L6", color: "#22d3ee", tokens: 0, tasks: 0, skills: 4 },
   { id: "lmstudio", name: "LM Studio", role: "Local · UI", icon: <Terminal size={18} />, status: "offline", version: "installed", layer: "L6", color: "#ec4899", tokens: 0, tasks: 0, skills: 3 },
   { id: "openrouter", name: "OpenRouter", role: "Cloud · API", icon: <Radio size={18} />, status: "online", version: "27 models", layer: "Cloud", color: "#8b5cf6", tokens: 89234, tasks: 156, skills: 27 },
+  { id: "alibaba", name: "Alibaba DashScope", role: "Qwen · Free APIs", icon: <Layers size={18} />, status: "online", version: "qwen-long", layer: "Cloud", color: "#ff6a00", tokens: 0, tasks: 0, skills: 6 },
+  { id: "zhipu", name: "Zhipu BigModel", role: "GLM · Free APIs", icon: <Sparkles size={18} />, status: "online", version: "glm-5.1", layer: "Cloud", color: "#3051ff", tokens: 0, tasks: 0, skills: 8 },
 ];
 
 
@@ -3713,6 +3715,27 @@ export default function App() {
                           { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "gemini" },
                           { id: "gemma-3-4b-it", name: "Gemma 3 4B IT", ctx: "131K", tier: "free", provider: "gemini" },
                           { id: "gemma-3n-e4b-it", name: "Gemma 3n E4B IT", ctx: "8K", tier: "free", provider: "gemini", note: "Edge" }
+                        ];
+                      } else if (agentId === "alibaba") {
+                        title = "Alibaba DashScope — Qwen Models";
+                        description = "Alibaba's official DashScope API. Includes free-tier limits.";
+                        modelList = [
+                          { id: "alibaba/qwen-long", name: "Qwen Long", ctx: "10M", tier: "free", provider: "alibaba", note: "Huge context" },
+                          { id: "alibaba/qwen-plus", name: "Qwen Plus", ctx: "131K", tier: "free", provider: "alibaba" },
+                          { id: "alibaba/qwen-turbo", name: "Qwen Turbo", ctx: "131K", tier: "free", provider: "alibaba" },
+                          { id: "alibaba/qwen-max", name: "Qwen Max", ctx: "32K", tier: "free", provider: "alibaba", note: "Flagship" },
+                          { id: "alibaba/qwen-vl-plus", name: "Qwen VL Plus (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
+                          { id: "alibaba/qwen-vl-max", name: "Qwen VL Max (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
+                          { id: "alibaba/wanx-v1", name: "Tongyi Wanx (Image Gen)", ctx: "N/A", tier: "free", provider: "alibaba", note: "Images" }
+                        ];
+                      } else if (agentId === "zhipu") {
+                        title = "Zhipu BigModel — GLM Models";
+                        description = "Zhipu AI's BigModel open platform. High-performance free LLMs.";
+                        modelList = [
+                          { id: "zhipu/glm-5.1", name: "GLM 5.1 (Thinking)", ctx: "64K", tier: "free", provider: "zhipu", note: "Reasoning" },
+                          { id: "zhipu/glm-4-flash", name: "GLM-4 Flash", ctx: "128K", tier: "free", provider: "zhipu", note: "Fast & Free" },
+                          { id: "zhipu/glm-4v-flash", name: "GLM-4V Flash (Vision)", ctx: "128K", tier: "free", provider: "zhipu", note: "Vision" },
+                          { id: "zhipu/cogview-3-flash", name: "CogView 3 Flash (Image Gen)", ctx: "N/A", tier: "free", provider: "zhipu", note: "Images" }
                         ];
                       } else if (agentId === "openclaw") {
                         title = "OpenClaw — Aggregated Free Models";

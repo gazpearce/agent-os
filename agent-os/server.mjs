@@ -255,6 +255,8 @@ async function fetchGeminiWithRotation(urlSuffix, bodyData, controllerSignal) {
 }
 
 const NOUS_API_KEY = 'sk-nous-CPu13S1xH9dIVCoSfkU0AQqRGd719rSg';
+const ALIBABA_KEY = 'sk-fdbfa55f6d044da99823821d5f2bcb13';
+const ZHIPU_KEY = '984d1bdac3a246a4b90842b6f6c7944a.2Cnkw7HonukkqYuN';
 
 // ═══════════════════════════════════════════════════════════════════════
 // AGENT REGISTRY — All agents on the team
@@ -973,6 +975,80 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
   const uniqueModels = [...new Set([model, 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
 
   for (const currentModel of uniqueModels) {
+    // Try Zhipu BigModel direct
+    if (currentModel.startsWith('zhipu/') || currentModel.startsWith('bigmodel/') || currentModel.startsWith('glm-')) {
+      try {
+        console.log(`[BigModel] Trying Zhipu BigModel for ${currentModel}...`);
+        const modelId = currentModel.replace(/^(zhipu\/|bigmodel\/)/, '');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        const requestBody = {
+          model: modelId || 'glm-4-flash',
+          messages: messages,
+          max_tokens: maxTokens,
+          temperature: 0.7
+        };
+        
+        if (modelId === 'glm-5.1') {
+          requestBody.thinking = { type: 'enabled' };
+          requestBody.max_tokens = 65536;
+          requestBody.temperature = 1.0;
+        }
+
+        const r = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ZHIPU_KEY}`
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[BigModel] Success with Zhipu for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[BigModel] Zhipu failed: ${r.status} ${errText}`);
+        }
+      } catch (err) { console.log(`[BigModel] Zhipu error:`, err.message); }
+    }
+
+    // Try Alibaba DashScope direct
+    if (currentModel.startsWith('alibaba/') || currentModel.startsWith('dashscope/') || currentModel.startsWith('qwen-')) {
+      try {
+        console.log(`[Alibaba] Trying DashScope for ${currentModel}...`);
+        const modelId = currentModel.replace(/^(alibaba\/|dashscope\/)/, '');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const r = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ALIBABA_KEY}`
+          },
+          body: JSON.stringify({ model: modelId || 'qwen-plus', messages, max_tokens: maxTokens }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Alibaba] Success with DashScope for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[Alibaba] DashScope failed: ${r.status} ${errText}`);
+        }
+      } catch (err) { console.log(`[Alibaba] DashScope error:`, err.message); }
+    }
+
     // Try NousResearch proxy first for nousresearch models or stepfun models that are hosted there
     if (currentModel.startsWith('stepfun/') || currentModel.includes('nous') || currentModel.startsWith('nousresearch/')) {
       try {
@@ -1597,6 +1673,84 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
+    // Try Zhipu BigModel direct
+    if (currentModel.startsWith('zhipu/') || currentModel.startsWith('bigmodel/') || currentModel.startsWith('glm-')) {
+      try {
+        console.log(`[BigModel] Trying Zhipu BigModel for ${currentModel}...`);
+        const modelId = currentModel.replace(/^(zhipu\/|bigmodel\/)/, '');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        const requestBody = {
+          model: modelId || 'glm-4-flash',
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+          max_tokens: maxTokens,
+          temperature: 0.7
+        };
+        
+        if (modelId === 'glm-5.1') {
+          requestBody.thinking = { type: 'enabled' };
+          requestBody.max_tokens = 65536;
+          requestBody.temperature = 1.0;
+        }
+
+        const r = await fetch('https://open.bigmodel.cn/api/paas/v4/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ZHIPU_KEY}`
+          },
+          body: JSON.stringify(requestBody),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[BigModel] Success with Zhipu for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[BigModel] Zhipu failed: ${r.status} ${errText}`);
+        }
+      } catch (err) { console.log(`[BigModel] Zhipu error:`, err.message); }
+    }
+
+    // Try Alibaba DashScope direct
+    if (currentModel.startsWith('alibaba/') || currentModel.startsWith('dashscope/') || currentModel.startsWith('qwen-')) {
+      try {
+        console.log(`[Alibaba] Trying DashScope for ${currentModel}...`);
+        const modelId = currentModel.replace(/^(alibaba\/|dashscope\/)/, '');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const r = await fetch('https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${ALIBABA_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelId || 'qwen-plus',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Alibaba] Success with DashScope for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[Alibaba] DashScope failed: ${r.status} ${errText}`);
+        }
+      } catch (err) { console.log(`[Alibaba] DashScope error:`, err.message); }
+    }
+
     if (currentModel.startsWith('stepfun/') || currentModel.includes('nous') || currentModel.startsWith('nousresearch/')) {
       try {
         console.log(`[OR ChatCompletion] Trying NousResearch Inference for ${currentModel}...`);
