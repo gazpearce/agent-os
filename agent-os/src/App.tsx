@@ -2495,6 +2495,7 @@ export default function App() {
   });
 
   // Infographic Builder States
+  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [infographicTab, setInfographicTab] = useState<"standard" | "infographic" | "hyperframes">("standard");
   const [infoDiagramType, setInfoDiagramType] = useState<string>("CCTV System Architecture");
   const [infoTitle, setInfoTitle] = useState<string>("Gary Pearce Professional CCTV Installations");
@@ -4401,6 +4402,17 @@ export default function App() {
                   ))}
                 </div>
               </div>
+
+              {/* Bottom Left Settings Button */}
+              <div className="pt-2.5 border-t border-white/[0.04]">
+                <button
+                  onClick={() => setIsSettingsModalOpen(true)}
+                  className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-left border border-transparent hover:border-white/[0.04] hover:bg-white/[0.02] text-gray-400 hover:text-white transition-all cursor-pointer font-bold font-mono text-[10px] select-none"
+                >
+                  <Settings size={12} className="text-indigo-400" />
+                  <span>⚙️ SYSTEM SETTINGS</span>
+                </button>
+              </div>
             </div>
           ) : (
             /* Collapsed left rail icon indicators */
@@ -4431,6 +4443,16 @@ export default function App() {
                   </div>
                 </div>
               ))}
+              <div className="w-full border-t border-white/[0.04] my-2" />
+              <button
+                onClick={() => setIsSettingsModalOpen(true)}
+                className="w-8 h-8 rounded-lg bg-white/[0.01] hover:bg-white/[0.03] border border-white/[0.03] hover:border-indigo-500/30 flex items-center justify-center text-gray-400 hover:text-white transition-all cursor-pointer relative group select-none"
+              >
+                <Settings size={13} className="text-indigo-400" />
+                <div className="absolute left-12 top-1.5 bg-[#0a0a16] border border-white/[0.08] text-[9.5px] px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none whitespace-nowrap">
+                  System Settings
+                </div>
+              </button>
             </div>
           )}
         </aside>
@@ -7308,6 +7330,59 @@ export default function App() {
               className="flex-grow bg-transparent text-white focus:outline-none placeholder-gray-600 select-text"
               placeholder="Type commands..."
             />
+          </div>
+        </div>
+      )}
+
+      {/* ─── SYSTEM SETTINGS OVERLAY MODAL ─── */}
+      {isSettingsModalOpen && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[150] animate-in fade-in duration-200">
+          <div className="w-[1000px] h-[720px] bg-[#070714]/95 border border-white/[0.08] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
+            <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            
+            {/* Header */}
+            <div className="glass-strong h-14 flex items-center justify-between px-6 shrink-0 border-b border-white/[0.05] bg-[#03030d]/80 select-none">
+              <div className="flex items-center gap-2">
+                <Settings className="text-indigo-400" size={16} />
+                <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">⚙️ System Configuration & Swarm Settings</span>
+              </div>
+              <button 
+                onClick={() => setIsSettingsModalOpen(false)} 
+                className="p-1 rounded bg-white/[0.03] hover:bg-white/[0.08] text-gray-500 hover:text-white cursor-pointer transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+            
+            {/* Split layout inside modal */}
+            <div className="flex-grow flex overflow-hidden min-h-0">
+              {/* Left Config Panel Column */}
+              <div className="flex-1 overflow-y-auto p-6 border-r border-white/[0.04] space-y-6">
+                <div className="bg-[#0b0b1e]/60 border border-white/[0.03] p-5 rounded-2xl shadow-xl">
+                  <h4 className="text-[10px] font-bold text-white tracking-wider uppercase font-mono pb-2 border-b border-white/5 mb-4 flex items-center gap-1.5">
+                    ⚙️ Config Properties
+                  </h4>
+                  <SettingsPanel />
+                </div>
+              </div>
+              
+              {/* Right Diagnostic / Keys Column */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-black/20">
+                <div className="bg-[#0b0b1e]/60 border border-white/[0.03] p-5 rounded-2xl shadow-xl">
+                  <h4 className="text-[10px] font-bold text-white tracking-wider uppercase font-mono pb-2 border-b border-white/5 mb-4 flex items-center gap-1.5">
+                    🔑 Gemini APIs
+                  </h4>
+                  <GeminiKeysPanel />
+                </div>
+                
+                <div className="bg-[#0b0b1e]/60 border border-white/[0.03] p-5 rounded-2xl shadow-xl">
+                  <h4 className="text-[10px] font-bold text-white tracking-wider uppercase font-mono pb-2 border-b border-white/5 mb-4 flex items-center gap-1.5">
+                    🔧 Diagnosticians
+                  </h4>
+                  <DiagnosticsPanel />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
