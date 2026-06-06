@@ -967,6 +967,138 @@ async function executeToolCall(toolCallText, onProgress = null, fromAgent = 'her
 }
 
 // Helper to execute tool calls
+
+// DYNAMIC MCP ROUTING HELPERS
+function findMcpServerForTool(toolName) {
+  const mcpDir = `${HOME}\\.gemini\\antigravity\\mcp`;
+  if (existsSync(mcpDir)) {
+    try {
+      const dirs = readdirSync(mcpDir, { withFileTypes: true }).filter(d => d.isDirectory());
+      for (const d of dirs) {
+        const path = join(mcpDir, d.name);
+        const files = readdirSync(path).filter(f => f.endsWith('.json'));
+        for (const f of files) {
+          const toolJsonName = f.replace('.json', '');
+          if (toolJsonName.toLowerCase() === toolName.toLowerCase()) {
+            return d.name;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[MCP-Route] Error scanning tools directory:', e);
+    }
+  }
+  return null;
+}
+
+async function executeMcpTool(serverName, toolName, toolArgs) {
+  const mcpConfigPath = `${HOME}\\.gemini\\config\\mcp_config.json`;
+  if (!existsSync(mcpConfigPath)) {
+    throw new Error('mcp_config.json not found');
+  }
+  
+  const config = JSON.parse(readFileSync(mcpConfigPath, 'utf-8'));
+  const serverCfg = config.mcpServers?.[serverName];
+  if (!serverCfg) {
+    throw new Error(`MCP server ${serverName} not configured`);
+  }
+  
+  const command = serverCfg.command;
+  const args = serverCfg.args || [];
+  const env = { ...process.env, ...(serverCfg.env || {}) };
+  
+  console.log(`[MCP-Executor] Spawning ${serverName} using ${command} ${args.join(' ')}`);
+  
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { env, shell: true });
+    
+    let stdout = '';
+    let stderr = '';
+    
+    child.stdout.on('data', (d) => stdout += d.toString());
+    child.stderr.on('data', (d) => stderr += d.toString());
+    
+    const readline = require('readline');
+    const rlOut = readline.createInterface({
+      input: child.stdout,
+      terminal: false
+    });
+    
+    let msgId = 1;
+    const pending = new Map();
+    let completed = false;
+    
+    const cleanup = () => {
+      if (completed) return;
+      completed = true;
+      try {
+        child.kill('SIGTERM');
+      } catch {}
+    };
+    
+    child.on('error', (err) => {
+      cleanup();
+      reject(err);
+    });
+    
+    const sendRpc = (method, params = {}) => {
+      const id = msgId++;
+      const payload = { jsonrpc: '2.0', id, method, params };
+      return new Promise((res, rej) => {
+        pending.set(id, { resolve: res, reject: rej });
+        child.stdin.write(JSON.stringify(payload) + '\n');
+      });
+    };
+    
+    rlOut.on('line', (line) => {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith('{')) return;
+      try {
+        const msg = JSON.parse(trimmed);
+        if (msg.id && pending.has(msg.id)) {
+          const { resolve: res, reject: rej } = pending.get(msg.id);
+          pending.delete(msg.id);
+          if (msg.error) rej(new Error(msg.error.message || JSON.stringify(msg.error)));
+          else res(msg.result);
+        }
+      } catch {}
+    });
+    
+    setTimeout(async () => {
+      try {
+        await sendRpc('initialize', {
+          protocolVersion: '2024-11-05',
+          capabilities: {},
+          clientInfo: { name: 'agent-os-executor', version: '1.0' }
+        });
+        
+        const payload = { jsonrpc: '2.0', method: 'notifications/initialized', params: {} };
+        child.stdin.write(JSON.stringify(payload) + '\n');
+        
+        const callResult = await sendRpc('tools/call', {
+          name: toolName,
+          arguments: toolArgs || {}
+        });
+        
+        cleanup();
+        
+        let parsedResult = callResult;
+        if (callResult && callResult.content && callResult.content[0] && callResult.content[0].text) {
+          try {
+            parsedResult = JSON.parse(callResult.content[0].text);
+          } catch {
+            parsedResult = callResult.content[0].text;
+          }
+        }
+        resolve(parsedResult);
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    }, 1500);
+  });
+}
+
 async function _executeToolCallRaw(toolCallText, onProgress = null, fromAgent = 'hermes') {
   // Parse tool type from first line or nested tag
   let toolType = '';
@@ -1125,6 +1257,18 @@ async function _executeToolCallRaw(toolCallText, onProgress = null, fromAgent = 
       return `<longcat_tool_response>\nResponse from ${to.toUpperCase()}:\n${responseContent}\n</longcat_tool_response>`;
     } catch (e) {
       return `<longcat_tool_response>\nError communicating with agent ${to}: ${e.message}\n</longcat_tool_response>`;
+    }
+  }
+
+  // CHECK FOR DYNAMIC MCP TOOL ROUTING
+  const mcpServer = findMcpServerForTool(toolLower);
+  if (mcpServer) {
+    if (onProgress) onProgress(`🖥️ Routing tool call to MCP: ${mcpServer}/${toolLower}...`);
+    try {
+      const result = await executeMcpTool(mcpServer, toolLower, args);
+      return `<longcat_tool_response>\n${JSON.stringify(result, null, 2)}\n</longcat_tool_response>`;
+    } catch (e) {
+      return `<longcat_tool_response>\nError running MCP tool ${toolLower}: ${e.message}\n</longcat_tool_response>`;
     }
   }
 

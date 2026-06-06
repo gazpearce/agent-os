@@ -1,9 +1,8 @@
 import { spawn } from 'child_process';
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { writeFileSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import os from 'os';
 
-// Setup basic logging
 const logFile = join(os.tmpdir(), 'computer_use_mcp.log');
 function log(msg) {
   try {
@@ -11,20 +10,30 @@ function log(msg) {
   } catch {}
 }
 
-log('Starting Computer Use MCP Server');
+log('Starting updated Computer Use MCP Server with temporary file execution');
 
-// Helper to execute PowerShell script block
 function runPowerShell(script) {
   return new Promise((resolve, reject) => {
-    const ps = spawn('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { shell: true });
-    let stdout = '';
-    let stderr = '';
-    ps.stdout.on('data', (data) => stdout += data.toString());
-    ps.stderr.on('data', (data) => stderr += data.toString());
-    ps.on('close', (code) => {
-      if (code === 0) resolve(stdout.trim());
-      else reject(new Error(stderr.trim() || `PowerShell exited with code ${code}`));
-    });
+    const tempFile = join(os.tmpdir(), `mcp_ps_${Date.now()}_${Math.random().toString(36).substr(2, 5)}.ps1`);
+    try {
+      writeFileSync(tempFile, '\ufeff' + script, 'utf8'); // Write UTF-8 with BOM
+      
+      const ps = spawn('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', tempFile], { shell: true });
+      let stdout = '';
+      let stderr = '';
+      
+      ps.stdout.on('data', (data) => stdout += data.toString());
+      ps.stderr.on('data', (data) => stderr += data.toString());
+      
+      ps.on('close', (code) => {
+        try { unlinkSync(tempFile); } catch {}
+        if (code === 0) resolve(stdout.trim());
+        else reject(new Error(stderr.trim() || `PowerShell exited with code ${code}`));
+      });
+    } catch (err) {
+      try { unlinkSync(tempFile); } catch {}
+      reject(err);
+    }
   });
 }
 
@@ -106,7 +115,7 @@ public class Win32Mouse {
 }
 "@
 [Win32Mouse]::SetCursorPos(${args.x}, ${args.y})
-Start-Sleep -Milliseconds 100
+Start-Sleep -Milliseconds 150
       `;
     }
     
@@ -130,6 +139,7 @@ public class Win32Click {
       script += `
 [Win32Click]::mouse_event(0x0002, 0, 0, 0, 0) # Left down
 [Win32Click]::mouse_event(0x0004, 0, 0, 0, 0) # Left up
+Start-Sleep -Milliseconds 50
 [Win32Click]::mouse_event(0x0002, 0, 0, 0, 0) # Left down
 [Win32Click]::mouse_event(0x0004, 0, 0, 0, 0) # Left up
       `;
@@ -145,7 +155,6 @@ public class Win32Click {
   }
   
   if (name === 'keyboard_type') {
-    // Escape quote characters for SendKeys
     const escaped = args.text.replace(/["'{}]/g, '{$&}');
     const script = `
 Add-Type -AssemblyName System.Windows.Forms
@@ -176,7 +185,6 @@ $bmp.Dispose()
   throw new Error(`Tool not found: ${name}`);
 }
 
-// JSON-RPC processing on stdin/stdout
 import readline from 'readline';
 const rl = readline.createInterface({
   input: process.stdin,
@@ -243,7 +251,6 @@ rl.on('line', async (line) => {
       return;
     }
     
-    // Notifications/fallback
     if (id !== undefined) {
       process.stdout.write(JSON.stringify({
         jsonrpc: '2.0',
