@@ -4683,18 +4683,20 @@ export default function App() {
               {/* Centered Floating Input Container */}
               <div className="p-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none">
                 <div className="max-w-4xl mx-auto w-full">
-                  <div className="relative w-full flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all">
-                    <span className="text-gray-500 font-mono pl-4 pr-1 select-none text-[15px]">&gt;</span>
-                    <input
-                      value={chatInput}
-                      onChange={e => setChatInput(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && handleSendMessage()}
-                      placeholder={`Type your command or ask ${currentAgent.name}...`}
-                      className="w-full bg-transparent pl-2 pr-32 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none"
-                    />
+                  <div className="w-full flex flex-col gap-2">
+                    <div className="w-full flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all">
+                      <span className="text-gray-500 font-mono pl-4 pr-1 select-none text-[15px]">&gt;</span>
+                      <input
+                        value={chatInput}
+                        onChange={e => setChatInput(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && handleSendMessage()}
+                        placeholder={`Type your command or ask ${currentAgent.name}...`}
+                        className="w-full bg-transparent pl-2 pr-4 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none"
+                      />
+                    </div>
                     
-                    {/* Floating Controls Row */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    {/* Controls Row (Below the Input Field) */}
+                    <div className="flex items-center justify-end gap-2 px-1">
                       <button
                         type="button"
                         onClick={handleOrchestratorInterrupt}
@@ -4736,10 +4738,11 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => handleSendMessage()}
-                        className="p-2.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white transition-all cursor-pointer shadow-[0_0_15px_rgba(124,58,237,0.3)] flex items-center justify-center"
+                        className="p-2 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white transition-all cursor-pointer shadow-[0_0_15px_rgba(124,58,237,0.3)] flex items-center gap-1.5 justify-center text-xs font-semibold"
                         title="Send Message"
                       >
-                        <Zap size={14} className="fill-white" />
+                        <Zap size={13} className="fill-white" />
+                        <span>Send</span>
                       </button>
                     </div>
                   </div>
