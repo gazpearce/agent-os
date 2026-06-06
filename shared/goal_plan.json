@@ -1,22 +1,12 @@
 [
   {
-    "agent": "openclaw",
-    "task": "Perform a web search for the latest CCTV FAQ articles and retrieve the top 5-7 relevant FAQs, noting their content and sources. Also search the local knowledge base (e.g., D:/Agent OS/shared) for any recent CCTV FAQ documents.",
-    "reason": "We need up‑to‑date FAQ material to craft a accurate and comprehensive blog post."
-  },
-  {
-    "agent": "obsidian",
-    "task": "Search the vault for any internal style guides or brand guidelines (e.g., file:///D:/Agent%20OS/shared/brand_guidelines.md) that dictate tone, formatting, and link conventions.",
-    "reason": "Ensures the blog follows company standards and provides correct mock link format."
-  },
-  {
-    "agent": "agy",
-    "task": "Draft a 1000‑3000 word blog post titled with \"CCTV FAQ\", incorporating the collected FAQs, a mock video embed, image, infographic, Gary Pearce mention, SEO‑optimized keyword density (1% for \"CCTV FAQ\"), required headings (H1, H2), five FAQ items each linking to mock internal URLs, and one external authority link.",
-    "reason": "Creates the complete, SEO‑compliant content ready for file creation."
+    "agent": "hermes",
+    "task": "Ensure the directory D:/Agent OS/shared exists by creating it if necessary.",
+    "reason": "The target directory must exist before writing the file."
   },
   {
     "agent": "hermes",
-    "task": "Write the drafted blog content to the file D:/Agent OS/shared/cctv-faq-blog.md, ensuring the file is saved in markdown format with all required embeds and links.",
-    "reason": "Persists the final output to the specified location for the user."
+    "task": "Write the file D:/Agent OS/shared/test-collab.txt with the content 'Swarm Collaboration verified.'",
+    "reason": "Create the requested file with the specified verification message."
   }
 ]

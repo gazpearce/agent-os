@@ -1,0 +1,28 @@
+# Swarm Growth Opportunity: NotebookLM + Claude + MiniMax is INSANE!
+
+* **Video URL:** https://www.youtube.com/watch?v=tbR9YOpBn_4
+* **Scanned Date:** 20260605
+
+---
+
+**Integration Proposal – “Claude + Notebook LM + MiniMax Unified Agent OS”**  
+
+| **Section** | **Details** |
+|-------------|--------------|
+| **Title** | Unified AI Command‑Center for Content & Media Automation (Claude + Notebook LM + MiniMax) |
+| **Growth Potential** | • Adds three high‑impact AI engines to our Agent OS in a single “shared‑memory” workflow, differentiating us from competitors that only support a single model.<br>• Enables end‑to‑end content pipelines (research → outline → draft → graphics → task tracking) that can be marketed to SEO agencies (e.g., Gary Pearce’s network) as a “one‑click AI SEO Agent”.<br>• Opens two new revenue streams: (1) premium “AI‑Agent‑OS” license with multi‑model orchestration, (2) a pre‑built n8n template marketplace for SEO‑focused pipelines. |
+| **Key Workflows / Sequence** | 1. **Trigger** – User creates a new “Campaign” in the Agent OS UI (or via webhook from a CMS). <br>2. **Research & Knowledge Capture** – <br> a. Call **Claude** (Anthropic) with a prompt to generate a structured brief (keywords, competitor analysis, FAQ). <br> b. Store the output in a **Notebook LM** notebook (via Google AI Studio API) – this becomes the **shared memory** for the campaign. <br>3. **Content Drafting** – <br> a. Pull the research from Notebook LM, send to Claude for a long‑form article outline. <br> b. Loop: Claude writes sections; each section is appended back to the notebook. <br>4. **Media Generation** – <br> a. Extract image concepts from the notebook (e.g., “hero banner of a CCTV installation in Leeds”). <br> b. Call **MiniMax** (image generation) to create the assets. <br> c. Save URLs back to the notebook and to the campaign’s asset library. <br>5. **Task Automation / Kanban** – <br> a. Parse the notebook for “TODO” tags (e.g., `#TODO Publish`, `#TODO Social`). <br> b. Auto‑populate a Kanban board (integrated with Trello, ClickUp, or Notion) via API. <br>6. **Shared‑Memory Sync** – All steps read/write the same notebook, so the system can resume after sleep or interruption. <br>7. **Completion** – When the Kanban reaches “Done”, the system posts the final content to the target platform (WordPress, HubSpot, etc.) and logs the campaign in analytics. |
+| **Integration Steps** | 1. **API Access & Authentication**  <br> • Claude: Obtain Anthropic API key, wrap calls in a reusable `anthropicClient`. <br> • Notebook LM: Use Google AI Studio “Notebook LM API” (beta). Set up OAuth 2.0 service‑account flow for read/write of notebooks. <br> • MiniMax: Register on the MiniMax platform, get API token, create a thin wrapper `miniMaxClient`. |
+| 2. **Shared‑Memory Service Layer**  <br> • Build a micro‑service (`/shared‑memory`) that abstracts CRUD ops on a Notebook LM notebook (create, append, query). <br> • Expose REST endpoints for our internal Agent OS modules (`GET /memory/:campaignId`, `POST /memory/:campaignId`). |
+| 3. **Orchestration Engine**  <br> • Extend our existing n8n‑style workflow engine with new nodes: `ClaudePrompt`, `NotebookLMWrite`, `MiniMaxGenerate`, `KanbanCreateTask`. <br> • Provide a pre‑built “Claude‑Notebook‑MiniMax SEO Campaign” template that users can import with a single click. |
+| 4. **Kanban / Task Sync**  <br> • Add connectors for Notion, ClickUp, Trello (existing modules can be reused). <br> • Implement parsing rules that convert `#TODO` tags in notebook text into task objects. |
+| 5. **UI / UX Enhancements**  <br> • New “Agent OS > Campaign Builder” wizard guiding the user through the steps above. <br> • Real‑time notebook view (embed Notebook LM read‑only pane) so users can see the shared memory evolve. |
+| 6. **Testing & Monitoring**  <br> • Unit‑test each API wrapper (mock responses). <br> • End‑to‑end integration test a full campaign (research → publish). <br> • Add observability (logs, latency metrics) for each external call. |
+| 7. **Documentation & Marketplace Launch**  <br> • Write a step‑by‑step guide (markdown + video) for SEO agencies on how to deploy the template. <br> • Publish the n8n template on our marketplace under the “AI‑SEO” category. |
+| **Estimated Timeline** | • Week 1‑2: API wrappers & shared‑memory service.<br>• Week 3: n8n node development + Kanban integration.<br>• Week 4: UI wizard & notebook embed.<br>• Week 5: QA, documentation, beta release to Gary Pearce’s Tier‑1 satellites for feedback. |
+| **Revenue / KPI Impact** | • **Adoption**: Target 30 % of existing agency users to adopt the new template within 3 months.<br>• **ARPU uplift**: $15 / month per user for the multi‑model add‑on.<br>• **Retention**: Reduced churn by 12 % due to higher automation value. |
+| **Strategic Fit** | The unified Agent OS aligns perfectly with the “shared memory” concept Julian promotes and gives our platform a tangible, sellable product for the SEO authority network (Tier‑1 blogs, Tier‑2 hubs, etc.). It also leverages cutting‑edge models (Claude, MiniMax) that are not yet widely integrated into existing low‑code automation tools. |
+
+---  
+
+**Conclusion:** This video reveals a concrete, market‑ready pattern (Claude + Notebook LM + MiniMax with shared memory) that we can codify into our Agent OS as a reusable, high‑value workflow. Implementing the above proposal will give us a unique differentiator, open new revenue streams, and provide a ready‑made integration for Gary Pearce’s SEO satellite ecosystem.

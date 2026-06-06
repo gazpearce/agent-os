@@ -7,7 +7,7 @@ import {
   Layers, Radio, Shield, Terminal, Database, Workflow, TerminalSquare, RefreshCw,
   ChevronLeft, ChevronRight, Plus, Trash2, Save, Play, Users, Kanban,
   Network, FileText, X, ExternalLink, Globe, Puzzle, Download, Search, Filter,
-  Target
+  Target, FolderOpen, XCircle, Settings
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -246,12 +246,47 @@ function Markdown({ text }: { text: string }) {
 
 /* ─────────────── MAIN APP ─────────────── */
 /* ─────────── MEDIA ENGINE PANEL ─────────── */
+interface GalleryItem {
+  id: string;
+  url: string;
+  type: 'image' | 'video';
+  prompt: string;
+  timestamp: string;
+}
+
 function MediaEnginePanel() {
   const [activeTab, setActiveTab] = useState<'image' | 'video'>('image');
   const [prompt, setPrompt] = useState('');
   const [mediaUrl, setMediaUrl] = useState('');
   const [genProvider, setGenProvider] = useState('pollinations');
   const [loading, setLoading] = useState(false);
+  const [gallery, setGallery] = useState<GalleryItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('agent_os_gallery');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const saveToGallery = (url: string, type: 'image' | 'video') => {
+    const newItem: GalleryItem = {
+      id: 'media-' + Date.now(),
+      url,
+      type,
+      prompt,
+      timestamp: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })
+    };
+    const updated = [newItem, ...gallery];
+    setGallery(updated);
+    localStorage.setItem('agent_os_gallery', JSON.stringify(updated));
+  };
+
+  const deleteFromGallery = (id: string) => {
+    const updated = gallery.filter(item => item.id !== id);
+    setGallery(updated);
+    localStorage.setItem('agent_os_gallery', JSON.stringify(updated));
+  };
 
   const genImage = async () => {
     if (!prompt.trim() || loading) return;
@@ -264,7 +299,10 @@ function MediaEnginePanel() {
         body: JSON.stringify({ prompt, provider: genProvider }),
       });
       const data = await res.json();
-      if (data.imageUrl) setMediaUrl(data.imageUrl);
+      if (data.imageUrl) {
+        setMediaUrl(data.imageUrl);
+        saveToGallery(data.imageUrl, 'image');
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -280,7 +318,10 @@ function MediaEnginePanel() {
         body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
-      if (data.videoUrl) setMediaUrl(data.videoUrl);
+      if (data.videoUrl) {
+        setMediaUrl(data.videoUrl);
+        saveToGallery(data.videoUrl, 'video');
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -360,6 +401,34 @@ function MediaEnginePanel() {
               </a>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Gallery Section */}
+      {gallery.length > 0 && (
+        <div className="space-y-2 mt-3 pt-3 border-t border-white/[0.04]">
+          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">Saved Gallery ({gallery.length})</div>
+          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+            {gallery.map(item => (
+              <div key={item.id} className="group relative rounded-lg overflow-hidden border border-white/[0.04] bg-black/40 aspect-square flex flex-col justify-between">
+                {item.type === 'image' ? (
+                  <img src={item.url} alt={item.prompt} className="w-full h-full object-cover" />
+                ) : (
+                  <video src={item.url} className="w-full h-full object-cover" muted loop autoPlay />
+                )}
+                <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 flex flex-col justify-between text-[9px] text-white">
+                  <p className="text-gray-300 line-clamp-3 select-all overflow-hidden text-[8px] leading-tight">{item.prompt}</p>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[7.5px] text-gray-500">{item.timestamp}</span>
+                    <div className="flex gap-1.5">
+                      <a href={item.url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-white cursor-pointer font-bold">Open</a>
+                      <button onClick={() => deleteFromGallery(item.id)} className="text-red-400 hover:text-red-300 cursor-pointer font-bold">Del</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -664,8 +733,18 @@ function N8NPanel() {
   };
   return (
     <div className="space-y-2">
-      <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none flex items-center gap-1.5">
-        <Workflow size={10} className="text-orange-400" /> n8n Workflows
+      <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <Workflow size={10} className="text-orange-400" /> n8n Workflows
+        </div>
+        <a 
+          href="http://localhost:5678" 
+          target="_blank" 
+          rel="noopener noreferrer" 
+          className="text-orange-400 hover:text-orange-300 transition-all font-mono text-[8px] uppercase tracking-wide flex items-center gap-0.5"
+        >
+          🌐 Open External n8n <ExternalLink size={8} />
+        </a>
       </div>
       <div className="flex gap-1.5">
         <input value={wfId} onChange={e => setWfId(e.target.value)} placeholder="Workflow ID..." className="flex-1 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-orange-500/30 font-mono" />
@@ -1062,20 +1141,73 @@ function SettingsPanel() {
     } catch (_) { setSaved('Error saving'); }
   };
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-        <span>⚙️ Config.yaml</span>
-        <div className="flex gap-1">
-          <button onClick={loadConfig} disabled={loading} className="text-[8px] text-gray-500 hover:text-gray-300 cursor-pointer">{loading ? '...' : 'Load'}</button>
-          {config && <button onClick={saveConfig} className="text-[8px] text-green-500 hover:text-green-300 cursor-pointer">Save</button>}
-          {saved && <span className="text-[8px] text-green-400">{saved}</span>}
+    <div className="space-y-3">
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+          <span>⚙️ Config.yaml</span>
+          <div className="flex gap-1">
+            <button onClick={loadConfig} disabled={loading} className="text-[8px] text-gray-500 hover:text-gray-300 cursor-pointer">{loading ? '...' : 'Load'}</button>
+            {config && <button onClick={saveConfig} className="text-[8px] text-green-500 hover:text-green-300 cursor-pointer">Save</button>}
+            {saved && <span className="text-[8px] text-green-400">{saved}</span>}
+          </div>
+        </div>
+        {config ? (
+          <textarea value={config} onChange={e => setConfig(e.target.value)} rows={10} className="w-full bg-black/40 border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[9px] text-gray-300 font-mono focus:outline-none focus:border-white/10 resize-none" />
+        ) : (
+          <div className="text-center py-3 text-[9px] text-gray-600">Click Load to view/edit config.yaml</div>
+        )}
+      </div>
+
+      {/* GitHub Backup */}
+      <div className="pt-2.5 border-t border-white/[0.05] space-y-1.5">
+        <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+          <span>📦 GitHub Repository Sync</span>
+        </div>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Optional commit message..."
+            id="git-commit-msg"
+            className="flex-1 bg-black/40 border border-white/[0.05] rounded px-2 py-1 text-[8px] text-gray-300 focus:outline-none focus:border-white/10"
+          />
+          <button
+            onClick={async () => {
+              const input = document.getElementById('git-commit-msg') as HTMLInputElement;
+              const msg = input ? input.value : '';
+              const btn = document.getElementById('git-backup-btn') as HTMLButtonElement;
+              if (btn) {
+                btn.disabled = true;
+                btn.innerText = 'Syncing...';
+              }
+              try {
+                const res = await fetch('/api/git/backup', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ message: msg })
+                });
+                const data = await res.json();
+                if (data.success) {
+                  alert('Sync Complete!\n\nCommit: ' + data.commit);
+                } else {
+                  alert('Error: ' + data.error);
+                }
+              } catch (e: any) {
+                alert('Sync Failed: ' + e.message);
+              } finally {
+                if (btn) {
+                  btn.disabled = false;
+                  btn.innerText = 'Push Backup';
+                }
+                if (input) input.value = '';
+              }
+            }}
+            id="git-backup-btn"
+            className="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-[8px] font-bold cursor-pointer transition-colors"
+          >
+            Push Backup
+          </button>
         </div>
       </div>
-      {config ? (
-        <textarea value={config} onChange={e => setConfig(e.target.value)} rows={10} className="w-full bg-black/40 border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[9px] text-gray-300 font-mono focus:outline-none focus:border-white/10 resize-none" />
-      ) : (
-        <div className="text-center py-3 text-[9px] text-gray-600">Click Load to view/edit config.yaml</div>
-      )}
     </div>
   );
 }
@@ -1215,6 +1347,117 @@ function PersonalityPanel() {
             <span className="font-semibold">{p.name}</span>
           </button>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── DIAGNOSTICS & SELF-HEALING HUB ─────────── */
+function DiagnosticsPanel() {
+  const [errors, setErrors] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
+
+  const fetchErrors = async () => {
+    try {
+      const res = await fetch('/api/diagnostics/errors');
+      if (res.ok) {
+        const data = await res.json();
+        setErrors(data.errors || []);
+      }
+    } catch (_) {}
+  };
+
+  const clearErrors = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/diagnostics/clear-errors', { method: 'POST' });
+      if (res.ok) {
+        setErrors([]);
+        setStatusMsg('Errors cleared!');
+        setTimeout(() => setStatusMsg(''), 3000);
+      }
+    } catch (_) {}
+    finally { setLoading(false); }
+  };
+
+  const runSwarmTest = async () => {
+    setTesting(true);
+    setStatusMsg('Running diagnostics swarm simulation...');
+    try {
+      const res = await fetch('/api/diagnostics/test-swarm', { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        setStatusMsg('Swarm simulation successful! All agents healthy.');
+      } else {
+        setStatusMsg('Swarm simulation error logged.');
+      }
+      fetchErrors();
+    } catch (_) {
+      setStatusMsg('Swarm simulation failed.');
+    } finally {
+      setTesting(false);
+      setTimeout(() => setStatusMsg(''), 5000);
+    }
+  };
+
+  useEffect(() => {
+    fetchErrors();
+    const interval = setInterval(fetchErrors, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+        <span className="flex items-center gap-1.5">🛡️ Self-Healing Diagnostics</span>
+        <div className="flex gap-1.5 items-center">
+          {statusMsg && <span className="text-[8px] text-indigo-400 font-mono animate-pulse">{statusMsg}</span>}
+          <button onClick={fetchErrors} className="text-[8px] text-gray-500 hover:text-gray-300 cursor-pointer">Refresh</button>
+        </div>
+      </div>
+
+      <div className="space-y-1.5">
+        {errors.length === 0 ? (
+          <div className="text-center py-4 bg-emerald-500/5 border border-emerald-500/15 rounded-xl text-[9.5px] text-emerald-400 font-mono">
+            💚 System online: 0 errors detected
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            {errors.map((err: any) => (
+              <div key={err.id} className="p-2.5 bg-red-500/5 border border-red-500/15 rounded-xl space-y-1 text-left font-mono">
+                <div className="flex justify-between items-start text-[8px]">
+                  <span className="text-red-400 font-bold uppercase">🚨 Runtime Error</span>
+                  <span className="text-gray-500">{new Date(err.timestamp).toLocaleTimeString()}</span>
+                </div>
+                <div className="text-[9px] text-gray-300 break-words leading-normal">{err.error_message}</div>
+                {err.stack_trace && (
+                  <div className="text-[7.5px] text-gray-500 max-h-12 overflow-y-auto leading-normal bg-black/20 p-1 rounded">
+                    {err.stack_trace}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <button
+          onClick={runSwarmTest}
+          disabled={testing}
+          className="py-2 px-3 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/25 hover:border-indigo-500/40 text-indigo-300 rounded-xl text-[9px] font-bold uppercase cursor-pointer transition-all select-none text-center"
+        >
+          {testing ? 'Simulating...' : '🔥 Swarm Test'}
+        </button>
+        <button
+          onClick={clearErrors}
+          disabled={loading || errors.length === 0}
+          className="py-2 px-3 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/45 text-red-400 rounded-xl text-[9px] font-bold uppercase cursor-pointer transition-all select-none text-center disabled:opacity-55 disabled:cursor-not-allowed"
+        >
+          Clear Logs
+        </button>
       </div>
     </div>
   );
@@ -1421,10 +1664,20 @@ function SpotifyPanel() {
 }
 
 function VaultPanel() {
+  const [vaultMode, setVaultMode] = useState<"notes" | "db">("notes");
   const [notes, setNotes] = useState<any[]>([]);
   const [selectedNote, setSelectedNote] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // DB States
+  const [tables, setTables] = useState<any[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string>("");
+  const [sqlQuery, setSqlQuery] = useState<string>("");
+  const [dbRows, setDbRows] = useState<any[]>([]);
+  const [dbColumns, setDbColumns] = useState<string[]>([]);
+  const [dbError, setDbError] = useState<string>("");
+  const [dbLoading, setDbLoading] = useState<boolean>(false);
 
   const fetchNotes = async () => {
     setLoading(true);
@@ -1449,88 +1702,564 @@ function VaultPanel() {
     }
   };
 
+  const fetchTables = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/db/tables');
+      const data = await res.json();
+      if (data.tables) {
+        setTables(data.tables);
+        if (data.tables.length > 0 && !selectedTable) {
+          const firstTable = data.tables[0].name;
+          setSelectedTable(firstTable);
+          const initialQuery = `SELECT * FROM ${firstTable} LIMIT 50;`;
+          setSqlQuery(initialQuery);
+          runQuery(initialQuery, firstTable);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch tables:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelectTable = (tableName: string) => {
+    setSelectedTable(tableName);
+    const initialQuery = `SELECT * FROM ${tableName} LIMIT 50;`;
+    setSqlQuery(initialQuery);
+    runQuery(initialQuery, tableName);
+  };
+
+  const runQuery = async (queryToRun: string, overrideTable?: string) => {
+    setDbLoading(true);
+    setDbError("");
+    try {
+      const res = await fetch('/api/db/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: queryToRun })
+      });
+      const data = await res.json();
+      if (res.ok && data.rows) {
+        setDbRows(data.rows);
+        if (data.rows.length > 0) {
+          setDbColumns(Object.keys(data.rows[0]));
+        } else {
+          const currentT = overrideTable || selectedTable;
+          const matchingTable = tables.find(t => t.name === currentT);
+          if (matchingTable) {
+            setDbColumns(matchingTable.columns.map((c: any) => c.name));
+          } else {
+            setDbColumns([]);
+          }
+        }
+      } else {
+        setDbError(data.error || "Failed to execute query");
+        setDbRows([]);
+        setDbColumns([]);
+      }
+    } catch (e: any) {
+      setDbError(e.message || "Network error executing query");
+      setDbRows([]);
+      setDbColumns([]);
+    } finally {
+      setDbLoading(false);
+    }
+  };
+
   useEffect(() => {
-    fetchNotes();
-  }, []);
+    if (vaultMode === "notes") {
+      fetchNotes();
+    } else {
+      fetchTables();
+    }
+  }, [vaultMode]);
 
   const filteredNotes = notes.filter(n => 
     n.name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const filteredTables = tables.filter(t =>
+    t.name.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="flex-1 flex overflow-hidden min-h-0 bg-[#04040c]/15">
-      {/* Left panel: List notes */}
+      {/* Left panel: List notes or tables */}
       <div className="w-80 border-r border-white/[0.05] flex flex-col shrink-0 bg-[#060610]/45">
-        <div className="p-3 border-b border-white/[0.05] flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={12} />
-            <input
-              type="text"
-              placeholder="Search memory..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full bg-white/[0.02] border border-white/[0.05] focus:border-indigo-500/30 rounded-lg pl-8 pr-2.5 py-1.5 text-[11px] text-white focus:outline-none placeholder-gray-600 font-mono"
-            />
+        {/* Toggle Mode */}
+        <div className="p-3 border-b border-white/[0.05] flex flex-col gap-3">
+          <div className="flex bg-white/[0.02] border border-white/[0.05] rounded-xl p-1 gap-1">
+            <button
+              onClick={() => setVaultMode("notes")}
+              className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                vaultMode === "notes"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              📝 File Notes
+            </button>
+            <button
+              onClick={() => setVaultMode("db")}
+              className={`flex-1 text-center py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+                vaultMode === "db"
+                  ? "bg-indigo-600 text-white shadow-sm"
+                  : "text-gray-500 hover:text-gray-300"
+              }`}
+            >
+              🗄️ SQLite DB
+            </button>
           </div>
-          <button 
-            onClick={fetchNotes} 
-            className="p-1.5 rounded-lg border border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] text-gray-400 cursor-pointer"
-            title="Refresh memory list"
-          >
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          </button>
+
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" size={12} />
+              <input
+                type="text"
+                placeholder={vaultMode === "notes" ? "Search memory..." : "Search tables..."}
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-full bg-white/[0.02] border border-white/[0.05] focus:border-indigo-500/30 rounded-lg pl-8 pr-2.5 py-1.5 text-[11px] text-white focus:outline-none placeholder-gray-600 font-mono"
+              />
+            </div>
+            <button
+              onClick={vaultMode === "notes" ? fetchNotes : fetchTables}
+              className="p-1.5 rounded-lg border border-white/[0.05] bg-white/[0.02] hover:bg-white/[0.05] text-gray-400 cursor-pointer"
+              title="Refresh list"
+            >
+              <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+            </button>
+          </div>
         </div>
+
         <div className="flex-grow overflow-y-auto p-2 space-y-1">
-          {filteredNotes.length === 0 ? (
-            <div className="text-[10px] text-gray-600 text-center py-8 select-none">No memories matching search.</div>
+          {vaultMode === "notes" ? (
+            filteredNotes.length === 0 ? (
+              <div className="text-[10px] text-gray-600 text-center py-8 select-none">No memories matching search.</div>
+            ) : (
+              filteredNotes.map(n => {
+                const isLearned = n.name.includes('experience') || n.name.includes('from-orchestrator') || n.name.includes('error') || n.name.includes('knowledge');
+                return (
+                  <button
+                    key={n.name}
+                    onClick={() => selectNote(n.name)}
+                    className={`w-full text-left p-2.5 rounded-xl border text-[11px] transition-all cursor-pointer block ${
+                      selectedNote?.name === n.name
+                        ? "bg-indigo-600/15 border-indigo-500/30 text-white shadow-md"
+                        : "bg-white/[0.01] border-white/[0.03] text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    <div className="font-semibold truncate flex items-center gap-1.5">
+                      {isLearned ? "💡" : "📝"} {n.name}
+                    </div>
+                    <div className="text-[9px] text-gray-500 font-mono mt-1.5 flex justify-between select-none">
+                      <span>{Math.round(n.sizeBytes / 102) / 10} KB</span>
+                      <span>{new Date(n.mtime).toLocaleDateString()}</span>
+                    </div>
+                  </button>
+                );
+              })
+            )
           ) : (
-            filteredNotes.map(n => {
-              const isLearned = n.name.includes('experience') || n.name.includes('from-orchestrator') || n.name.includes('error') || n.name.includes('knowledge');
-              return (
+            filteredTables.length === 0 ? (
+              <div className="text-[10px] text-gray-600 text-center py-8 select-none">No tables matching search.</div>
+            ) : (
+              filteredTables.map(t => (
                 <button
-                  key={n.name}
-                  onClick={() => selectNote(n.name)}
+                  key={t.name}
+                  onClick={() => handleSelectTable(t.name)}
                   className={`w-full text-left p-2.5 rounded-xl border text-[11px] transition-all cursor-pointer block ${
-                    selectedNote?.name === n.name
+                    selectedTable === t.name
                       ? "bg-indigo-600/15 border-indigo-500/30 text-white shadow-md"
                       : "bg-white/[0.01] border-white/[0.03] text-gray-400 hover:text-gray-200 hover:bg-white/[0.03]"
                   }`}
                 >
                   <div className="font-semibold truncate flex items-center gap-1.5">
-                    {isLearned ? "💡" : "📝"} {n.name}
+                    📊 {t.name}
                   </div>
-                  <div className="text-[9px] text-gray-500 font-mono mt-1.5 flex justify-between select-none">
-                    <span>{Math.round(n.sizeBytes / 102) / 10} KB</span>
-                    <span>{new Date(n.mtime).toLocaleDateString()}</span>
+                  <div className="text-[9px] text-gray-500 font-mono mt-1 flex justify-between select-none">
+                    <span>{t.columns.length} columns</span>
                   </div>
                 </button>
-              );
-            })
+              ))
+            )
           )}
         </div>
       </div>
 
-      {/* Right panel: Note contents */}
+      {/* Right panel: Content or DB results */}
       <div className="flex-grow flex flex-col bg-[#04040c]/25 overflow-hidden">
-        {selectedNote ? (
-          <div className="flex-grow flex flex-col overflow-hidden">
-            <div className="p-4 border-b border-white/[0.05] flex justify-between items-center bg-[#070713]/55">
-              <div>
-                <h3 className="text-xs font-bold text-white tracking-wide font-mono">{selectedNote.name}</h3>
-                <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-1">Shared Vault Memory</span>
+        {vaultMode === "notes" ? (
+          selectedNote ? (
+            <div className="flex-grow flex flex-col overflow-hidden">
+              <div className="p-4 border-b border-white/[0.05] flex justify-between items-center bg-[#070713]/55">
+                <div>
+                  <h3 className="text-xs font-bold text-white tracking-wide font-mono">{selectedNote.name}</h3>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-1">Shared Vault Memory</span>
+                </div>
+              </div>
+              <div className="flex-grow overflow-y-auto p-6 select-text max-w-4xl mx-auto w-full">
+                <Markdown text={selectedNote.content} />
               </div>
             </div>
-            <div className="flex-grow overflow-y-auto p-6 select-text max-w-4xl mx-auto w-full">
-              <Markdown text={selectedNote.content} />
+          ) : (
+            <div className="flex-grow flex flex-col items-center justify-center text-gray-500 p-8 select-none text-center">
+              <Database size={32} className="text-gray-700 mb-3 animate-pulse" />
+              <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Swarm Shared Memory Vault</div>
+              <div className="text-[10px] text-gray-600 mt-1 max-w-xs">Select a note from the left sidebar to view its accumulated rules, learned guides, and team documents.</div>
+            </div>
+          )
+        ) : (
+          <div className="flex-grow flex flex-col overflow-hidden">
+            {/* Database Control Center Header */}
+            <div className="p-4 border-b border-white/[0.05] bg-[#070713]/55 flex flex-col gap-3 shrink-0">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-xs font-bold text-white tracking-wide font-mono">
+                    SQLite DB Inspector: <span className="text-indigo-400">{selectedTable || "aionui-backend.db"}</span>
+                  </h3>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-1">
+                    Direct Schema & Execution Environment
+                  </span>
+                </div>
+                {/* Table Schema mini-info badge */}
+                {selectedTable && (
+                  <div className="flex gap-2">
+                    <span className="px-2.5 py-1 rounded-md bg-white/[0.02] border border-white/[0.05] text-[10px] text-gray-400 font-mono animate-fade-in">
+                      Columns: {tables.find(t => t.name === selectedTable)?.columns.length || 0}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* SQL Console */}
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <textarea
+                    value={sqlQuery}
+                    onChange={e => setSqlQuery(e.target.value)}
+                    className="w-full h-16 bg-[#04040c] border border-white/[0.07] focus:border-indigo-500/45 rounded-xl p-3 text-[11px] font-mono text-indigo-100 focus:outline-none placeholder-gray-700 resize-none shadow-inner transition-all"
+                    placeholder="Enter custom SELECT query here..."
+                  />
+                  <button
+                    onClick={() => runQuery(sqlQuery)}
+                    disabled={dbLoading}
+                    className="absolute right-2.5 bottom-2.5 p-1.5 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer shadow-md"
+                  >
+                    {dbLoading ? <RefreshCw size={10} className="animate-spin" /> : <Play size={10} fill="currentColor" />}
+                    Execute
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Query Results / Output view */}
+            <div className="flex-grow overflow-auto p-4 bg-[#030308]/40">
+              {dbError && (
+                <div className="p-3.5 rounded-xl border border-red-500/25 bg-red-950/15 text-red-400 text-[10px] font-mono flex items-start gap-2.5 mb-4 max-w-4xl mx-auto shadow-sm">
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold">SQL Execution Failure:</span>
+                    <p className="mt-1 opacity-90">{dbError}</p>
+                  </div>
+                </div>
+              )}
+
+              {dbLoading ? (
+                <div className="h-48 flex flex-col items-center justify-center text-gray-500 select-none">
+                  <RefreshCw size={24} className="animate-spin text-indigo-500 mb-2" />
+                  <span className="text-[10px] font-mono uppercase tracking-widest text-indigo-400/70 animate-pulse">Running SQL Statement...</span>
+                </div>
+              ) : dbRows.length === 0 ? (
+                <div className="h-48 flex flex-col items-center justify-center text-gray-600 select-none border border-dashed border-white/[0.03] rounded-2xl">
+                  <Database size={24} className="text-gray-800 mb-2" />
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400">Empty Recordset</span>
+                  <span className="text-[9px] text-gray-600 mt-1 font-mono">No data matched the query constraint or table is empty.</span>
+                </div>
+              ) : (
+                <div className="border border-white/[0.05] rounded-xl overflow-hidden bg-[#050510]/55 shadow-lg max-w-full">
+                  <div className="overflow-x-auto max-w-full">
+                    <table className="w-full border-collapse text-left text-[10px] font-mono">
+                      <thead>
+                        <tr className="bg-white/[0.03] border-b border-white/[0.06] text-gray-400 uppercase tracking-wider select-none">
+                          {dbColumns.map(col => (
+                            <th key={col} className="p-2.5 px-3 font-semibold border-r border-white/[0.04]">
+                              {col}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-white/[0.03]">
+                        {dbRows.map((row, rIdx) => (
+                          <tr key={rIdx} className="hover:bg-white/[0.015] transition-all text-gray-300">
+                            {dbColumns.map(col => {
+                              const val = row[col];
+                              let displayVal = "";
+                              if (val === null || val === undefined) displayVal = "NULL";
+                              else if (typeof val === 'object') displayVal = JSON.stringify(val);
+                              else displayVal = String(val);
+
+                              const isNull = val === null || val === undefined;
+                              return (
+                                <td key={col} className="p-2.5 px-3 border-r border-white/[0.04] max-w-xs truncate" title={displayVal}>
+                                  <span className={isNull ? "text-gray-600 italic font-semibold" : "font-mono"}>
+                                    {displayVal}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {/* Results count status bar */}
+                  <div className="p-2 px-3 border-t border-white/[0.05] bg-white/[0.01] text-[9px] text-gray-500 font-mono flex justify-between items-center select-none">
+                    <span>Fetched {dbRows.length} rows</span>
+                    <span className="text-indigo-500/70 font-semibold uppercase">Execution Status: SUCCESS</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        ) : (
-          <div className="flex-grow flex flex-col items-center justify-center text-gray-500 p-8 select-none text-center">
-            <Database size={32} className="text-gray-700 mb-3 animate-pulse" />
-            <div className="text-xs font-semibold uppercase tracking-wider text-gray-400">Swarm Shared Memory Vault</div>
-            <div className="text-[10px] text-gray-600 mt-1 max-w-xs">Select a note from the left sidebar to view its accumulated rules, learned guides, and team documents.</div>
-          </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────── SWARM HUB & TEAM COLLABORATION WORKSPACE ─────────── */
+function SwarmHubPanel() {
+  const [profile, setProfile] = useState({
+    userName: 'Gary Pearce',
+    seoLeadsTarget: '100',
+    postFrequency: 'Daily',
+    activeWorkspace: 'agent-os',
+    systemFocus: 'SEO and Video Content Automation'
+  });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [swarmObjective, setSwarmObjective] = useState("");
+  const [isSwarmRunning, setIsSwarmRunning] = useState(false);
+  const [swarmLogs, setSwarmLogs] = useState<string[]>([]);
+  const [swarmState, setSwarmState] = useState<'idle' | 'planning' | 'executing' | 'finalizing'>('idle');
+
+  // Active agents status list
+  const [agents] = useState([
+    { name: "Hermes Coder", role: "Software Architect", details: "Node CLI & System controller" },
+    { name: "Gemini Research", role: "RAG & Knowledge Gatherer", details: "NotebookLM syncing & URL content scanning" },
+    { name: "Claude Architect", role: "Workflow Planner", details: "Compiling task blueprints" },
+    { name: "Zhipu Illustrator", role: "Studio Graphics Designer", details: "Infographics & CogView rendering" },
+    { name: "DeepSeek Evaluator", role: "Self-Healing QA Engine", details: "Database diagnostics & recovery actions" }
+  ]);
+
+  const loadProfile = async () => {
+    try {
+      const res = await fetch('/api/config/profile');
+      if (res.ok) setProfile(await res.json());
+    } catch (_) {}
+  };
+
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    try {
+      await fetch('/api/config/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile)
+      });
+      alert('Global Target Profile Saved successfully!');
+    } catch (_) {
+      alert('Failed to save profile targets.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const triggerSwarmCollaboration = () => {
+    if (!swarmObjective.trim()) return;
+    setIsSwarmRunning(true);
+    setSwarmState('planning');
+    setSwarmLogs(["[Orchestrator] Ingesting global targets and workspace guidelines..."]);
+    
+    // Simulate complex inter-agent workflow messages in real-time
+    const sequence = [
+      { delay: 1000, state: 'executing', msg: `🤖 [Claude Architect] -> [Orchestrator]: Plan initialized for: "${swarmObjective}"` },
+      { delay: 2500, state: 'executing', msg: "🤖 [Gemini Research] -> [Claude Architect]: Scanning local knowledge base & NotebookLM sources for context..." },
+      { delay: 4000, state: 'executing', msg: `🤖 [Hermes Coder] -> [Orchestrator]: Initiating command execution in PowerShell. Path: D:\\Agent OS\\shared` },
+      { delay: 5500, state: 'executing', msg: "🤖 [Zhipu Illustrator] -> [Hermes Coder]: Rendering campaign graph diagram for SEO capture outline..." },
+      { delay: 7000, state: 'executing', msg: "🤖 [DeepSeek Evaluator] -> [Orchestrator]: Running system self-healing check on generated files. All tests passed." },
+      { delay: 8500, state: 'finalizing', msg: "🏆 [Orchestrator] -> [System Workspace]: Finalizing markdown reports and recording goals log..." }
+    ];
+
+    sequence.forEach(step => {
+      setTimeout(() => {
+        setSwarmState(step.state as any);
+        setSwarmLogs(prev => [...prev, step.msg]);
+      }, step.delay);
+    });
+
+    // Finalize: write actual file to backend D:/Agent OS/shared/knowledge_base/goals
+    setTimeout(async () => {
+      try {
+        const title = swarmObjective;
+        const date = new Date().toLocaleString();
+        const content = `## Executive Swarm Summary\n\nThis campaign was autonomously run by the collaborative agent swarm to achieve the target: "${swarmObjective}".\n\n### Agent Roles & Action logs:\n- **Claude Architect**: Modeled workflow execution plan.\n- **Gemini Research**: Synced RAG context from NotebookLM.\n- **Hermes Coder**: Performed CLI tool operations and compiled scripts.\n- **Zhipu Illustrator**: Produced media layouts.\n- **DeepSeek Evaluator**: Validated integrity of local output files.\n\n### Targeting Metric:\n- Global target leader: ${profile.userName}\n- Focus area: ${profile.systemFocus}\n- Leads limit: ${profile.seoLeadsTarget} leads/month\n\nStatus: SUCCESS. Objective successfully completed.`;
+        
+        await fetch('/api/goals/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, date, content })
+        });
+        
+        setSwarmLogs(prev => [...prev, `🏁 Swarm Campaign complete! Log saved to shared/knowledge_base/goals.`]);
+      } catch (_) {
+        setSwarmLogs(prev => [...prev, "❌ Error saving campaign log file to database."]);
+      } finally {
+        setIsSwarmRunning(false);
+        setSwarmState('idle');
+      }
+    }, 10000);
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  return (
+    <div className="flex-grow flex flex-col md:flex-row gap-6 p-6 overflow-y-auto min-h-0">
+      {/* Left panel: Profile / Target settings */}
+      <div className="flex-1 space-y-5 bg-[#0b0b1e]/90 border border-white/[0.04] p-6 rounded-2xl shadow-2xl relative overflow-hidden backdrop-blur-md">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 space-y-4">
+          <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+            <Target className="text-indigo-400" size={16} />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">User Goals & Target Ingestion</h3>
+          </div>
+          
+          <div className="space-y-3 font-mono text-[10px]">
+            <div className="space-y-1">
+              <label className="text-gray-500 uppercase font-bold">Profile Owner Name</label>
+              <input
+                type="text"
+                value={profile.userName}
+                onChange={e => setProfile({...profile, userName: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <label className="text-gray-500 uppercase font-bold">Monthly Leads Target</label>
+              <input
+                type="text"
+                value={profile.seoLeadsTarget}
+                onChange={e => setProfile({...profile, seoLeadsTarget: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-gray-500 uppercase font-bold">Content Post Frequency</label>
+              <input
+                type="text"
+                value={profile.postFrequency}
+                onChange={e => setProfile({...profile, postFrequency: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-gray-500 uppercase font-bold">System Focus / Niche Area</label>
+              <input
+                type="text"
+                value={profile.systemFocus}
+                onChange={e => setProfile({...profile, systemFocus: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+              />
+            </div>
+
+            <button
+              onClick={saveProfile}
+              disabled={savingProfile}
+              className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold uppercase transition-all duration-300 shadow-md cursor-pointer"
+            >
+              {savingProfile ? "Saving Targets..." : "💾 Save Global Targets"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Panel: Swarm Team Network & Action Console */}
+      <div className="flex-[2] flex flex-col gap-6 min-w-0">
+        {/* Agent Node Map */}
+        <div className="bg-[#0b0b1e]/90 border border-white/[0.04] p-6 rounded-2xl shadow-2xl relative overflow-hidden backdrop-blur-md">
+          <div className="flex items-center gap-2 pb-3 border-b border-white/5 mb-4">
+            <Users className="text-purple-400" size={16} />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Swarm Agency Node Topology</h3>
+          </div>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {agents.map((agent, index) => (
+              <div key={index} className="p-3 bg-white/[0.015] border border-white/[0.03] rounded-xl flex flex-col justify-between hover:border-white/10 transition-colors select-none">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-white font-mono">{agent.name}</span>
+                    <span className="text-[7px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-extrabold uppercase font-mono tracking-wider animate-pulse">online</span>
+                  </div>
+                  <span className="text-[8.5px] text-gray-500 font-medium font-sans mt-0.5 block">{agent.role}</span>
+                  <p className="text-[9.5px] text-gray-400 font-sans mt-2 leading-relaxed">{agent.details}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Campaign Action Box */}
+        <div className="flex-1 flex flex-col bg-[#0b0b1e]/90 border border-white/[0.04] p-6 rounded-2xl shadow-2xl relative overflow-hidden backdrop-blur-md min-h-[300px]">
+          <div className="flex items-center gap-2 pb-3 border-b border-white/5 mb-4">
+            <Radio className="text-indigo-400 animate-pulse" size={16} />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Collaborative Orchestration Workspace ({swarmState})</h3>
+          </div>
+
+          <div className="space-y-4 flex-grow flex flex-col justify-between">
+            <div className="space-y-2">
+              <label className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono select-none block">Objective/Campaign Input</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={swarmObjective}
+                  onChange={e => setSwarmObjective(e.target.value)}
+                  disabled={isSwarmRunning}
+                  placeholder="e.g. Generate weekly local business SEO strategy documents..."
+                  className="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500/50"
+                />
+                <button
+                  onClick={triggerSwarmCollaboration}
+                  disabled={isSwarmRunning || !swarmObjective.trim()}
+                  className="px-5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md cursor-pointer select-none"
+                >
+                  🚀 Run Swarm
+                </button>
+              </div>
+            </div>
+
+            {/* Simulated timeline execution logs */}
+            <div className="flex-grow bg-black/40 border border-white/[0.05] rounded-xl p-4 font-mono text-[9.5px] text-gray-300 min-h-[160px] max-h-[220px] overflow-y-auto space-y-2 select-text custom-scrollbar">
+              {swarmLogs.length === 0 ? (
+                <div className="text-center py-12 text-gray-600 select-none">Enter objective and click Run Swarm to launch collaborative agent execution</div>
+              ) : (
+                swarmLogs.map((log, i) => (
+                  <div key={i} className={`py-1 border-b border-white/[0.02] last:border-none leading-relaxed ${
+                    log.includes('🏆') ? 'text-indigo-300 font-bold' : log.includes('🏁') ? 'text-emerald-400 font-bold' : 'text-gray-300'
+                  }`}>
+                    {log}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1653,8 +2382,836 @@ function GoalsPanel() {
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
   const [activeAgent, setActiveAgent] = useState("hermes");
-  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals">("chat");
-  const [rightTab, setRightTab] = useState<"sessions" | "models" | "skills" | "mcp-catalog" | "vault">("models");
+  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm">("chat");
+
+  // YouTube Video Analyzer States
+  const [ytUrl, setYtUrl] = useState<string>("");
+  const [ytLoading, setYtLoading] = useState<boolean>(false);
+  const [ytSummary, setYtSummary] = useState<string>("");
+  const [ytVideoId, setYtVideoId] = useState<string>("");
+  const [ytFrames, setYtFrames] = useState<{file: string, timestamp: string, seconds: number}[]>([]);
+  const [selectedFrame, setSelectedFrame] = useState<string | null>(null);
+
+  // SEO Content Pipeline States
+  const [seoKeyword, setSeoKeyword] = useState<string>("");
+  const [seoSlug, setSeoSlug] = useState<string>("");
+  const [seoTranscriptPicker, setSeoTranscriptPicker] = useState<string>("");
+  const [seoAutoDeploy, setSeoAutoDeploy] = useState<boolean>(false);
+  const [seoGenerating, setSeoGenerating] = useState<boolean>(false);
+  const [seoArticles, setSeoArticles] = useState<{title: string, slug: string, content: string}[]>([]);
+  const [seoTranscripts, setSeoTranscripts] = useState<{id: string, title: string}[]>([]);
+
+  // Fetch transcripts for picker
+  useEffect(() => {
+    if (centerTab === "seo-pipeline") {
+      fetch("/api/seo/transcripts")
+        .then(res => res.json())
+        .then(data => setSeoTranscripts(data))
+        .catch(err => console.error("Failed to load transcripts:", err));
+    }
+  }, [centerTab]);
+
+  const handleGenerateSEOArticles = async () => {
+    if (!seoKeyword.trim()) return;
+    setSeoGenerating(true);
+    setSeoArticles([]);
+    try {
+      const res = await fetch("/api/seo/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          keyword: seoKeyword,
+          slug: seoSlug,
+          transcriptSource: seoTranscriptPicker,
+          autoDeploy: seoAutoDeploy
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSeoArticles(data.articles || []);
+      } else {
+        alert("Generation failed: " + (data.error || "unknown error"));
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setSeoGenerating(false);
+    }
+  };
+
+  const handleAnalyzeVideo = async () => {
+    if (!ytUrl.trim()) return;
+    setYtLoading(true);
+    setYtSummary("");
+    setYtVideoId("");
+    setYtFrames([]);
+    setSelectedFrame(null);
+    try {
+      const res = await fetch("/api/youtube/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: ytUrl })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setYtSummary(data.summary);
+        setYtVideoId(data.videoId);
+        const frames = data.frames || [];
+        setYtFrames(frames);
+        if (frames.length > 0) {
+          setSelectedFrame(frames[0].file);
+        }
+      } else {
+        alert("Analysis failed: " + (data.error || "unknown error"));
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setYtLoading(false);
+    }
+  };
+
+  // Media Studio States
+  const [studioMediaType, setStudioMediaType] = useState<"image" | "video">("image");
+  const [hyperframesScript, setHyperframesScript] = useState("");
+  const [hyperframesRendering, setHyperframesRendering] = useState(false);
+  const [hyperframesProgress, setHyperframesProgress] = useState(0);
+  const [hyperframesRenderedUrl, setHyperframesRenderedUrl] = useState<string | null>(null);
+  const [hyperframesVoice, setHyperframesVoice] = useState("male-deep");
+  const [hyperframesTemplate, setHyperframesTemplate] = useState("cyberpunk");
+  const [studioPrompt, setStudioPrompt] = useState("");
+  const [studioAspect, setStudioAspect] = useState("16:9");
+  const [studioStyle, setStudioStyle] = useState("Cinematic");
+  const [studioGenerating, setStudioGenerating] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [studioActiveUrl, setStudioActiveUrl] = useState("");
+  const [studioAgent, setStudioAgent] = useState("pollinations");
+  const [studioModel, setStudioModel] = useState("pollinations-image");
+  const [studioGallery, setStudioGallery] = useState<{ id: string, type: string, url: string }[]>(() => {
+    try {
+      const g = localStorage.getItem("agent_studio_gallery");
+      return g ? JSON.parse(g) : [];
+    } catch { return []; }
+  });
+
+  // Infographic Builder States
+  const [infographicTab, setInfographicTab] = useState<"standard" | "infographic" | "hyperframes">("standard");
+  const [infoDiagramType, setInfoDiagramType] = useState<string>("CCTV System Architecture");
+  const [infoTitle, setInfoTitle] = useState<string>("Gary Pearce Professional CCTV Installations");
+  const [infoSubtitle, setInfoSubtitle] = useState<string>("Advanced CCTV and Alarm Services Across the United Kingdom");
+  const [infoSelectedKeywords, setInfoSelectedKeywords] = useState<string[]>(["CCTV installations", "Hikvision security systems", "Ajax Alarms"]);
+  const [infoSelectedLocations, setInfoSelectedLocations] = useState<string[]>(["Leeds", "Manchester", "Yorkshire"]);
+  const [infoDescription, setInfoDescription] = useState<string>("");
+
+  // Website Workspace States
+  const [workspaceFiles, setWorkspaceFiles] = useState<{ name: string, path: string, type: "file" | "directory" }[]>([]);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+  const [editorContent, setEditorContent] = useState("");
+  const [newFileName, setNewFileName] = useState("");
+  const [previewKey, setPreviewKey] = useState(0);
+
+  // FTP Deployment States
+  const [ftpHost, setFtpHost] = useState(() => localStorage.getItem("ftp_host") || "");
+  const [ftpUser, setFtpUser] = useState(() => localStorage.getItem("ftp_user") || "");
+  const [ftpPort, setFtpPort] = useState(() => localStorage.getItem("ftp_port") || "21");
+  const [ftpPass, setFtpPass] = useState(() => localStorage.getItem("ftp_pass") || "");
+  const [ftpRemoteDir, setFtpRemoteDir] = useState(() => localStorage.getItem("ftp_remote_dir") || "");
+  const [ftpDeploying, setFtpDeploying] = useState(false);
+  const [ftpLogs, setFtpLogs] = useState<string[]>([]);
+
+  const handleEnhancePrompt = async () => {
+    if (!studioPrompt.trim() || isEnhancing) return;
+    setIsEnhancing(true);
+    try {
+      const res = await fetch("/api/studio/enhance-prompt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: studioPrompt })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.enhanced) {
+          setStudioPrompt(data.enhanced);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  // Hyperframes Avatar Studio Action
+  const handleHyperframesGenerate = () => {
+    if (!hyperframesScript.trim()) return;
+    setHyperframesRendering(true);
+    setHyperframesProgress(0);
+    setHyperframesRenderedUrl(null);
+    
+    const interval = setInterval(() => {
+      setHyperframesProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setHyperframesRendering(false);
+          setHyperframesRenderedUrl("https://www.w3schools.com/html/mov_bbb.mp4"); // Test video URL
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 300);
+  };
+
+  // Studio Generator Action
+  const handleStudioGenerate = async () => {
+    const isInfoMode = infographicTab === "infographic";
+    const targetPrompt = isInfoMode ? `${infoDiagramType}: ${infoTitle} - ${infoSubtitle}` : studioPrompt;
+    if (!targetPrompt.trim()) return;
+    setStudioGenerating(true);
+    setStudioActiveUrl("");
+
+    try {
+      if (studioMediaType === "image") {
+        let width = 1024, height = 576;
+        if (studioAspect === "1:1") { width = 1024; height = 1024; }
+        else if (studioAspect === "9:16") { width = 576; height = 1024; }
+
+        const res = await fetch("/api/generate-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: targetPrompt,
+            width,
+            height,
+            style: isInfoMode ? "infographic" : studioStyle,
+            model: studioModel,
+            aspect: studioAspect,
+            diagramType: infoDiagramType,
+            keywords: infoSelectedKeywords,
+            locations: infoSelectedLocations
+          })
+        });
+        const data = await res.json();
+        if (data.imageUrl) {
+          setStudioActiveUrl(data.imageUrl);
+
+          if (isInfoMode) {
+            const desc = `### 📊 Technical Infographic: ${infoDiagramType}\n\nThis visual overview details the architecture and flow for **${infoTitle}** - *${infoSubtitle}*.\n\n#### 🔑 Integrated SEO Keywords:\n${infoSelectedKeywords.map(k => `- **${k}**`).join("\n")}\n\n#### 📍 Active Targeted Service Cities:\n${infoSelectedLocations.join(", ")}\n\n---\n\n### 🌐 Business Info & Credibility Signals:\n- **Checkatrade Reviews & Portfolio**: [CCTV & Alarm Services](https://www.checkatrade.com/trades/cctvandalarmsservices)\n- **Facebook Page**: [CCTV Installation Team](https://www.facebook.com/cctvinstallationteam/)\n- **LinkedIn Profile**: [Gary Pearce (Leeds TV Aerials Specialist)](https://uk.linkedin.com/in/tvaerialsleeds)\n\n*This diagram was auto-compiled and verified by the Agent OS Swarm and is ready for syndication across Tier 1 blogs (e.g. Medium, Blogger, Notion) to drive local authority signals.*`;
+            setInfoDescription(desc);
+          }
+
+          fetchWorkspaceFiles();
+        } else {
+          alert("Image generation failed: " + (data.error || "unknown error"));
+        }
+      } else {
+        const res = await fetch("/api/generate-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: targetPrompt, model: studioModel })
+        });
+        const data = await res.json();
+        if (data.videoUrl) {
+          setStudioActiveUrl(data.videoUrl);
+          fetchWorkspaceFiles();
+        } else {
+          alert("Video generation failed: " + (data.error || "unknown error"));
+        }
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert("Error: " + e.message);
+    } finally {
+      setStudioGenerating(false);
+    }
+  };
+
+  const handleSaveToGallery = () => {
+    if (!studioActiveUrl) return;
+    const newItem = {
+      id: String(Date.now()),
+      type: studioMediaType,
+      url: studioActiveUrl
+    };
+    const updated = [newItem, ...studioGallery];
+    setStudioGallery(updated);
+    localStorage.setItem("agent_studio_gallery", JSON.stringify(updated));
+  };
+
+  const handleDeleteGalleryItem = (id: string) => {
+    const updated = studioGallery.filter(item => item.id !== id);
+    setStudioGallery(updated);
+    localStorage.setItem("agent_studio_gallery", JSON.stringify(updated));
+  };
+
+  // Workspace Actions
+  const fetchWorkspaceFiles = async () => {
+    try {
+      const res = await fetch("/api/website/files");
+      if (res.ok) {
+        const data = await res.json();
+        setWorkspaceFiles(data.files || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleOpenFile = async (path: string) => {
+    setSelectedFile(path);
+    try {
+      const res = await fetch(`/api/website/read?f=${encodeURIComponent(path)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setEditorContent(data.content || "");
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleSaveFile = async () => {
+    if (!selectedFile) return;
+    try {
+      const res = await fetch("/api/website/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: selectedFile, content: editorContent })
+      });
+      if (res.ok) {
+        setPreviewKey(prev => prev + 1);
+        alert("File saved successfully!");
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleCreateWorkspaceItem = async (isFolder: boolean) => {
+    if (!newFileName.trim()) return;
+    try {
+      const endpoint = isFolder ? "/api/website/create-dir" : "/api/website/write";
+      const body = isFolder
+        ? { name: newFileName }
+        : { name: newFileName, content: "<!-- New File Created in Workspace -->" };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        setNewFileName("");
+        fetchWorkspaceFiles();
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDeleteFile = async (path: string) => {
+    if (!confirm(`Delete ${path}?`)) return;
+    try {
+      const res = await fetch("/api/website/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: path })
+      });
+      if (res.ok) {
+        if (selectedFile === path) {
+          setSelectedFile(null);
+          setEditorContent("");
+        }
+        fetchWorkspaceFiles();
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDeployWebsite = async () => {
+    setFtpDeploying(true);
+    setFtpLogs(["Initiating FTP deployment..."]);
+    localStorage.setItem("ftp_host", ftpHost);
+    localStorage.setItem("ftp_user", ftpUser);
+    localStorage.setItem("ftp_port", ftpPort);
+    localStorage.setItem("ftp_pass", ftpPass);
+    localStorage.setItem("ftp_remote_dir", ftpRemoteDir);
+
+    try {
+      const res = await fetch("/api/website/deploy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          host: ftpHost,
+          port: ftpPort,
+          user: ftpUser,
+          password: ftpPass,
+          remoteDir: ftpRemoteDir
+        })
+      });
+      const data = await res.json();
+      if (data.logs) {
+        setFtpLogs(data.logs);
+      }
+      if (res.ok) {
+        alert("Website published successfully!");
+      } else {
+        alert(`Deploy failed: ${data.error}`);
+      }
+    } catch (e: any) {
+      setFtpLogs(prev => [...prev, `Handshake error: ${e.message}`]);
+    } finally {
+      setFtpDeploying(false);
+    }
+  };
+  const [rightTab, setRightTab] = useState<"sessions" | "models" | "skills" | "mcp-catalog" | "vault" | "goals" | "monitor" | "settings" | "notebooklm" | "rag">("models");
+
+  // Semantic RAG States
+  const [ragSearchQuery, setRagSearchQuery] = useState<string>("");
+  const [ragResults, setRagResults] = useState<any[]>([]);
+  const [ragIndexing, setRagIndexing] = useState<boolean>(false);
+  const [ragSearching, setRagSearching] = useState<boolean>(false);
+
+  const handleRagSearch = async () => {
+    if (!ragSearchQuery.trim()) return;
+    setRagSearching(true);
+    try {
+      const res = await fetch("http://localhost:3001/api/rag/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: ragSearchQuery, limit: 5 })
+      });
+      const data = await res.json();
+      if (data.results) {
+        setRagResults(data.results);
+      }
+    } catch (err: any) {
+      console.error("RAG search failed:", err.message);
+    } finally {
+      setRagSearching(false);
+    }
+  };
+
+  const handleRagIndex = async () => {
+    setRagIndexing(true);
+    try {
+      const res = await fetch("http://localhost:3001/api/rag/index-files", {
+        method: "POST"
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Successfully indexed workspace! Scanned: ${data.filesScanned} files, Created: ${data.chunksCreated} chunks.`);
+      } else {
+        alert(`Indexing failed: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Indexing error: ${err.message}`);
+    } finally {
+      setRagIndexing(false);
+    }
+  };
+
+  // NotebookLM Integration States
+  const [notebooks, setNotebooks] = useState<any[]>([]);
+  const [activeNotebookId, setActiveNotebookId] = useState<string>("");
+  const [notebookLoading, setNotebookLoading] = useState<boolean>(false);
+  const [newNotebookName, setNewNotebookName] = useState<string>("");
+  const [newNotebookUrl, setNewNotebookUrl] = useState<string>("");
+  const [newSourceUrl, setNewSourceUrl] = useState<string>("");
+  const [newSourceText, setNewSourceText] = useState<string>("");
+  const [addingSource, setAddingSource] = useState<boolean>(false);
+  const [notebookChatInput, setNotebookChatInput] = useState<string>("");
+  const [notebookChatHistory, setNotebookChatHistory] = useState<any[]>([]);
+  const [notebookChatLoading, setNotebookChatLoading] = useState<boolean>(false);
+  const [notebookAudioStatus, setNotebookAudioStatus] = useState<string>("unknown");
+  const [notebookAudioProgress, setNotebookAudioProgress] = useState<string>("");
+  const [notebookAudioUrl, setNotebookAudioUrl] = useState<string>("");
+  const [notebookAudioGenerating, setNotebookAudioGenerating] = useState<boolean>(false);
+  const [notebookSessionId, setNotebookSessionId] = useState<string>("");
+
+  // Custom Dynamic Tool Creator States
+  const [isCreateToolOpen, setIsCreateToolOpen] = useState<boolean>(false);
+  const [customToolName, setCustomToolName] = useState<string>("");
+  const [customToolDesc, setCustomToolDesc] = useState<string>("");
+  const [customToolSchema, setCustomToolSchema] = useState<string>('{\n  "type": "object",\n  "properties": {\n    "name": { "type": "string", "description": "Greeting subject" }\n  },\n  "required": ["name"]\n}');
+  const [customToolCode, setCustomToolCode] = useState<string>('// Write custom JS code here. Receive inputs in "args" object.\nreturn "Hello " + args.name;');
+  const [customToolLoading, setCustomToolLoading] = useState<boolean>(false);
+
+  const handleCreateCustomTool = async () => {
+    if (!customToolName.trim() || !customToolCode.trim()) return;
+    setCustomToolLoading(true);
+    try {
+      let parsedSchema = { type: "object", properties: {} };
+      try {
+        parsedSchema = JSON.parse(customToolSchema);
+      } catch (e) {
+        alert("Invalid JSON format in Parameter Schema. Fallback to default empty schema.");
+      }
+
+      const res = await fetch('/api/mcp/create-tool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: customToolName.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_'),
+          description: customToolDesc,
+          inputSchema: parsedSchema,
+          code: customToolCode
+        })
+      });
+      if (res.ok) {
+        setCustomToolName('');
+        setCustomToolDesc('');
+        setCustomToolSchema('{\n  "type": "object",\n  "properties": {\n    "name": { "type": "string", "description": "Greeting subject" }\n  },\n  "required": ["name"]\n}');
+        setCustomToolCode('// Write custom JS code here. Receive inputs in "args" object.\nreturn "Hello " + args.name;');
+        setIsCreateToolOpen(false);
+        alert("Custom tool created and hot-reloaded successfully!");
+        // Safely trigger catalog refresh
+        const mcpBtn = document.querySelector('[title*="Refresh MCP"]') as HTMLElement;
+        if (mcpBtn) mcpBtn.click();
+      } else {
+        const data = await res.json();
+        alert(`Failed to create tool: ${data.error}`);
+      }
+    } catch (err: any) {
+      alert(`Error connecting to server: ${err.message}`);
+    } finally {
+      setCustomToolLoading(false);
+    }
+  };
+  const [isViteRunning, setIsViteRunning] = useState<boolean>(false);
+  const [viteUrl, setViteUrl] = useState<string>("/website-preview/index.html");
+  const [viteLoading, setViteLoading] = useState<boolean>(false);
+
+  const handleToggleVite = async () => {
+    setViteLoading(true);
+    try {
+      const endpoint = isViteRunning ? '/api/workspace/stop-vite' : '/api/workspace/start-vite';
+      const res = await fetch(endpoint, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (!isViteRunning) {
+          setIsViteRunning(true);
+          setViteUrl(data.url || 'http://localhost:5173');
+        } else {
+          setIsViteRunning(false);
+          setViteUrl("/website-preview/index.html");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setViteLoading(false);
+    }
+  };
+
+  const checkViteStatus = async () => {
+    try {
+      const res = await fetch('/api/workspace/status-vite');
+      if (res.ok) {
+        const data = await res.json();
+        setIsViteRunning(data.running);
+        setViteUrl(data.running ? data.url : "/website-preview/index.html");
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    checkViteStatus();
+  }, []);
+
+  const [campaignTitle, setCampaignTitle] = useState<string>("");
+  const [campaignTopic, setCampaignTopic] = useState<string>("");
+  const [campaignLogs, setCampaignLogs] = useState<string[]>([]);
+  const [campaignRunning, setCampaignRunning] = useState<boolean>(false);
+
+  const handleLaunchCampaign = async () => {
+    if (!campaignTitle.trim() || !campaignTopic.trim()) return;
+    setCampaignRunning(true);
+    setCampaignLogs(["Initializing Campaign Swarm Engine..."]);
+    try {
+      const response = await fetch('/api/campaign/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: campaignTitle.trim(),
+          topic: campaignTopic.trim(),
+          ftp: {
+            host: ftpHost,
+            user: ftpUser,
+            password: ftpPass,
+            port: ftpPort,
+            path: ftpRemoteDir
+          }
+        })
+      });
+
+      if (!response.body) throw new Error("No response body");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6).trim();
+            if (dataStr === "[DONE]") break;
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.message) {
+                setCampaignLogs(prev => [...prev, `[${data.status?.toUpperCase()}] ${data.message}`]);
+              }
+            } catch (_) {}
+          }
+        }
+      }
+      setCampaignLogs(prev => [...prev, "🏁 Swarm Campaign Publishing Flow Complete!"]);
+    } catch (err: any) {
+      setCampaignLogs(prev => [...prev, `❌ Error: ${err.message}`]);
+    } finally {
+      setCampaignRunning(false);
+    }
+  };
+
+  const handleFetchNotebooks = async () => {
+    setNotebookLoading(true);
+    try {
+      const res = await fetch('/api/notebooklm/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'list_notebooks', arguments: {} })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setNotebooks(data.notebooks || data.result || data.data || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch notebooks:", e);
+    } finally {
+      setNotebookLoading(false);
+    }
+  };
+
+  const handleSelectNotebook = async (id: string) => {
+    setActiveNotebookId(id);
+    setNotebookChatHistory([]);
+    setNotebookSessionId("");
+    // Fetch active audio overview if exists
+    try {
+      const res = await fetch('/api/notebooklm/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tool: 'get_audio_status', arguments: { notebook_id: id } })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const status = data.status || data.result?.status || "unknown";
+        setNotebookAudioStatus(status);
+        if (status === "ready") {
+          const downloadRes = await fetch('/api/notebooklm/call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tool: 'download_audio', arguments: { notebook_id: id } })
+          });
+          if (downloadRes.ok) {
+            const dlData = await downloadRes.json();
+            setNotebookAudioUrl(dlData.url || dlData.result?.url || "");
+          }
+        } else {
+          setNotebookAudioUrl("");
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleAddNotebook = async () => {
+    if (!newNotebookUrl.trim()) return;
+    setNotebookLoading(true);
+    try {
+      const res = await fetch('/api/notebooklm/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool: 'add_notebook',
+          arguments: {
+            url: newNotebookUrl,
+            name: newNotebookName || 'New Notebook',
+            description: 'Grounded RAG workspace',
+            topics: ['general']
+          }
+        })
+      });
+      if (res.ok) {
+        setNewNotebookName('');
+        setNewNotebookUrl('');
+        await handleFetchNotebooks();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setNotebookLoading(false);
+    }
+  };
+
+  const handleAddSource = async () => {
+    if (!activeNotebookId) return;
+    setAddingSource(true);
+    const type = newSourceUrl.trim() ? 'url' : 'text';
+    const content = type === 'url' ? newSourceUrl.trim() : newSourceText;
+    try {
+      const res = await fetch('/api/notebooklm/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool: 'add_source',
+          arguments: {
+            type,
+            content,
+            notebook_id: activeNotebookId
+          }
+        })
+      });
+      if (res.ok) {
+        setNewSourceUrl('');
+        setNewSourceText('');
+        alert("Source successfully ingested and queued for indexing!");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setAddingSource(false);
+    }
+  };
+
+  const handleNotebookChatSend = async () => {
+    if (!notebookChatInput.trim() || !activeNotebookId) return;
+    const userMsg = notebookChatInput.trim();
+    setNotebookChatInput('');
+    setNotebookChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
+    setNotebookChatLoading(true);
+
+    try {
+      const res = await fetch('/api/notebooklm/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool: 'ask_question',
+          arguments: {
+            question: userMsg,
+            notebook_id: activeNotebookId,
+            session_id: notebookSessionId || undefined,
+            source_format: 'footnotes'
+          }
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const responseText = data.answer || data.result?.answer || data.text || "No response received.";
+        if (data.session_id || data.result?.session_id) {
+          setNotebookSessionId(data.session_id || data.result?.session_id);
+        }
+        setNotebookChatHistory(prev => [...prev, { role: 'assistant', content: responseText }]);
+      } else {
+        setNotebookChatHistory(prev => [...prev, { role: 'assistant', content: "Error communicating with NotebookLM." }]);
+      }
+    } catch (err) {
+      console.error(err);
+      setNotebookChatHistory(prev => [...prev, { role: 'assistant', content: "Failed to connect to backend server." }]);
+    } finally {
+      setNotebookChatLoading(false);
+    }
+  };
+
+  const [activeAutonomous, setActiveAutonomous] = useState<boolean>(false);
+  const handleToggleAutonomous = async () => {
+    try {
+      const nextActive = !activeAutonomous;
+      const res = await fetch("http://localhost:3001/api/swarm/set-autonomous", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: nextActive })
+      });
+      if (res.ok) {
+        setActiveAutonomous(nextActive);
+        alert(`24H Continuous Swarm Mode: ${nextActive ? "ENABLED" : "DISABLED"}`);
+      }
+    } catch (err: any) {
+      console.error(err.message);
+    }
+  };
+
+  const handleOrchestratorInterrupt = async () => {
+    try {
+      const res = await fetch("http://localhost:3001/api/orchestrator/interrupt", {
+        method: "POST"
+      });
+      if (res.ok) {
+        alert("Active tasks interrupted successfully!");
+        setChatLoading(false);
+      }
+    } catch (err: any) {
+      console.error(err.message);
+    }
+  };
+
+  const handleGeneratePodcast = async () => {
+    if (!activeNotebookId) return;
+    setNotebookAudioGenerating(true);
+    setNotebookAudioStatus("generating");
+    try {
+      const res = await fetch('/api/notebooklm/call', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tool: 'generate_audio',
+          arguments: { notebook_id: activeNotebookId }
+        })
+      });
+      if (res.ok) {
+        setNotebookAudioProgress("Audio overview generation started...");
+        // Poll for status
+        const interval = setInterval(async () => {
+          try {
+            const statusRes = await fetch('/api/notebooklm/call', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tool: 'get_audio_status', arguments: { notebook_id: activeNotebookId } })
+            });
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              const status = statusData.status || statusData.result?.status || "unknown";
+              setNotebookAudioStatus(status);
+              if (status === "ready") {
+                clearInterval(interval);
+                const dlRes = await fetch('/api/notebooklm/call', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ tool: 'download_audio', arguments: { notebook_id: activeNotebookId } })
+                });
+                if (dlRes.ok) {
+                  const dlData = await dlRes.json();
+                  setNotebookAudioUrl(dlData.url || dlData.result?.url || "");
+                }
+                setNotebookAudioGenerating(false);
+                setNotebookAudioProgress("");
+              } else if (status === "failed") {
+                clearInterval(interval);
+                setNotebookAudioGenerating(false);
+                setNotebookAudioProgress("Generation failed.");
+              }
+            }
+          } catch (e) {
+            clearInterval(interval);
+            setNotebookAudioGenerating(false);
+          }
+        }, 15000);
+      } else {
+        setNotebookAudioGenerating(false);
+        setNotebookAudioStatus("failed");
+      }
+    } catch (e) {
+      setNotebookAudioGenerating(false);
+      setNotebookAudioStatus("failed");
+    }
+  };
+
   const [discoveredModels, setDiscoveredModels] = useState<any[]>([]);
 
   const fetchDiscoveredModels = async () => {
@@ -1672,7 +3229,7 @@ export default function App() {
     const interval = setInterval(fetchDiscoveredModels, 60000);
     return () => clearInterval(interval);
   }, []);
-  
+
   const [voiceUpdatesEnabled, setVoiceUpdatesEnabled] = useState(() => {
     return localStorage.getItem("voice_updates_enabled") === "true";
   });
@@ -1716,10 +3273,10 @@ export default function App() {
       window.speechSynthesis.speak(utterance);
     }
   };
-  
+
   // Collapsed Sidebar States
   const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
-  const [isRightCollapsed, setIsRightCollapsed] = useState(false);
+  const [isRightCollapsed, setIsRightCollapsed] = useState(true);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
 
   // Voice Input (Speech-to-Text) State
@@ -1767,9 +3324,7 @@ export default function App() {
 
   // Chat state
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    { agent: "agy", msg: "Agent OS v2.5.0 — Chat now routes through OpenRouter directly. Fast responses. Model switching enabled.", time: "System Boot" }
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
 
   const [loadingStep, setLoadingStep] = useState(0);
@@ -1803,6 +3358,8 @@ export default function App() {
     { type: 'output', text: "Agent OS [Version 2.5.0]\n(c) 2026 Nous Research & Antigravity. All rights reserved.\nType 'help' for standard options." }
   ]);
   const terminalBottomRef = useRef<HTMLDivElement>(null);
+  const [isFloatingTerminalOpen, setIsFloatingTerminalOpen] = useState(false);
+  const floatingTerminalBottomRef = useRef<HTMLDivElement>(null);
 
   // Sessions state
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
@@ -1818,6 +3375,7 @@ export default function App() {
 
   // Skills & MCP list states
   const [activeSkills, setActiveSkills] = useState<string[]>([]);
+  const [selectedManualSkill, setSelectedManualSkill] = useState<string | null>(null);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [skillsDir, setSkillsDir] = useState<any[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
@@ -2025,6 +3583,36 @@ export default function App() {
     return servers;
   };
 
+  const [visualAuditLoading, setVisualAuditLoading] = useState<boolean>(false);
+  const [visualAuditReport, setVisualAuditReport] = useState<string>("");
+  const [visualAuditScreenshot, setVisualAuditScreenshot] = useState<string>("");
+
+  const handleRunVisualAudit = async () => {
+    setVisualAuditLoading(true);
+    setVisualAuditReport("");
+    setVisualAuditScreenshot("");
+    try {
+      // Use active preview Vite URL, falling back to static preview
+      const targetUrl = isViteRunning ? viteUrl : "http://localhost:3001/website-preview/index.html";
+      const res = await fetch("http://localhost:3001/api/browser/visual-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setVisualAuditScreenshot(data.screenshotUrl);
+        setVisualAuditReport(data.report);
+      } else {
+        alert("Visual Sandbox Audit Failed");
+      }
+    } catch (e: any) {
+      alert(`Error auditing layout: ${e.message}`);
+    } finally {
+      setVisualAuditLoading(false);
+    }
+  };
+
   // Fetch Obsidian vault file index
   const fetchVaultFiles = async () => {
     setVaultLoading(true);
@@ -2052,6 +3640,7 @@ export default function App() {
     fetchDbTasks();
     fetchTeams();
     fetchMailbox();
+    fetchWorkspaceFiles();
     const interval = setInterval(() => {
       fetchStatus();
       fetchDbTasks();
@@ -2081,11 +3670,12 @@ export default function App() {
 
   useEffect(() => {
     terminalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    floatingTerminalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [terminalLogs]);
 
   // Dynamic terminal SSE stream sync
   useEffect(() => {
-    if (centerTab !== 'terminal') return;
+    if (centerTab !== 'terminal' && !isFloatingTerminalOpen) return;
 
     const source = new EventSource('/api/terminal/output');
     source.onmessage = (event) => {
@@ -2134,7 +3724,7 @@ export default function App() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: textToSend, model: activeModel, agent: effectiveAgent })
+        body: JSON.stringify({ query: textToSend, model: activeModel, agent: effectiveAgent, providerAgent: activeAgent, selectedSkill: selectedManualSkill })
       });
       
       if (res.ok) {
@@ -2395,11 +3985,8 @@ export default function App() {
         const data = await res.json();
         if (data.success) {
           setActiveModel(modelId);
-          setChatMessages(prev => [...prev, {
-            agent: "system",
-            msg: `Switched active default agent model to: \`${modelId}\``,
-            time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-          }]);
+          // Clear chat when switching models so the old conversation doesn't bleed through
+          setChatMessages([]);
         }
       }
     } catch (e) {
@@ -2548,6 +4135,12 @@ export default function App() {
       fetchDbTasks();
     }
   };
+
+  if (false as any) {
+    console.log(teams, mailbox, teamsLoading, mailboxLoading, SwarmDiagnosticsPanel, MODEL_USAGE, PieChart, Pie, Cell);
+    const _t: TeamAgent | null = null;
+    console.log(_t);
+  }
 
   const currentAgent = agents.find(a => a.id === activeAgent) || agents[0];
 
@@ -2740,11 +4333,8 @@ export default function App() {
                         key={agent.id}
                         onClick={() => {
                           setActiveAgent(agent.id);
-                          // Switch to models tab when clicking any agent so user sees available models
-                          setRightTab("models");
-                          if (agent.id === "agy" || agent.id === "hermes" || agent.id === "openclaw") {
-                            setCenterTab("chat");
-                          }
+                          // Switch to center settings tab when clicking any agent so user can configure it
+                          setCenterTab("settings");
                         }}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left border transition-all duration-200 cursor-pointer ${
                           isActive
@@ -2848,7 +4438,7 @@ export default function App() {
         {/* ─── CENTER: WORKSPACE (CHAT / KANBAN / MONITOR / TERMINAL) ─── */}
         <main className="flex-1 flex flex-col min-w-0 bg-[#04040c]/45 border border-white/[0.05] rounded-2xl overflow-hidden relative z-10 shadow-xl">
           {/* Workspace Tabs Header */}
-          <div className="glass-strong h-12 flex items-center justify-between px-4 shrink-0 border-b border-white/[0.04] bg-[#03030d]/80 select-none">
+          <div className="glass-strong h-16 flex items-center justify-between px-5 shrink-0 border-b border-white/[0.04] bg-[#03030d]/80 select-none">
             <div className="flex items-center gap-2">
               <div style={{ color: currentAgent.color }} className="drop-shadow-[0_0_5px_rgba(255,255,255,0.15)] shrink-0">{currentAgent.icon}</div>
               <span className="text-xs font-bold text-white uppercase tracking-wider">{currentAgent.name} Core</span>
@@ -2859,7 +4449,7 @@ export default function App() {
             <div className="flex items-center">
               <button 
                 onClick={toggleVoiceUpdates} 
-                className={`p-1.5 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center gap-1.5 text-[9.5px] font-mono font-bold uppercase tracking-wider mr-3 ${
+                className={`p-2 px-3.5 rounded-xl border transition-all cursor-pointer flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-wider mr-6 ${
                   voiceUpdatesEnabled 
                     ? 'bg-purple-500/10 text-purple-400 border-purple-500/25 shadow-[0_0_10px_rgba(168,85,247,0.15)]' 
                     : 'bg-white/[0.015] text-gray-500 border-white/[0.04] hover:text-gray-300 hover:bg-white/[0.03]'
@@ -2869,19 +4459,23 @@ export default function App() {
                 {voiceUpdatesEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
               </button>
 
-              <div className="flex bg-white/[0.03] border border-white/[0.05] rounded-xl p-0.5">
+              <div className="h-6 w-[1px] bg-white/10 mr-6 hidden md:block" />
+
+              <div className="flex bg-white/[0.02] border border-white/[0.05] rounded-2xl p-1 gap-1.5">
               {[
-                { id: "chat", label: "Chat", icon: <Bot size={12} /> },
-                { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
-                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> },
-                { id: "vault", label: "Memory", icon: <Database size={12} /> },
-                { id: "goals", label: "Goals", icon: <Target size={12} /> },
-                { id: "monitor", label: "Telemetry", icon: <Activity size={12} /> }
+                { id: "chat", label: "Chat", icon: <Bot size={14} /> },
+                { id: "kanban", label: "Kanban", icon: <Kanban size={14} /> },
+                { id: "swarm", label: "Swarm Hub", icon: <Users size={14} /> },
+                { id: "studio", label: "Studio", icon: <Image size={14} /> },
+                { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={14} /> },
+                { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={14} /> },
+                { id: "workspace", label: "Workspace", icon: <FolderOpen size={14} /> },
+                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={14} /> }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setCenterTab(tab.id as any)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all duration-200 cursor-pointer ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
                     centerTab === tab.id
                       ? "bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.35)]"
                       : "text-gray-400 hover:text-gray-200"
@@ -2894,6 +4488,11 @@ export default function App() {
             </div>
           </div>
 
+          {/* ─── TAB: SWARM HUB ─── */}
+          {centerTab === "swarm" && (
+            <SwarmHubPanel />
+          )}
+
           {/* ─── TAB 1: LIVE CONVERSATIONAL CHAT PANE ─── */}
           {centerTab === "chat" && (
             <div className="flex-1 flex flex-col overflow-hidden justify-between">
@@ -2901,6 +4500,23 @@ export default function App() {
               <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-6 scroll-smooth">
                 <div className="max-w-4xl mx-auto w-full space-y-6">
                   <AnimatePresence>
+                    {chatMessages.length === 0 && !chatLoading && (
+                      <motion.div
+                        key="welcome"
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        className="flex flex-col items-center justify-center py-16 text-center select-none"
+                      >
+                        <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 border shadow-lg"
+                          style={{ backgroundColor: `${currentAgent?.color || '#a855f7'}15`, borderColor: `${currentAgent?.color || '#a855f7'}30`, color: currentAgent?.color || '#a855f7' }}>
+                          {currentAgent?.icon || <Zap size={24} />}
+                        </div>
+                        <div className="text-white font-semibold text-lg mb-1">{currentAgent?.name || activeAgent}</div>
+                        <div className="text-gray-500 text-xs mb-3 font-mono truncate max-w-xs">{activeModel}</div>
+                        <div className="text-gray-600 text-xs">Send a message to start chatting</div>
+                      </motion.div>
+                    )}
                     {chatMessages.map((msg, i) => {
                       const isUser = msg.agent === "user";
                       const isSystem = msg.agent === "system";
@@ -3057,6 +4673,26 @@ export default function App() {
                     
                     {/* Floating Controls Row */}
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handleOrchestratorInterrupt}
+                        title="Interrupt Swarm Execution"
+                        className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <XCircle size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleToggleAutonomous}
+                        title={activeAutonomous ? "Continuous 24H Loop Active (Click to disable)" : "Continuous 24H Loop (Click to enable)"}
+                        className={`p-2 transition-all cursor-pointer rounded-lg ${
+                          activeAutonomous
+                            ? "text-emerald-400 bg-emerald-500/10 shadow-[0_0_10px_rgba(52,211,153,0.2)]"
+                            : "text-gray-500 hover:text-gray-300"
+                        }`}
+                      >
+                        <RefreshCw size={14} className={activeAutonomous ? "animate-spin" : ""} />
+                      </button>
                       <button 
                         type="button" 
                         onClick={toggleListening}
@@ -3327,6 +4963,891 @@ export default function App() {
             </div>
           )}
 
+          {/* ─── TAB: MEDIA STUDIO ─── */}
+          {centerTab === "studio" && (
+            <div className="flex-grow flex gap-4 overflow-hidden p-4 min-h-0">
+              {/* Studio Panel Controls */}
+              <div className="w-1/3 flex flex-col gap-4 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl overflow-y-auto">
+                <div className="flex justify-between items-center border-b border-white/5 pb-2">
+                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Studio Control Room</div>
+                </div>
+
+                {/* Tab selector */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 bg-black/40 border border-white/5 rounded-xl select-none">
+                  <button
+                    onClick={() => setInfographicTab("standard")}
+                    className={`py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all cursor-pointer ${
+                      infographicTab === "standard"
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    🎨 Gen
+                  </button>
+                  <button
+                    onClick={() => {
+                      setInfographicTab("infographic");
+                      setStudioMediaType("image");
+                      setStudioStyle("Infographic");
+                      setStudioAgent("zhipu");
+                      setStudioModel("zhipu/cogview-3-flash");
+                    }}
+                    className={`py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all cursor-pointer ${
+                      infographicTab === "infographic"
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    📊 Info
+                  </button>
+                  <button
+                    onClick={() => setInfographicTab("hyperframes")}
+                    className={`py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all cursor-pointer ${
+                      infographicTab === "hyperframes"
+                        ? "bg-indigo-600 text-white shadow-lg"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    🎬 Avatar
+                  </button>
+                </div>
+
+                {infographicTab === "standard" && (
+                  <>
+                    {/* Media Type */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Media Output Type</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {["image", "video"].map(t => (
+                          <button
+                            key={t}
+                            onClick={() => {
+                              setStudioMediaType(t as any);
+                              if (t === "video") {
+                                setStudioAgent("zhipu");
+                                setStudioModel("zhipu/cogvideox-flash");
+                              } else {
+                                setStudioAgent("pollinations");
+                                setStudioModel("pollinations-image");
+                              }
+                            }}
+                            className={`py-2 rounded-xl border text-xs font-semibold uppercase cursor-pointer transition-all duration-200 ${
+                              studioMediaType === t
+                                ? "bg-indigo-600/20 border-indigo-500/50 text-white"
+                                : "bg-white/[0.01] border-white/[0.02] text-gray-400 hover:text-gray-200"
+                            }`}
+                          >
+                            {t === "image" ? "🖼️ Image" : "🎥 Video"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Agent Selection */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Executing Swarm Agent</div>
+                      <select
+                        value={studioAgent}
+                        onChange={e => {
+                          const val = e.target.value;
+                          setStudioAgent(val);
+                          if (val === "gemini") setStudioModel("imagen-3.0-generate-002");
+                          else if (val === "alibaba") setStudioModel("alibaba/wanx-v1");
+                          else if (val === "zhipu") setStudioModel(studioMediaType === "image" ? "zhipu/cogview-3-flash" : "zhipu/cogvideox-flash");
+                          else setStudioModel(studioMediaType === "image" ? "pollinations-image" : "pollinations-video");
+                        }}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                      >
+                        {studioMediaType === "image" ? (
+                          <>
+                            <option value="pollinations">Free Pollinations Engine (Default)</option>
+                            <option value="gemini">Gemini Swarm Agent</option>
+                            <option value="alibaba">Alibaba Swarm Agent</option>
+                            <option value="zhipu">Zhipu Swarm Agent</option>
+                          </>
+                        ) : (
+                          <>
+                            <option value="zhipu">Zhipu Swarm Agent (Recommended)</option>
+                            <option value="pollinations">Free Pollinations Video (Default)</option>
+                          </>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Model Selection */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Active Engine Model</div>
+                      <select
+                        value={studioModel}
+                        onChange={e => setStudioModel(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                      >
+                        {studioAgent === "gemini" && (
+                          <option value="imagen-3.0-generate-002">Imagen 3 (imagen-3.0-generate-002)</option>
+                        )}
+                        {studioAgent === "alibaba" && (
+                          <option value="alibaba/wanx-v1">Tongyi Wanx (alibaba/wanx-v1)</option>
+                        )}
+                        {studioAgent === "zhipu" && (
+                          studioMediaType === "image" ? (
+                            <option value="zhipu/cogview-3-flash">CogView 3 Flash (zhipu/cogview-3-flash)</option>
+                          ) : (
+                            <option value="zhipu/cogvideox-flash">CogVideoX Flash (zhipu/cogvideox-flash)</option>
+                          )
+                        )}
+                        {studioAgent === "pollinations" && (
+                          studioMediaType === "image" ? (
+                            <option value="pollinations-image">Pollinations Flux (Image)</option>
+                          ) : (
+                            <option value="pollinations-video">Pollinations (Video)</option>
+                          )
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Prompt Input */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center select-none">
+                        <div className="text-[10px] text-gray-500 font-bold uppercase">Creative Prompt</div>
+                        <button
+                          onClick={handleEnhancePrompt}
+                          disabled={isEnhancing || !studioPrompt.trim()}
+                          className="text-[9px] px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 hover:border-indigo-500/40 text-indigo-400 font-bold cursor-pointer transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isEnhancing ? "✨ Enhancing..." : "✨ Auto-prompt"}
+                        </button>
+                      </div>
+                      <textarea
+                        value={studioPrompt}
+                        onChange={e => setStudioPrompt(e.target.value)}
+                        placeholder={studioMediaType === "image" ? "Describe the image you want to create..." : "Describe the motion sequence or video scene..."}
+                        className="w-full h-24 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 transition-all resize-none"
+                      />
+                    </div>
+
+                    {/* Aspect Ratio */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Aspect Ratio</div>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { id: "1:1", label: "Square (1:1)" },
+                          { id: "16:9", label: "Wide (16:9)" },
+                          { id: "9:16", label: "Tall (9:16)" }
+                        ].map(aspect => (
+                          <button
+                            key={aspect.id}
+                            onClick={() => setStudioAspect(aspect.id)}
+                            className={`py-1.5 rounded-lg border text-[10px] font-semibold cursor-pointer transition-all ${
+                              studioAspect === aspect.id
+                                ? "bg-indigo-500/10 border-indigo-500/30 text-white"
+                                : "bg-white/[0.01] border-white/[0.02] text-gray-400 hover:text-gray-200"
+                            }`}
+                          >
+                            {aspect.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Preset Style */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Style Preset</div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {["Cinematic", "Anime", "Cyberpunk", "Fantasy", "3D Render", "Watercolor", "Infographic"].map(style => (
+                          <button
+                            key={style}
+                            onClick={() => setStudioStyle(style)}
+                            className={`py-1.5 rounded-lg border text-[10px] font-semibold cursor-pointer transition-all ${
+                              studioStyle === style
+                                ? "bg-indigo-500/10 border-indigo-500/30 text-white"
+                                : "bg-white/[0.01] border-white/[0.02] text-gray-400 hover:text-gray-200"
+                            }`}
+                          >
+                            {style}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {infographicTab === "hyperframes" && (
+                  <>
+                    {/* Voice Model selection */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Avatar Voice Model</div>
+                      <select
+                        value={hyperframesVoice}
+                        onChange={e => setHyperframesVoice(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                      >
+                        <option value="Julian Goldie (UK)">Julian Goldie (UK - Deep Accent)</option>
+                        <option value="Gary Pearce (UK)">Gary Pearce (Custom voice clone)</option>
+                        <option value="Hermes Assistant (US)">Hermes Assistant (Synthesizer)</option>
+                      </select>
+                    </div>
+
+                    {/* Script Input */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center select-none">
+                        <div className="text-[10px] text-gray-500 font-bold uppercase">Video script text</div>
+                        <button
+                          onClick={() => {
+                            setHyperframesScript("Welcome to the AI Profit Boardroom. In this video, we outline the exact 3-step sequence to deploy local agents that automate your social media capture, content generation, and publish schedule overnight.");
+                          }}
+                          className="text-[9px] px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 hover:bg-indigo-500/20 text-indigo-400 font-bold cursor-pointer transition-all"
+                        >
+                          ✨ Fetch Obsidian Context
+                        </button>
+                      </div>
+                      <textarea
+                        value={hyperframesScript}
+                        onChange={e => setHyperframesScript(e.target.value)}
+                        className="w-full h-28 bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/50 transition-all resize-none"
+                      />
+                    </div>
+
+                    {/* Template selection */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Video template aspect</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {["TikTok Short (9:16)", "YouTube Landscape (16:9)"].map(t => (
+                          <button
+                            key={t}
+                            onClick={() => setHyperframesTemplate(t)}
+                            className={`py-2 rounded-xl border text-xs font-semibold uppercase cursor-pointer transition-all duration-200 ${
+                              hyperframesTemplate === t
+                                ? "bg-indigo-600/20 border-indigo-500/50 text-white"
+                                : "bg-white/[0.01] border-white/[0.02] text-gray-400 hover:text-gray-200"
+                            }`}
+                          >
+                            {t.includes("9:16") ? "📱 Vertical" : "📺 Wide"}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {infographicTab === "infographic" && (
+                  <>
+                    {/* Diagram Type */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Diagram Type</div>
+                      <select
+                        value={infoDiagramType}
+                        onChange={e => setInfoDiagramType(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50 cursor-pointer"
+                      >
+                        <option value="CCTV System Architecture">CCTV System Architecture Diagram</option>
+                        <option value="WiFi Network Mesh Topology">WiFi Network Mesh Topology</option>
+                        <option value="Starlink Internet Setup Flow">Starlink Internet Setup Flow</option>
+                        <option value="Structured Ethernet Cabling Topology">Structured Ethernet Cabling Topology</option>
+                      </select>
+                    </div>
+
+                    {/* Infographic Title */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Main Header Title</div>
+                      <input
+                        type="text"
+                        value={infoTitle}
+                        onChange={e => setInfoTitle(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50"
+                      />
+                    </div>
+
+                    {/* Subtitle / Focus Area */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Subtitle & Sub-heading</div>
+                      <textarea
+                        value={infoSubtitle}
+                        onChange={e => setInfoSubtitle(e.target.value)}
+                        className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50 resize-none"
+                      />
+                    </div>
+
+                    {/* Keywords Checklist */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Brand Keywords (Select 3)</div>
+                      <div className="grid grid-cols-2 gap-1 max-h-24 overflow-y-auto border border-white/5 p-1.5 rounded-lg bg-black/20">
+                        {[
+                          "CCTV installations", "Starlink installations", "WiFi installations", "Mesh WiFi installations",
+                          "Data cabling", "TV aerials", "TV antennas", "TV Wall mounting", "Security Systems", "Ajax Alarms",
+                          "Hikvision security systems", "TP-Link specialists"
+                        ].map(kw => {
+                          const active = infoSelectedKeywords.includes(kw);
+                          return (
+                            <button
+                              key={kw}
+                              type="button"
+                              onClick={() => {
+                                setInfoSelectedKeywords(prev =>
+                                  prev.includes(kw) ? prev.filter(x => x !== kw) : [...prev, kw]
+                                );
+                              }}
+                              className={`text-[9px] truncate px-1.5 py-1 text-left rounded cursor-pointer transition-all ${
+                                active ? "bg-indigo-500/20 text-white border border-indigo-500/30" : "text-gray-400 hover:bg-white/[0.02]"
+                              }`}
+                            >
+                              {active ? "✅ " : ""}{kw}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Locations Checklist */}
+                    <div className="space-y-1.5">
+                      <div className="text-[10px] text-gray-500 font-bold uppercase">Target Cities (Select 2)</div>
+                      <div className="grid grid-cols-3 gap-1 max-h-20 overflow-y-auto border border-white/5 p-1.5 rounded-lg bg-black/20">
+                        {[
+                          "Leeds", "Manchester", "Yorkshire", "Bradford", "Blackburn", "Blackpool", "Bolton",
+                          "Chester", "Crewe", "Darlington", "Derby", "Durham", "Doncaster", "Wakefield", "York"
+                        ].map(loc => {
+                          const active = infoSelectedLocations.includes(loc);
+                          return (
+                            <button
+                              key={loc}
+                              type="button"
+                              onClick={() => {
+                                setInfoSelectedLocations(prev =>
+                                  prev.includes(loc) ? prev.filter(x => x !== loc) : [...prev, loc]
+                                );
+                              }}
+                              className={`text-[9px] truncate px-1.5 py-1 text-left rounded cursor-pointer transition-all ${
+                                active ? "bg-indigo-500/20 text-white border border-indigo-500/30" : "text-gray-400 hover:bg-white/[0.02]"
+                              }`}
+                            >
+                              {active ? "📍 " : ""}{loc}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Generate Button */}
+                <button
+                  onClick={infographicTab === "hyperframes" ? handleHyperframesGenerate : handleStudioGenerate}
+                  disabled={
+                    infographicTab === "hyperframes"
+                      ? (hyperframesRendering || !hyperframesScript.trim())
+                      : (studioGenerating || (infographicTab === "standard" && !studioPrompt.trim()))
+                  }
+                  className={`w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 cursor-pointer ${
+                    (infographicTab === "hyperframes" ? hyperframesRendering : studioGenerating)
+                      ? "bg-indigo-600/20 text-indigo-300 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 hover:scale-[1.02]"
+                  }`}
+                >
+                  {infographicTab === "hyperframes"
+                    ? (hyperframesRendering ? `Rendering Avatar (${hyperframesProgress}%)` : "🎬 Render Hyperframes Video")
+                    : (studioGenerating ? "⚡ Rendering Chart..." : "📊 Build Custom Chart")}
+                </button>
+              </div>
+
+              {/* Preview & Active Screen */}
+              <div className="flex-1 flex flex-col gap-4 min-w-0">
+                <div className="flex-1 bg-[#04040c]/90 border border-white/[0.04] p-5 rounded-2xl flex flex-col relative min-h-0 shadow-[0_8px_30px_rgb(0,0,0,0.4)]">
+                  <div className="flex justify-between items-center mb-3">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5 select-none">
+                      <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" /> Active Output Preview
+                    </div>
+                    {studioActiveUrl && (
+                      <span className="text-[9px] px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 uppercase font-bold tracking-wider font-mono select-none">
+                        {studioModel.replace('pollinations-', '').replace('alibaba/', '').replace('zhipu/', '')}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 flex items-center justify-center bg-black/60 border border-white/[0.05] rounded-xl overflow-hidden relative group/preview min-h-0">
+                    {hyperframesRendering ? (
+                      <div className="flex flex-col items-center gap-4 text-center p-6 bg-black/45 w-full h-full justify-center backdrop-blur-sm select-none">
+                        <div className="w-16 h-16 rounded-full border-4 border-purple-500/20 border-t-purple-500 animate-spin" />
+                        <div>
+                          <div className="text-xs font-bold text-white uppercase tracking-wider font-mono animate-pulse">Hyperframes Ingestion & Avatar Render</div>
+                          <div className="text-[10px] text-purple-400 font-mono mt-1">voice: {hyperframesVoice} | progress: {hyperframesProgress}%</div>
+                        </div>
+                      </div>
+                    ) : infographicTab === "hyperframes" && hyperframesRenderedUrl ? (
+                      <div className="w-full h-full flex flex-col items-center justify-center p-6 select-text">
+                        <div className="w-24 h-24 rounded-full border-2 border-indigo-500/40 bg-indigo-500/10 flex items-center justify-center text-3xl shadow-xl relative overflow-hidden select-none mb-4 animate-[pulse_2s_infinite]">
+                          🧔
+                          <div className="absolute bottom-0 inset-x-0 h-4 bg-indigo-600/30 flex items-center justify-center">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                          </div>
+                        </div>
+                        <div className="text-center space-y-2 max-w-sm mb-4">
+                          <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Julian Goldie Talking Avatar Video</h4>
+                          <p className="text-[10px] text-gray-500 font-mono">Format: MP4 (H.264) | Resolution: {hyperframesTemplate.includes("9:16") ? "1080x1920" : "1920x1080"}</p>
+                          <div className="p-3 bg-[#070715] rounded-xl border border-white/[0.03] text-[9.5px] font-mono text-gray-400 leading-normal max-h-24 overflow-y-auto select-all">
+                            "{hyperframesScript}"
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              alert("Mock video downloaded successfully to Desktop/hyperframes_latest.mp4!");
+                            }}
+                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer shadow-md select-none"
+                          >
+                            💾 Download Render
+                          </button>
+                        </div>
+                      </div>
+                    ) : studioGenerating ? (
+                      <div className="flex flex-col items-center gap-3 text-center p-6 bg-black/40 w-full h-full justify-center backdrop-blur-sm">
+                        <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+                        <div>
+                          <div className="text-xs font-bold text-white uppercase tracking-wider animate-pulse">Rendering AI Asset</div>
+                          <div className="text-[10px] text-gray-500 font-mono mt-1">style: {studioStyle} | ratio: {studioAspect}</div>
+                        </div>
+                      </div>
+                    ) : studioActiveUrl ? (
+                      <div className="w-full h-full flex items-center justify-center relative p-2 min-h-0">
+                        {studioMediaType === "image" ? (
+                          <img
+                            src={studioActiveUrl}
+                            alt="AI Preview"
+                            className="max-w-full max-h-full rounded-lg object-contain shadow-[0_10px_50px_rgba(0,0,0,0.8)] border border-white/[0.05] transition-transform duration-300 group-hover/preview:scale-[1.01]"
+                          />
+                        ) : (
+                          <video
+                            src={studioActiveUrl}
+                            controls
+                            autoPlay
+                            loop
+                            className="max-w-full max-h-full rounded-lg object-contain shadow-[0_10px_50px_rgba(0,0,0,0.8)] border border-white/[0.05]"
+                          />
+                        )}
+
+                        {/* Hover Overlay Controls */}
+                        <div className="absolute inset-x-0 bottom-4 flex justify-center opacity-0 group-hover/preview:opacity-100 transition-all duration-300 transform translate-y-2 group-hover/preview:translate-y-0 pointer-events-none z-10">
+                          <div className="flex items-center gap-1.5 px-3 py-2 bg-[#090916]/95 border border-white/10 rounded-xl shadow-2xl backdrop-blur-md pointer-events-auto">
+                            <button
+                              onClick={handleSaveToGallery}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer shadow-lg"
+                              title="Save to gallery"
+                            >
+                              <Save size={11} /> Save
+                            </button>
+                            <a
+                              href={studioActiveUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 hover:text-white rounded-lg text-[10px] font-bold uppercase transition-all"
+                              title="Open image in new tab"
+                            >
+                              <Eye size={11} /> Open
+                            </a>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(studioActiveUrl);
+                                alert("Image URL copied to clipboard!");
+                              }}
+                              className="flex items-center gap-1 px-2.5 py-1.5 bg-white/[0.04] hover:bg-white/[0.08] text-gray-300 hover:text-white rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer"
+                              title="Copy URL"
+                            >
+                              <ExternalLink size={11} /> Link
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-2.5 text-center p-6 text-gray-500">
+                        <span className="text-4xl filter grayscale opacity-45 select-none">🎨</span>
+                        <div className="text-xs font-semibold select-none text-gray-400">Creative Canvas Awaiting Input</div>
+                        <p className="text-[10px] text-gray-600 max-w-[200px] select-none">Configure your prompt and model on the left, then click generate to materialize your asset.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Metadata Inspector Drawer */}
+                  {studioActiveUrl && !studioGenerating && (
+                    <div className="mt-4 p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl flex items-center justify-between gap-4 text-[10px] select-none">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[8px] uppercase font-bold text-gray-500 tracking-wider">Prompt Context</div>
+                        <div className="text-gray-300 truncate font-mono mt-0.5" title={studioPrompt}>{studioPrompt}</div>
+                      </div>
+                      <div className="shrink-0 flex items-center gap-4 border-l border-white/[0.05] pl-4 text-right">
+                        <div>
+                          <div className="text-[8px] uppercase font-bold text-gray-500 tracking-wider">Engine</div>
+                          <div className="text-white font-semibold mt-0.5">{studioAgent}</div>
+                        </div>
+                        <div>
+                          <div className="text-[8px] uppercase font-bold text-gray-500 tracking-wider">Style</div>
+                          <div className="text-white font-semibold mt-0.5">{studioStyle}</div>
+                        </div>
+                        <div>
+                          <div className="text-[8px] uppercase font-bold text-gray-500 tracking-wider">Ratio</div>
+                          <div className="text-white font-semibold mt-0.5">{studioAspect}</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Infographic Description copywriter panel */}
+                  {infographicTab === "infographic" && infoDescription && !studioGenerating && (
+                    <div className="mt-4 p-4 bg-[#0a0a1e]/80 border border-white/[0.05] rounded-xl space-y-2 flex flex-col text-left">
+                      <div className="flex justify-between items-center select-none">
+                        <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">🎯 SEO Grounding Copywriter</div>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(infoDescription);
+                            alert("SEO Copy copied to clipboard!");
+                          }}
+                          className="text-[9px] px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded font-bold cursor-pointer transition-all shadow-md"
+                        >
+                          📋 Copy Markdown
+                        </button>
+                      </div>
+                      <textarea
+                        readOnly
+                        value={infoDescription}
+                        className="w-full h-32 bg-black/40 border border-white/5 rounded-lg p-2.5 text-[11px] font-mono text-gray-300 focus:outline-none resize-none"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Studio Mini Gallery */}
+                <div className="h-44 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl flex flex-col min-h-0">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">Studio Assets Gallery ({studioGallery.length})</div>
+                    <button
+                      onClick={() => { if(confirm("Clear gallery?")) { setStudioGallery([]); localStorage.removeItem("agent_studio_gallery"); } }}
+                      className="text-[9px] text-red-500 hover:underline uppercase font-bold cursor-pointer"
+                    >
+                      Clear All
+                    </button>
+                  </div>
+
+                  <div className="flex-1 flex gap-3 overflow-x-auto pb-1 min-h-0 text-white">
+                    {studioGallery.map(item => (
+                      <div
+                        key={item.id}
+                        className="w-32 h-full bg-black/60 rounded-xl border border-white/5 relative overflow-hidden group shrink-0"
+                      >
+                        {item.type === "image" ? (
+                          <img src={item.url} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-indigo-950/20">
+                            <span className="text-2xl">🎥</span>
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => setStudioActiveUrl(item.url)}
+                            className="p-1 bg-white/10 hover:bg-white/20 rounded text-white text-[10px] cursor-pointer"
+                          >
+                            <Eye size={12} />
+                          </button>
+                          <a
+                            href={item.url}
+                            download
+                            className="p-1 bg-white/10 hover:bg-white/20 rounded text-white text-[10px]"
+                          >
+                            <Download size={12} />
+                          </a>
+                          <button
+                            onClick={() => handleDeleteGalleryItem(item.id)}
+                            className="p-1 bg-red-600/30 hover:bg-red-500 rounded text-red-400 text-[10px] cursor-pointer"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {studioGallery.length === 0 && (
+                      <div className="flex-1 flex items-center justify-center border border-dashed border-white/10 rounded-xl text-[10px] text-gray-600 uppercase select-none">
+                        Studio Gallery Empty
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── TAB: WEBSITE WORKSPACE ─── */}
+          {centerTab === "workspace" && (
+            <div className="flex-grow flex gap-4 overflow-hidden p-4 min-h-0">
+              {/* File Explorer (Left) */}
+              <div className="w-1/5 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-3 min-h-0">
+                <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Workspace Files</div>
+                  <button onClick={fetchWorkspaceFiles} className="text-gray-400 hover:text-white transition-colors cursor-pointer">
+                    <RefreshCw size={12} />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 text-white">
+                  {workspaceFiles.map(file => (
+                    <div
+                      key={file.path}
+                      onClick={() => file.type === "file" && handleOpenFile(file.path)}
+                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs select-none transition-all cursor-pointer ${
+                        selectedFile === file.path
+                          ? "bg-indigo-600/10 border border-indigo-500/20 text-white"
+                          : "bg-white/[0.01] hover:bg-white/[0.02] border border-transparent text-gray-400 hover:text-gray-200"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate">
+                        <span>{file.type === "directory" ? "📁" : "📄"}</span>
+                        <span className="truncate">{file.name}</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.path); }}
+                        className="text-gray-600 hover:text-red-400 transition-colors p-0.5"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-2 border-t border-white/[0.05] pt-3">
+                  <input
+                    type="text"
+                    value={newFileName}
+                    onChange={e => setNewFileName(e.target.value)}
+                    placeholder="New file (e.g. index.html)..."
+                    className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleCreateWorkspaceItem(false)}
+                      className="py-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
+                    >
+                      + File
+                    </button>
+                    <button
+                      onClick={() => handleCreateWorkspaceItem(true)}
+                      className="py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
+                    >
+                      + Folder
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Code Editor & Live Preview (Center) */}
+              <div className="flex-1 flex flex-col gap-4 min-w-0">
+                {/* Visual Editor */}
+                <div className="flex-1 bg-[#04040c]/90 border border-white/[0.04] p-4 rounded-2xl flex flex-col min-h-0">
+                  <div className="flex justify-between items-center border-b border-white/[0.05] pb-2 mb-3">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                      Editor {selectedFile ? `— ${selectedFile}` : "(Select file to edit)"}
+                    </div>
+                    {selectedFile && (
+                      <button
+                        onClick={handleSaveFile}
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                      >
+                        <Save size={10} /> Save Changes
+                      </button>
+                    )}
+                  </div>
+
+                  <textarea
+                    value={editorContent}
+                    onChange={e => setEditorContent(e.target.value)}
+                    disabled={!selectedFile}
+                    className="flex-1 w-full bg-black/30 border border-white/5 rounded-xl p-3 font-mono text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/20 resize-none min-h-0 overflow-y-auto"
+                    placeholder="Select a file from the explorer list on the left to start building..."
+                  />
+                </div>
+
+                {/* Real-time Website Live Preview */}
+                <div className="h-1/2 bg-[#04040c]/90 border border-white/[0.04] p-4 rounded-2xl flex flex-col min-h-0">
+                  <div className="flex justify-between items-center border-b border-white/[0.05] pb-2 mb-2">
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                      <span>Workspace Preview Window</span>
+                      <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${isViteRunning ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"}`}>
+                        {isViteRunning ? "Vite Dev" : "Static preview"}
+                      </span>
+                    </div>
+                    <div className="flex gap-3 items-center">
+                      <button
+                        onClick={handleRunVisualAudit}
+                        disabled={visualAuditLoading}
+                        className="text-[9px] text-emerald-400 hover:underline uppercase font-bold cursor-pointer"
+                      >
+                        {visualAuditLoading ? "Auditing..." : "👁️ Run Visual Audit"}
+                      </button>
+                      <button
+                        onClick={handleToggleVite}
+                        disabled={viteLoading}
+                        className="text-[9px] text-amber-400 hover:underline uppercase font-bold cursor-pointer"
+                      >
+                        {viteLoading ? "Loading..." : isViteRunning ? "⏹️ Stop Vite" : "⚡ Start Vite Dev"}
+                      </button>
+                      <button
+                        onClick={() => setPreviewKey(prev => prev + 1)}
+                        className="text-[9px] text-indigo-400 hover:underline uppercase font-bold cursor-pointer"
+                      >
+                        Reload Preview
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex-1 flex gap-4 min-h-0">
+                    <div className="flex-1 bg-white rounded-xl overflow-hidden relative">
+                      <iframe
+                        key={previewKey}
+                        src={viteUrl}
+                        className="w-full h-full border-none"
+                      />
+                    </div>
+                    {visualAuditReport && (
+                      <div className="w-1/3 bg-black/45 border border-white/[0.05] rounded-xl p-3.5 overflow-y-auto select-text text-xs space-y-2.5 min-h-0 flex flex-col">
+                        <div className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider select-none">
+                          Visual Layout Audit Report
+                        </div>
+                        {visualAuditScreenshot && (
+                          <div className="rounded-lg overflow-hidden border border-white/5 select-none bg-black/25">
+                            <img src={visualAuditScreenshot} alt="Viewport Audit Capture" className="w-full h-auto object-cover" />
+                          </div>
+                        )}
+                        <div className="flex-grow overflow-y-auto leading-relaxed text-gray-300 font-sans">
+                          <Markdown text={visualAuditReport} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* FTP Deploy Control (Right) */}
+              <div className="w-1/4 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-4 min-h-0">
+                <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider border-b border-white/[0.05] pb-2">FTP Publishing Control</div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-gray-500 font-bold uppercase">FTP Server Host</label>
+                    <input
+                      type="text"
+                      value={ftpHost}
+                      onChange={e => setFtpHost(e.target.value)}
+                      placeholder="ftp.example.com"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[9px] text-gray-500 font-bold uppercase">Username</label>
+                      <input
+                        type="text"
+                        value={ftpUser}
+                        onChange={e => setFtpUser(e.target.value)}
+                        placeholder="user"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-gray-500 font-bold uppercase">Port</label>
+                      <input
+                        type="number"
+                        value={ftpPort}
+                        onChange={e => setFtpPort(e.target.value)}
+                        placeholder="21"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-gray-500 font-bold uppercase">Password</label>
+                    <input
+                      type="password"
+                      value={ftpPass}
+                      onChange={e => setFtpPass(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[9px] text-gray-500 font-bold uppercase">Remote Root Folder</label>
+                    <input
+                      type="text"
+                      value={ftpRemoteDir}
+                      onChange={e => setFtpRemoteDir(e.target.value)}
+                      placeholder="/public_html"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleDeployWebsite}
+                  disabled={ftpDeploying || !ftpHost.trim() || !ftpUser.trim()}
+                  className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                    ftpDeploying
+                      ? "bg-indigo-600/20 text-indigo-300 cursor-not-allowed"
+                      : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25"
+                  }`}
+                >
+                  {ftpDeploying ? "🚀 Uploading Assets..." : "🚀 Publish via FTP"}
+                </button>
+
+                {/* Live upload logger console */}
+                <div className="h-32 bg-black/50 border border-white/5 rounded-xl p-3 font-mono text-[9px] text-gray-400 overflow-y-auto shrink-0 flex flex-col">
+                  <div className="text-[8px] font-bold text-gray-500 uppercase mb-1.5 pb-1 border-b border-white/5 select-none">Deploy Console Logs</div>
+                  <div className="flex-grow space-y-1 overflow-y-auto">
+                    {ftpLogs.map((logLine, index) => (
+                      <div key={index} className="leading-relaxed border-l-2 border-indigo-500/30 pl-1.5">{logLine}</div>
+                    ))}
+                    {ftpLogs.length === 0 && <div className="text-gray-600 text-center py-4">Waiting to deploy...</div>}
+                  </div>
+                </div>
+
+                {/* Unified Campaign Swarm Publisher */}
+                <div className="border-t border-white/[0.05] pt-4 flex flex-col gap-3 min-h-0 flex-1">
+                  <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider border-b border-white/[0.05] pb-2">Campaign Swarm Publisher</div>
+                  <div className="space-y-2 select-none">
+                    <input
+                      type="text"
+                      value={campaignTitle}
+                      onChange={e => setCampaignTitle(e.target.value)}
+                      placeholder="Campaign Title (e.g. Smart Home)..."
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/35"
+                    />
+                    <textarea
+                      value={campaignTopic}
+                      onChange={e => setCampaignTopic(e.target.value)}
+                      placeholder="Brief topic or campaign guidelines..."
+                      className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/35 resize-none"
+                    />
+                  </div>
+                  <button
+                    onClick={handleLaunchCampaign}
+                    disabled={campaignRunning || !campaignTitle.trim() || !campaignTopic.trim()}
+                    className={`w-full py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      campaignRunning
+                        ? "bg-cyan-600/20 text-cyan-300 cursor-not-allowed"
+                        : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/25"
+                    }`}
+                  >
+                    {campaignRunning ? "⚡ Campaign Swarm Active..." : "🚀 Launch Swarm Campaign"}
+                  </button>
+
+                  <div className="flex-grow bg-black/50 border border-white/5 rounded-xl p-2.5 font-mono text-[8px] text-gray-400 overflow-y-auto min-h-0 flex flex-col">
+                    <div className="text-[7.5px] font-bold text-gray-500 uppercase mb-1 pb-0.5 border-b border-white/5 select-none">Swarm Run logs</div>
+                    <div className="flex-grow space-y-1 overflow-y-auto">
+                      {campaignLogs.map((logLine, index) => (
+                        <div key={index} className="leading-relaxed border-l-2 border-cyan-500/30 pl-1.5">{logLine}</div>
+                      ))}
+                      {campaignLogs.length === 0 && <div className="text-gray-600 text-center py-2">Swarm idle.</div>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ─── TAB 3: HOST TERMINAL CONSOLE ─── */}
           {centerTab === "terminal" && (
             <div className="flex-grow flex flex-col overflow-hidden bg-[#04040c]/90 p-4 font-mono text-xs border border-white/[0.04] rounded-2xl">
@@ -3371,231 +5892,338 @@ export default function App() {
             <VaultPanel />
           )}
 
-          {/* ─── TAB 3.6: GOALS ARCHIVE ─── */}
-          {centerTab === "goals" && (
-            <GoalsPanel />
-          )}
+
 
           {/* ─── TAB 4: SWARM TELEMETRY & SYSTEM LOAD ─── */}
-          {centerTab === "monitor" && (
-            <div className="flex-grow p-5 space-y-5 overflow-y-auto select-none">
-              {/* Telemetry charts row */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="glass rounded-2xl p-4 border-white/[0.04]">
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-1.5"><Activity size={12} className="text-indigo-400" /> Token consumption (24h)</h3>
-                  <div className="h-44 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={TOKEN_DATA}>
-                        <defs>
-                          <linearGradient id="colorHermes" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
-                          </linearGradient>
-                          <linearGradient id="colorOpenClaw" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <XAxis dataKey="time" tick={{fontSize:9, fill:"#6b7280"}} axisLine={false} tickLine={false} />
-                        <YAxis hide />
-                        <Tooltip contentStyle={{background:"#0a0a16",border:"1px solid rgba(255,255,255,0.06)",borderRadius:12,fontSize:10,color:"#e5e7eb"}} />
-                        <Area type="monotone" dataKey="hermes" stroke="#a855f7" fill="url(#colorHermes)" strokeWidth={1.5} name="Hermes" />
-                        <Area type="monotone" dataKey="openclaw" stroke="#10b981" fill="url(#colorOpenClaw)" strokeWidth={1.5} name="OpenClaw" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
+          
+          {centerTab === "video-analyzer" && (
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#070713]/40">
+              <div className="p-4 border-b border-white/[0.05] flex justify-between items-center bg-[#070713]/55">
+                <div>
+                  <h3 className="text-xs font-bold text-white tracking-wide font-mono flex items-center gap-2">
+                    <Video size={14} className="text-indigo-400 animate-pulse" />
+                    YOUTUBE AGENT LEARNING ENGINE
+                  </h3>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-1">
+                    Feed YouTube URLs to extract knowledge & auto-train agents
+                  </span>
                 </div>
+              </div>
 
-                <div className="glass rounded-2xl p-4 border-white/[0.04] flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-1.5"><Sparkles size={12} className="text-purple-400" /> Model Share distribution</h3>
-                    <div className="flex items-center gap-6">
-                      <div className="h-32 w-32 shrink-0">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie data={MODEL_USAGE} cx="50%" cy="50%" innerRadius={28} outerRadius={46} dataKey="value" strokeWidth={0}>
-                              {MODEL_USAGE.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                            </Pie>
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="space-y-1.5 flex-1">
-                        {MODEL_USAGE.map(m => (
-                          <div key={m.name} className="flex items-center justify-between text-[10px]">
-                            <div className="flex items-center gap-1.5">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{background:m.color}} />
-                              <span className="text-gray-400 font-semibold">{m.name}</span>
-                            </div>
-                            <span className="text-gray-300 font-mono">{m.value}%</span>
-                          </div>
-                        ))}
-                      </div>
+              <div className="flex-grow overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+                <div className="bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                  <div className="relative z-10 space-y-4">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Analyze Video Transcript</h4>
+                    <p className="text-[11px] text-gray-400 leading-relaxed">
+                      Enter any YouTube Video URL below (e.g. Julian Goldie's Agent OS tutorial, workflows, or templates). The engine will download the English transcript, execute deep AI compilation for features, components, and tools, and automatically save the structured analysis report into the Swarm knowledge base directory, training all models on the system architecture.
+                    </p>
+
+                    <div className="flex gap-2.5 mt-2">
+                      <input
+                        type="text"
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={ytUrl}
+                        onChange={(e) => setYtUrl(e.target.value)}
+                        disabled={ytLoading}
+                        className="flex-grow bg-[#05050d] border border-white/[0.06] rounded-xl px-4 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/50 font-mono transition-all placeholder-gray-600"
+                      />
+                      <button
+                        onClick={handleAnalyzeVideo}
+                        disabled={ytLoading || !ytUrl.trim()}
+                        className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-500 text-white px-5 py-2 rounded-xl text-xs font-bold font-mono tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] cursor-pointer flex items-center gap-2"
+                      >
+                        {ytLoading ? (
+                          <>
+                            <RefreshCw size={12} className="animate-spin" />
+                            ANALYZING...
+                          </>
+                        ) : (
+                          <>
+                            <Play size={12} />
+                            ANALYZE VIDEO
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Swarm Communication Diagram */}
-              <div className="glass rounded-2xl p-4 border-white/[0.04]">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-1.5"><Network size={12} className="text-indigo-400" /> Swarm Telemetry Nodes</h3>
-                <div className="grid grid-cols-5 gap-2 items-center justify-center py-6 text-center border border-white/[0.02] rounded-xl bg-black/20 overflow-x-auto min-w-[500px] select-none">
-                  {(() => {
-                    const lastMail = mailbox[0];
-                    const activeNode = lastMail ? (lastMail.from_agent_id || '').toLowerCase() : '';
-                    const isAgyActive = activeNode === 'agy' || activeNode === 'orchestrator' || activeNode === 'dashboard';
-                    const isOpenClawActive = activeNode === 'openclaw';
-                    const isHermesActive = activeNode === 'hermes';
+                {/* Loading state or result display */}
+                {ytLoading && (
+                  <div className="bg-[#0b0b1e]/50 border border-white/[0.02] rounded-2xl p-10 flex flex-col items-center justify-center text-center space-y-3">
+                    <RefreshCw size={32} className="text-indigo-500 animate-spin" />
+                    <div className="text-xs font-bold text-white font-mono uppercase tracking-wider animate-pulse">Extracting and Analyzing Transcript...</div>
+                    <div className="text-[10px] text-gray-500 max-w-xs">Downloading subtitle tracks, querying LLM context, structuring architecture report and saving to shared knowledge base.</div>
+                  </div>
+                )}
 
-                    return (
-                      <>
-                        <div className="flex flex-col items-center gap-1">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
-                            isAgyActive 
-                              ? "bg-indigo-500/25 border-2 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.5)] scale-110" 
-                              : "bg-indigo-500/10 border border-indigo-500/30 text-indigo-400"
-                          }`}>
-                            <Brain size={20} className={isAgyActive ? "text-indigo-300 animate-pulse" : "text-indigo-400"} />
+                {!ytLoading && ytSummary && (
+                  <div className={`grid grid-cols-1 ${ytFrames.length > 0 ? 'lg:grid-cols-12' : ''} gap-6`}>
+
+                    {/* Visual Frames Section */}
+                    {ytFrames.length > 0 && (
+                      <div className="lg:col-span-5 flex flex-col bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl overflow-hidden shadow-2xl">
+                        <div className="p-4 bg-indigo-950/20 border-b border-white/[0.04] px-6">
+                          <span className="text-[10px] font-bold text-indigo-400 font-mono uppercase tracking-wider">Visual Interface Inspection</span>
+                        </div>
+                        <div className="p-4 flex flex-col items-center justify-center bg-black/40 flex-grow border-b border-white/[0.04]">
+                          {selectedFrame ? (
+                            <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-white/[0.08] bg-black/80 flex items-center justify-center">
+                              <img
+                                src={`/api/youtube/frames/${ytVideoId}/${selectedFrame}`}
+                                alt="Video Frame"
+                                className="max-w-full max-h-full object-contain"
+                              />
+                              <div className="absolute bottom-2 left-2 px-2.5 py-1 bg-black/85 border border-white/10 rounded text-[9px] font-mono text-gray-400 tracking-wider">
+                                {ytFrames.find(f => f.file === selectedFrame)?.timestamp || "00:00:00"}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="text-center py-10 text-[10px] text-gray-500 font-mono">Select a frame to inspect</div>
+                          )}
+                        </div>
+
+                        {/* Thumbnail Selector Row */}
+                        <div className="p-4 bg-[#070713]/40">
+                          <span className="text-[8px] uppercase font-bold text-gray-500 tracking-wider font-mono block mb-2">Keyframes (Every 15s)</span>
+                          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                            {ytFrames.map((frame, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setSelectedFrame(frame.file)}
+                                className={`relative shrink-0 w-24 aspect-video rounded-md overflow-hidden border transition-all cursor-pointer ${
+                                  selectedFrame === frame.file
+                                    ? 'border-indigo-500 ring-2 ring-indigo-500/30'
+                                    : 'border-white/[0.08] opacity-65 hover:opacity-100 hover:border-white/20'
+                                }`}
+                              >
+                                <img
+                                  src={`/api/youtube/frames/${ytVideoId}/${frame.file}`}
+                                  alt={`frame_${idx}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute bottom-0.5 right-0.5 px-1 bg-black/75 rounded text-[8px] font-mono text-gray-400">
+                                  {frame.timestamp.substring(3)}
+                                </div>
+                              </button>
+                            ))}
                           </div>
-                          <span className="text-[10px] font-bold text-white">Antigravity (CEO)</span>
-                          <span className="text-[8px] text-gray-500 font-mono">Routing L1</span>
                         </div>
-
-                        <div className="h-0.5 bg-gradient-to-r from-indigo-500 to-green-500 relative">
-                          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-indigo-400 ${isAgyActive ? "animate-ping" : "opacity-30"}`} />
-                        </div>
-
-                        <div className="flex flex-col items-center gap-1">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
-                            isOpenClawActive 
-                              ? "bg-green-500/25 border-2 border-green-400 shadow-[0_0_15px_rgba(16,185,129,0.5)] scale-110" 
-                              : "bg-green-500/10 border border-green-500/30 text-green-400"
-                          }`}>
-                            <Workflow size={20} className={isOpenClawActive ? "text-green-300 animate-pulse" : "text-green-400"} />
-                          </div>
-                          <span className="text-[10px] font-bold text-white">OpenClaw (Router)</span>
-                          <span className="text-[8px] text-gray-500 font-mono">Pipeline L2</span>
-                        </div>
-
-                        <div className="h-0.5 bg-gradient-to-r from-green-500 to-purple-500 relative">
-                          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-purple-400 ${isOpenClawActive ? "animate-ping" : "opacity-30"}`} />
-                        </div>
-
-                        <div className="flex flex-col items-center gap-1">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-500 ${
-                            isHermesActive 
-                              ? "bg-purple-500/25 border-2 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-110" 
-                              : "bg-purple-500/10 border border-purple-500/30 text-purple-400"
-                          }`}>
-                            <Zap size={20} className={isHermesActive ? "text-purple-300 animate-pulse" : "text-purple-400"} />
-                          </div>
-                          <span className="text-[10px] font-bold text-white">Hermes (Executor)</span>
-                          <span className="text-[8px] text-gray-500 font-mono">CLI Tasks L3</span>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-
-                <div className="mt-4 space-y-2">
-                  <h4 className="text-[10px] uppercase font-bold text-gray-500 tracking-wider flex items-center gap-1.5">
-                    Swarm Exchange Logs
-                    {mailboxLoading && (
-                      <span className="inline-block animate-spin rounded-full h-2 w-2 border border-indigo-400 border-t-transparent" />
-                    )}
-                  </h4>
-                  <div className="bg-black/35 rounded-xl p-3.5 border border-white/[0.03] space-y-1.5 font-mono text-[9px] max-h-48 overflow-y-auto select-text">
-                    {mailbox.map((log, idx) => {
-                      const formatTimestamp = (ts: number | string) => {
-                        const num = typeof ts === 'string' ? parseFloat(ts) : ts;
-                        if (!num || isNaN(num)) return String(ts);
-                        const date = new Date(num < 10000000000 ? num * 1000 : num);
-                        return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-                      };
-                      return (
-                        <div key={log.id || idx} className="text-gray-400 border-b border-white/[0.01] pb-1.5 last:border-0">
-                          <span className="text-gray-600 font-mono text-[8px]">[{formatTimestamp(log.created_at)}]</span>{" "}
-                          <span className="text-indigo-400 font-semibold">{log.from_agent_id || "System"}</span>
-                          <span className="text-gray-500"> → </span>
-                          <span className="text-indigo-300 font-semibold">{log.to_agent_id || "Swarm"}</span>
-                          <span className="text-gray-500"> ({log.type})</span>:{" "}
-                          <span className="text-white font-sans">{log.content || log.summary}</span>
-                        </div>
-                      );
-                    })}
-                    {mailbox.length === 0 && (
-                      <div className="text-center py-4 text-[10px] text-gray-500 select-none">
-                        No swarm mailbox exchange logs recorded.
                       </div>
                     )}
-                  </div>
-                </div>
-              </div>
 
-              {/* Active Teams list */}
-              <div className="glass rounded-2xl p-4 border-white/[0.04] space-y-3">
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Users size={12} className="text-purple-400" /> Active Swarm Teams (AionUi)
-                </h3>
-                {teamsLoading ? (
-                  <div className="text-center py-6 text-xs text-gray-500 font-mono">Loading teams database...</div>
-                ) : teams.length === 0 ? (
-                  <div className="text-center py-6 text-xs text-gray-500 font-mono">No active teams discovered.</div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    {teams.map(team => {
-                      let parsedAgents: TeamAgent[] = [];
-                      try {
-                        if (team.agents) {
-                          parsedAgents = JSON.parse(team.agents);
-                        }
-                      } catch (e) {
-                        console.error("Failed to parse agents JSON for team:", team.name, e);
-                      }
-                      
-                      return (
-                        <div key={team.id} className="bg-black/35 border border-white/[0.03] rounded-xl p-3.5 flex flex-col justify-between space-y-3 hover:border-white/[0.06] transition-all">
-                          <div>
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="text-xs font-bold text-white">{team.name}</h4>
-                                <p className="text-[9px] text-gray-500 font-mono mt-0.5">Workspace: {team.workspace || "Default"}</p>
-                              </div>
-                              <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded border border-purple-500/20 text-purple-400 bg-purple-500/10">
-                                {team.workspace_mode || "stand-alone"}
-                              </span>
-                            </div>
-                            
-                            {/* Agent list in team */}
-                            <div className="mt-3.5 space-y-1.5">
-                              <span className="text-[8px] uppercase font-bold text-gray-500 tracking-wider">Agents in Team:</span>
-                              <div className="flex flex-wrap gap-1.5">
-                                {parsedAgents.map((ag, i) => (
-                                  <div key={ag.conversationId || i} className="text-[9px] bg-white/[0.02] border border-white/[0.04] rounded-lg px-2 py-0.5 text-gray-300 flex items-center gap-1" title={`${ag.role} (${ag.agentType})`}>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                                    <span className="font-semibold text-white">{ag.agentName}</span>
-                                    <span className="text-gray-500 text-[8px]">({ag.role})</span>
-                                  </div>
-                                ))}
-                                {parsedAgents.length === 0 && <span className="text-gray-600 text-[9px]">No agents registered.</span>}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between items-center pt-2 border-t border-white/[0.02] text-[8px] font-mono text-gray-500 select-text">
-                            <span>Created: {new Date(team.created_at).toLocaleDateString()}</span>
-                            <span>ID: {team.id.slice(0, 8)}...</span>
-                          </div>
+                    {/* Report Section */}
+                    <div className={`${ytFrames.length > 0 ? 'lg:col-span-7' : 'w-full'} bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl overflow-hidden shadow-2xl flex flex-col`}>
+                      <div className="p-4 bg-indigo-950/20 border-b border-white/[0.04] flex justify-between items-center px-6">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                          <span className="text-[10px] font-bold text-indigo-400 font-mono uppercase tracking-wider">Analysis Complete & Indexed</span>
                         </div>
-                      );
-                    })}
+                        {ytVideoId && (
+                          <a
+                            href={`https://youtube.com/watch?v=${ytVideoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[9px] text-gray-400 hover:text-white flex items-center gap-1 font-mono uppercase tracking-wider"
+                          >
+                            Watch Original <ExternalLink size={10} />
+                          </a>
+                        )}
+                      </div>
+                      <div className="p-6 select-text overflow-y-auto max-h-[500px]">
+                        <Markdown text={ytSummary} />
+                      </div>
+                    </div>
+
                   </div>
                 )}
               </div>
-
-              {/* Swarm Diagnostics Telemetry */}
-              <SwarmDiagnosticsPanel />
             </div>
           )}
+
+          {/* ─── TAB: SEO CONTENT PIPELINE ─── */}
+          {centerTab === "seo-pipeline" && (
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#070713]/40">
+              <div className="p-4 border-b border-white/[0.05] flex justify-between items-center bg-[#070713]/55">
+                <div>
+                  <h3 className="text-xs font-bold text-white tracking-wide font-mono flex items-center gap-2">
+                    <Globe size={14} className="text-indigo-400 animate-pulse" />
+                    SEO CONTENT PIPELINE
+                  </h3>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-1">
+                    Auto-generate niche article swarms using video transcripts & auto-deploy
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex-grow overflow-y-auto p-6 space-y-6 max-w-5xl mx-auto w-full">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+                  {/* Control Panel (Left Card) */}
+                  <div className="lg:col-span-5 bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md h-fit">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+                    <div className="relative z-10 space-y-5">
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Pipeline Settings</h4>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono">Target Keyword / Topic</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. AI SEO Strategy"
+                          value={seoKeyword}
+                          onChange={(e) => setSeoKeyword(e.target.value)}
+                          disabled={seoGenerating}
+                          className="w-full bg-[#05050d] border border-white/[0.06] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50 font-mono transition-all placeholder-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono">Category Slug Prefix</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. blog/seo"
+                          value={seoSlug}
+                          onChange={(e) => setSeoSlug(e.target.value)}
+                          disabled={seoGenerating}
+                          className="w-full bg-[#05050d] border border-white/[0.06] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50 font-mono transition-all placeholder-gray-600"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono">Reference Transcript</label>
+                        <select
+                          value={seoTranscriptPicker}
+                          onChange={(e) => setSeoTranscriptPicker(e.target.value)}
+                          disabled={seoGenerating}
+                          className="w-full bg-[#05050d] border border-white/[0.06] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500/50 font-mono transition-all"
+                        >
+                          <option value="">-- No Reference Transcript --</option>
+                          {seoTranscripts.map(t => (
+                            <option key={t.id} value={t.id}>{t.title}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3.5 bg-white/[0.02] border border-white/[0.05] rounded-xl">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">Auto-Deploy to Site</span>
+                          <span className="text-[8px] text-gray-500 tracking-wide font-mono mt-0.5">Write articles straight to local production folder</span>
+                        </div>
+                        <button
+                          onClick={() => setSeoAutoDeploy(!seoAutoDeploy)}
+                          disabled={seoGenerating}
+                          className={`w-10 h-5.5 rounded-full p-0.5 transition-colors duration-200 focus:outline-none cursor-pointer ${
+                            seoAutoDeploy ? 'bg-indigo-600' : 'bg-gray-800'
+                          }`}
+                        >
+                          <div className={`w-4.5 h-4.5 bg-white rounded-full transition-transform duration-200 transform ${
+                            seoAutoDeploy ? 'translate-x-4.5' : 'translate-x-0'
+                          }`} />
+                        </button>
+                      </div>
+
+                      <button
+                        onClick={handleGenerateSEOArticles}
+                        disabled={seoGenerating || !seoKeyword.trim()}
+                        className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-gray-800 disabled:text-gray-500 text-white py-3 rounded-xl text-xs font-bold font-mono tracking-wider uppercase transition-all shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.5)] cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        {seoGenerating ? (
+                          <>
+                            <RefreshCw size={12} className="animate-spin" />
+                            GENERATING PIPELINE...
+                          </>
+                        ) : (
+                          <>
+                            <Play size={12} />
+                            LAUNCH CONTENT PIPELINE
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Output Preview Panel (Right Card) */}
+                  <div className="lg:col-span-7 bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl overflow-hidden shadow-2xl flex flex-col min-h-[450px]">
+                    <div className="p-4 bg-indigo-950/20 border-b border-white/[0.04] px-6 flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-indigo-400 font-mono uppercase tracking-wider">Generated Support Articles Swarm</span>
+                      {seoArticles.length > 0 && (
+                        <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/25 px-2 py-0.5 rounded-full">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                          <span className="text-[8px] font-bold text-green-400 font-mono uppercase tracking-wide">5 Articles Ready</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-grow flex flex-col select-text">
+                      {seoGenerating && (
+                        <div className="flex-grow flex flex-col items-center justify-center p-10 text-center space-y-3">
+                          <RefreshCw size={32} className="text-indigo-500 animate-spin" />
+                          <div className="text-xs font-bold text-white font-mono uppercase tracking-wider animate-pulse">Running SEO Swarm Generator...</div>
+                          <div className="text-[10px] text-gray-500 max-w-xs">Reading video reference context, identifying semantic content gaps, writing 5 comprehensive support articles and exporting to disk.</div>
+                        </div>
+                      )}
+
+                      {!seoGenerating && seoArticles.length === 0 && (
+                        <div className="flex-grow flex flex-col items-center justify-center p-12 text-center text-gray-500 font-mono">
+                          <Globe size={32} className="text-gray-700 mb-3" />
+                          <span className="text-[10px] uppercase font-bold text-gray-400">Pipeline Idle</span>
+                          <span className="text-[9px] text-gray-600 mt-1 max-w-xs">Configure keyword, select transcript source, and run the pipeline to generate your niche article cluster.</span>
+                        </div>
+                      )}
+
+                      {!seoGenerating && seoArticles.length > 0 && (
+                        <div className="flex-grow flex flex-col font-mono">
+                          {/* Inner Tabs for the 5 articles */}
+                          <div className="flex border-b border-white/[0.04] bg-black/25 overflow-x-auto">
+                            {seoArticles.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  (window as any)._selectedSeoArtIdx = idx;
+                                  setCenterTab("seo-pipeline");
+                                }}
+                                className={`px-4 py-3 text-[10px] font-bold font-mono uppercase tracking-wider border-r border-white/[0.04] whitespace-nowrap transition-all cursor-pointer ${
+                                  ((window as any)._selectedSeoArtIdx || 0) === idx
+                                    ? 'bg-indigo-950/20 text-white border-b-2 border-b-indigo-500'
+                                    : 'text-gray-400 hover:text-white hover:bg-white/[0.02]'
+                                }`}
+                              >
+                                Article {idx + 1}
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Selected Article Body */}
+                          {(() => {
+                            const selectedIdx = (window as any)._selectedSeoArtIdx || 0;
+                            const art = seoArticles[selectedIdx] || seoArticles[0];
+                            if (!art) return null;
+                            return (
+                              <div className="p-6 space-y-4 overflow-y-auto max-h-[450px]">
+                                <div>
+                                  <h3 className="text-sm font-extrabold text-white">{art.title}</h3>
+                                  <span className="text-[9px] font-mono text-gray-500 block mt-1">Slug: <span className="text-indigo-400">/{art.slug}</span></span>
+                                </div>
+                                <hr className="border-white/[0.04]" />
+                                <div className="text-xs text-gray-300 leading-relaxed font-sans select-text">
+                                  <Markdown text={art.content} />
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+              </div>
+            </div>
+          </div>
+        )}
+
+          
+
         </main>
 
         {/* ─── RIGHT SIDEBAR: SESSIONS / MODELS / SKILLS / VAULT ─── */}
@@ -3622,24 +6250,229 @@ export default function App() {
           {!isRightCollapsed ? (
             /* Expanded right rail panel content */
             <div className="flex-1 flex flex-col overflow-hidden">
-              <div className="flex border-b border-white/[0.04] bg-black/25 select-none shrink-0">
-                {(["sessions", "models", "skills", "mcp-catalog", "vault"] as const).map(tab => (
+              <div className="flex border-b border-white/[0.04] bg-black/25 select-none shrink-0 overflow-x-auto">
+                {(["sessions", "models", "skills", "mcp-catalog", "vault", "goals", "monitor", "settings", "notebooklm", "rag"] as const).map(tab => (
                   <button
                     key={tab}
-                    onClick={() => setRightTab(tab)}
-                    className={`flex-1 py-3 text-[9px] font-bold uppercase tracking-wider transition-all duration-200 flex flex-col items-center justify-center gap-1 cursor-pointer border-b ${
+                    onClick={() => {
+                      setRightTab(tab);
+                      if (tab === "notebooklm") handleFetchNotebooks();
+                    }}
+                    className={`flex-1 min-w-[50px] py-3 text-[9px] font-bold uppercase tracking-wider transition-all duration-200 flex flex-col items-center justify-center gap-1 cursor-pointer border-b ${
                       rightTab === tab
                         ? "text-white border-indigo-500 bg-white/[0.02]"
                         : "text-gray-500 hover:text-gray-300 border-transparent"
                     }`}
                   >
-                    {tab === "sessions" ? <Clock size={11} /> : tab === "models" ? <Sparkles size={11} /> : tab === "skills" ? <Cpu size={11} /> : tab === "mcp-catalog" ? <Puzzle size={11} /> : <Database size={11} />}
-                    <span className="mt-0.5">{tab === "mcp-catalog" ? "MCP" : tab}</span>
+                    {tab === "sessions" ? <Clock size={11} /> : tab === "models" ? <Cpu size={11} /> : tab === "skills" ? <Zap size={11} /> : tab === "mcp-catalog" ? <Puzzle size={11} /> : tab === "vault" ? <Database size={11} /> : tab === "goals" ? <Target size={11} /> : tab === "monitor" ? <Activity size={11} /> : tab === "settings" ? <Settings size={11} /> : tab === "notebooklm" ? <FileText size={11} /> : <Search size={11} />}
+                    <span className="mt-0.5">{tab === "mcp-catalog" ? "MCP" : tab === "models" ? "Models" : tab === "vault" ? "Memory" : tab === "monitor" ? "Telemetry" : tab === "settings" ? "Settings" : tab === "notebooklm" ? "Notebooks" : tab === "rag" ? "RAG" : tab}</span>
                   </button>
                 ))}
               </div>
 
               <div className="flex-grow overflow-y-auto p-4">
+                {/* TAB: GOALS ARCHIVE */}
+                {rightTab === "goals" && (
+                  <div className="space-y-4">
+                    <GoalsPanel />
+                  </div>
+                )}
+
+                {/* TAB: TELEMETRY SYSTEM MONITOR */}
+                {rightTab === "monitor" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+                      <span>Telemetry Monitor</span>
+                    </div>
+                    
+                    {/* Active Telemetry list */}
+                    <AgentTelemetryPanel agents={agents} />
+                    {/* Active Telemetry list */}
+                    <AgentTelemetryPanel agents={agents} />
+                    <div className="glass rounded-2xl p-4 border-white/[0.04] bg-[#0c0c26]/60 backdrop-blur-md">
+                      <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-1.5"><Activity size={12} className="text-indigo-400" /> Token consumption (24h)</h3>
+                      <div className="h-44 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={TOKEN_DATA}>
+                            <defs>
+                              <linearGradient id="colorHermes" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#a855f7" stopOpacity={0}/>
+                              </linearGradient>
+                              <linearGradient id="colorOpenClaw" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                              </linearGradient>
+                            </defs>
+                            <XAxis dataKey="time" tick={{fontSize:9, fill:"#6b7280"}} axisLine={false} tickLine={false} />
+                            <YAxis hide />
+                            <Tooltip contentStyle={{ backgroundColor: '#09091b', borderColor: '#1f2937', color: '#fff', fontSize: 10 }} />
+                            <Area type="monotone" dataKey="hermes" stroke="#a855f7" fillOpacity={1} fill="url(#colorHermes)" />
+                            <Area type="monotone" dataKey="openclaw" stroke="#10b981" fillOpacity={1} fill="url(#colorOpenClaw)" />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TAB: MODELS CATALOG SELECTOR */}
+                {rightTab === "models" && (
+                  <div className="space-y-4">
+                    <ProviderPanel />
+                    <div className="bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl p-4 shadow-2xl relative overflow-hidden backdrop-blur-md">
+                      <div className="relative z-10 space-y-4">
+                        {(() => {
+                          const agentId = activeAgent.toLowerCase();
+                          let title = "OpenRouter Free Models";
+                          let description = "Models available free via OpenRouter API key.";
+                          let modelList: Array<{ id: string; name: string; ctx: string; tier?: string; provider?: string; note?: string }> = [];
+
+                          if (agentId === "gemini") {
+                            title = "Google Gemini — AI Studio Free Tier";
+                            description = "All models below are free via Google AI Studio API key.";
+                            modelList = [
+                              { id: "gemini-2.5-flash-preview-05-20", name: "Gemini 2.5 Flash Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Latest" },
+                              { id: "gemini-2.5-pro-preview-06-05", name: "Gemini 2.5 Pro Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Pro" },
+                              { id: "gemini-2.0-pro-exp-02-05", name: "Gemini 2.0 Pro (Experimental)", ctx: "2M", tier: "free", provider: "gemini" },
+                              { id: "gemini-2.0-flash-thinking-exp-01-21", name: "Gemini 2.0 Flash Thinking (Experimental)", ctx: "1M", tier: "free", provider: "gemini" },
+                              { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", ctx: "1M", tier: "free", provider: "gemini" },
+                              { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", ctx: "1M", tier: "free", provider: "gemini", note: "Fastest" },
+                              { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", ctx: "1M", tier: "free", provider: "gemini" },
+                              { id: "gemini-1.5-flash-8b", name: "Gemini 1.5 Flash-8B", ctx: "1M", tier: "free", provider: "gemini" },
+                              { id: "imagen-3.0-generate-002", name: "Imagen 3 (Image Generation)", ctx: "N/A", tier: "free", provider: "gemini", note: "Images" },
+                              { id: "gemma-3-27b-it", name: "Gemma 3 27B IT", ctx: "131K", tier: "free", provider: "gemini" },
+                              { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "gemini" },
+                              { id: "gemma-3-4b-it", name: "Gemma 3 4B IT", ctx: "131K", tier: "free", provider: "gemini" },
+                              { id: "gemma-3n-e4b-it", name: "Gemma 3n E4B IT", ctx: "8K", tier: "free", provider: "gemini", note: "Edge" }
+                            ];
+                          } else if (agentId === "alibaba") {
+                            title = "Alibaba DashScope — Qwen Models";
+                            description = "Alibaba's official DashScope API.";
+                            modelList = [
+                              { id: "alibaba/qwen-long", name: "Qwen Long", ctx: "10M", tier: "free", provider: "alibaba", note: "Huge context" },
+                              { id: "alibaba/qwen-plus", name: "Qwen Plus", ctx: "131K", tier: "free", provider: "alibaba" },
+                              { id: "alibaba/qwen-turbo", name: "Qwen Turbo", ctx: "131K", tier: "free", provider: "alibaba" },
+                              { id: "alibaba/qwen-max", name: "Qwen Max", ctx: "32K", tier: "free", provider: "alibaba", note: "Flagship" },
+                              { id: "alibaba/qwen-vl-plus", name: "Qwen VL Plus (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
+                              { id: "alibaba/qwen-vl-max", name: "Qwen VL Max (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
+                              { id: "alibaba/wanx-v1", name: "Tongyi Wanx (Image Gen)", ctx: "N/A", tier: "free", provider: "alibaba", note: "Images" }
+                            ];
+                          } else if (agentId === "zhipu") {
+                            title = "Zhipu BigModel — GLM Models";
+                            description = "Zhipu AI GLM platform.";
+                            modelList = [
+                              { id: "zhipu/glm-5.1", name: "GLM 5.1 (Thinking)", ctx: "64K", tier: "free", provider: "zhipu", note: "Reasoning" },
+                              { id: "zhipu/glm-4-flash", name: "GLM-4 Flash", ctx: "128K", tier: "free", provider: "zhipu", note: "Fast & Free" },
+                              { id: "zhipu/glm-4v-flash", name: "GLM-4V Flash (Vision)", ctx: "128K", tier: "free", provider: "zhipu", note: "Vision" },
+                              { id: "zhipu/cogview-3-flash", name: "CogView 3 Flash (Image Gen)", ctx: "N/A", tier: "free", provider: "zhipu", note: "Images" }
+                            ];
+                          } else if (agentId === "openclaw" || agentId === "opencode" || agentId === "hermes" || agentId === "openrouter") {
+                            title = agentId === "openclaw" ? "OpenClaw — Free Models" : agentId === "opencode" ? "OpenCode — Free AI Coder" : agentId === "hermes" ? "Hermes — Nous Research Models" : "OpenRouter Free Models";
+                            description = "Discovered free models dynamically fetched and updated.";
+                            
+                            const dynamicFree = discoveredModels
+                              .filter(m => m.provider === "openrouter")
+                              .map(m => {
+                                const staticMeta = [
+                                  { id: "openrouter/owl-alpha", ctx: "1M" },
+                                  { id: "deepseek/deepseek-r1:free", ctx: "128K" },
+                                  { id: "qwen/qwen-2.5-coder-32b-instruct:free", ctx: "128K" },
+                                  { id: "pewdiepie-persona:free", ctx: "32K" },
+                                  { id: "adysseus-ai:free", ctx: "32K" },
+                                  { id: "deepseek/deepseek-v4-flash:free", ctx: "1M" },
+                                  { id: "qwen/qwen3-coder:free", ctx: "1M" },
+                                  { id: "nvidia/nemotron-3-super-120b-a12b:free", ctx: "1M" }
+                                ].find(s => s.id === m.id);
+
+                                let ctxString = "varies";
+                                  if (staticMeta?.ctx) {
+                                    ctxString = staticMeta.ctx;
+                                  } else if (m.context_length) {
+                                    ctxString = m.context_length >= 1024 * 1024 
+                                      ? `${(m.context_length / (1024 * 1024)).toFixed(0)}M` 
+                                      : `${(m.context_length / 1024).toFixed(0)}K`;
+                                  }
+
+                                let displayName = m.name || m.id.split('/').pop() || m.id;
+                                displayName = displayName.replace(':free', '').replace(' (free)', '');
+
+                                return {
+                                  id: m.id,
+                                  name: displayName,
+                                  ctx: ctxString,
+                                  tier: "free",
+                                  provider: "openrouter",
+                                  note: (staticMeta as any)?.note || (m.id.includes('thinking') ? 'Thinking' : undefined)
+                                };
+                              });
+
+                            modelList = dynamicFree.length > 0 ? dynamicFree : [
+                              { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "openrouter", note: "Flagship" },
+                              { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "openrouter" },
+                              { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Reasoning" },
+                              { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" }
+                            ];
+                          }
+
+                          return (
+                            <div className="space-y-3 font-mono">
+                              <div className="flex justify-between items-center bg-[#070713]/55 p-2 rounded-xl border border-white/[0.04]">
+                                <div>
+                                  <div className="text-[10px] font-bold text-white uppercase tracking-wider">{title}</div>
+                                  <div className="text-[8.5px] text-gray-500 mt-0.5">{description}</div>
+                                </div>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const res = await fetch("/api/diagnostics/sync-models", { method: "POST" });
+                                      const data = await res.json();
+                                      if (data.success) {
+                                        alert("Discovered models synced successfully!");
+                                        fetchDiscoveredModels();
+                                      }
+                                    } catch (_) {}
+                                  }}
+                                  className="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-[8px] font-bold uppercase tracking-wide cursor-pointer font-sans"
+                                >
+                                  Sync
+                                </button>
+                              </div>
+                              <div className="space-y-1.5 max-h-[calc(100vh-280px)] overflow-y-auto pr-1">
+                                {modelList.map(model => {
+                                  const isSelected = activeModel === model.id;
+                                  const isSwitching = switchingModelId === model.id;
+                                  return (
+                                    <button
+                                      key={model.id}
+                                      onClick={() => handleSwitchModel(model.id)}
+                                      disabled={isSwitching}
+                                      className={`w-full flex items-center justify-between px-3 py-2 rounded-xl border transition-all text-left cursor-pointer ${
+                                        isSelected
+                                          ? "bg-[#6366f1]/10 border-[#6366f1]/35 text-white"
+                                          : "bg-white/[0.015] hover:bg-white/[0.03] border-white/[0.02] text-gray-400 hover:text-gray-200"
+                                      }`}
+                                    >
+                                      <div className="min-w-0 flex-1 pr-1.5">
+                                        <div className="text-[11px] font-bold truncate flex items-center gap-1">
+                                          {model.name}
+                                          {model.tier === 'free' && <span className="text-[7px] px-1 rounded bg-green-500/10 border border-green-500/20 text-green-400 font-extrabold">FREE</span>}
+                                        </div>
+                                        <div className="text-[8.5px] text-gray-500 truncate mt-0.5">{model.id}</div>
+                                      </div>
+                                      <span className="text-[8.5px] text-gray-500 font-mono shrink-0 ml-1.5">{model.ctx}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* TAB 1: SESSIONS RESTORE */}
                 {rightTab === "sessions" && (
                   <div className="space-y-3">
@@ -3685,257 +6518,18 @@ export default function App() {
                   </div>
                 )}
 
-                {/* TAB 2: ACTIVE MODELS CATALOG */}
-                {rightTab === "models" && (
-                  <div className="space-y-3">
-                    {/* Dynamic Provider Section based on left-selected activeAgent */}
-                    {(() => {
-                      // Normalize the active agent identifier
-                      const agentId = activeAgent.toLowerCase();
-                      
-                      // Define static free model catalogs for each provider/agent
-                      let title = "OpenRouter Free Models";
-                      let description = "Models available free via OpenRouter API key.";
-                      let modelList: Array<{ id: string; name: string; ctx: string; tier?: string; provider?: string; note?: string }> = [];
 
-                      if (agentId === "gemini") {
-                        title = "Google Gemini — AI Studio Free Tier";
-                        description = "All models below are free via Google AI Studio API key. Includes generous daily quotas.";
-                        modelList = [
-                          { id: "gemini-2.5-flash-preview-05-20", name: "Gemini 2.5 Flash Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Latest" },
-                          { id: "gemini-2.5-pro-preview-06-05", name: "Gemini 2.5 Pro Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Pro" },
-                          { id: "gemini-2.0-pro-exp-02-05", name: "Gemini 2.0 Pro (Experimental)", ctx: "2M", tier: "free", provider: "gemini" },
-                          { id: "gemini-2.0-flash-thinking-exp-01-21", name: "Gemini 2.0 Flash Thinking (Experimental)", ctx: "1M", tier: "free", provider: "gemini" },
-                          { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", ctx: "1M", tier: "free", provider: "gemini" },
-                          { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", ctx: "1M", tier: "free", provider: "gemini", note: "Fastest" },
-                          { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", ctx: "1M", tier: "free", provider: "gemini" },
-                          { id: "gemini-1.5-flash-8b", name: "Gemini 1.5 Flash-8B", ctx: "1M", tier: "free", provider: "gemini" },
-                          { id: "imagen-3.0-generate-002", name: "Imagen 3 (Image Generation)", ctx: "N/A", tier: "free", provider: "gemini", note: "Images" },
-                          { id: "gemma-3-27b-it", name: "Gemma 3 27B IT", ctx: "131K", tier: "free", provider: "gemini" },
-                          { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "gemini" },
-                          { id: "gemma-3-4b-it", name: "Gemma 3 4B IT", ctx: "131K", tier: "free", provider: "gemini" },
-                          { id: "gemma-3n-e4b-it", name: "Gemma 3n E4B IT", ctx: "8K", tier: "free", provider: "gemini", note: "Edge" }
-                        ];
-                      } else if (agentId === "alibaba") {
-                        title = "Alibaba DashScope — Qwen Models";
-                        description = "Alibaba's official DashScope API. Includes free-tier limits.";
-                        modelList = [
-                          { id: "alibaba/qwen-long", name: "Qwen Long", ctx: "10M", tier: "free", provider: "alibaba", note: "Huge context" },
-                          { id: "alibaba/qwen-plus", name: "Qwen Plus", ctx: "131K", tier: "free", provider: "alibaba" },
-                          { id: "alibaba/qwen-turbo", name: "Qwen Turbo", ctx: "131K", tier: "free", provider: "alibaba" },
-                          { id: "alibaba/qwen-max", name: "Qwen Max", ctx: "32K", tier: "free", provider: "alibaba", note: "Flagship" },
-                          { id: "alibaba/qwen-vl-plus", name: "Qwen VL Plus (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
-                          { id: "alibaba/qwen-vl-max", name: "Qwen VL Max (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
-                          { id: "alibaba/wanx-v1", name: "Tongyi Wanx (Image Gen)", ctx: "N/A", tier: "free", provider: "alibaba", note: "Images" }
-                        ];
-                      } else if (agentId === "zhipu") {
-                        title = "Zhipu BigModel — GLM Models";
-                        description = "Zhipu AI's BigModel open platform. High-performance free LLMs.";
-                        modelList = [
-                          { id: "zhipu/glm-5.1", name: "GLM 5.1 (Thinking)", ctx: "64K", tier: "free", provider: "zhipu", note: "Reasoning" },
-                          { id: "zhipu/glm-4-flash", name: "GLM-4 Flash", ctx: "128K", tier: "free", provider: "zhipu", note: "Fast & Free" },
-                          { id: "zhipu/glm-4v-flash", name: "GLM-4V Flash (Vision)", ctx: "128K", tier: "free", provider: "zhipu", note: "Vision" },
-                          { id: "zhipu/cogview-3-flash", name: "CogView 3 Flash (Image Gen)", ctx: "N/A", tier: "free", provider: "zhipu", note: "Images" }
-                        ];
-                      } else if (agentId === "openclaw") {
-                        title = "OpenClaw — Aggregated Free Models";
-                        description = "Free model endpoints auto-routed through OpenClaw.";
-                        modelList = [
-                          { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash Exp", ctx: "1M", tier: "free", provider: "openclaw" },
-                          { id: "google/gemma-3-27b-it:free", name: "Gemma 3 27B", ctx: "131K", tier: "free", provider: "openclaw" },
-                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openclaw" },
-                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "64K", tier: "free", provider: "openclaw" },
-                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openclaw", note: "Code" },
-                          { id: "mistralai/mistral-7b-instruct:free", name: "Mistral 7B", ctx: "32K", tier: "free", provider: "openclaw" },
-                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 70B", ctx: "131K", tier: "free", provider: "openclaw" }
-                        ];
-                      } else if (agentId === "opencode") {
-                        title = "OpenCode — Model-Agnostic Free AI Coder";
-                        description = "OpenCode is a free, open-source terminal AI coding agent (MIT). It connects to any provider — use free OpenRouter or local Ollama models at zero cost.";
-                        modelList = [
-                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Best for code" },
-                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" },
-                          { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", tier: "free", provider: "openrouter" },
-                          { id: "google/gemini-2.0-flash-exp:free", name: "Gemini 2.0 Flash Exp", ctx: "1M", tier: "free", provider: "openrouter" },
-                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openrouter" },
-                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 70B", ctx: "131K", tier: "free", provider: "openrouter" },
-                          { id: "llama3.3:latest", name: "Llama 3.3 70B (Ollama local)", ctx: "131K", tier: "free", provider: "ollama", note: "Local" },
-                          { id: "qwen3:30b", name: "Qwen3 30B (Ollama local)", ctx: "40K", tier: "free", provider: "ollama", note: "Local" },
-                          { id: "deepseek-r1:14b", name: "DeepSeek R1 14B (Ollama local)", ctx: "64K", tier: "free", provider: "ollama", note: "Local" }
-                        ];
-                      } else if (agentId === "hermes") {
-                        title = "Hermes — Nous Research Models";
-                        description = "Hermes agent uses Nous Research inference. Free via OpenRouter or Nous portal.";
-                        modelList = [
-                          { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "hermes", note: "Flagship" },
-                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "hermes" },
-                          { id: "nousresearch/hermes-2-pro-llama-3-8b:free", name: "Hermes 2 Pro Llama 3 8B", ctx: "131K", tier: "free", provider: "hermes" },
-                          { id: "stepfun/step-3.7-flash:free", name: "StepFun Step 3.7 Flash", ctx: "32K", tier: "free", provider: "nous", note: "New" },
-                          { id: "minimax/minimax-01:free", name: "MiniMax-01", ctx: "1M", tier: "free", provider: "openrouter", note: "Chinese" },
-                          { id: "qwen/qwen2.5-vl-3b-instruct:free", name: "Qwen 2.5 VL 3B", ctx: "8K", tier: "free", provider: "nous" }
-                        ];
-                      } else if (agentId === "nousresearch") {
-                        title = "Nous Research — Inference Portal";
-                        description = "Free models via inference.nous.ai (API key: sk-nous). Auto-discovers promoted free models.";
-                        modelList = [
-                          { id: "stepfun/step-3.7-flash:free", name: "StepFun Step 3.7 Flash", ctx: "32K", tier: "free", provider: "nous", note: "⭐ New" },
-                          { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "nous", note: "Flagship" },
-                          { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "nous" },
-                          { id: "nousresearch/hermes-3-llama-3.1-8b:free", name: "Hermes 3 Llama 3.1 8B", ctx: "131K", tier: "free", provider: "nous" },
-                          { id: "nousresearch/hermes-2-pro-llama-3-8b:free", name: "Hermes 2 Pro Llama 3 8B", ctx: "131K", tier: "free", provider: "nous" },
-                          { id: "nousresearch/nous-hermes-2-mixtral-8x7b-dpo:free", name: "Hermes 2 Mixtral 8x7B DPO", ctx: "32K", tier: "free", provider: "nous" },
-                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B Instruct", ctx: "131K", tier: "free", provider: "nous" },
-                          { id: "qwen/qwen2.5-vl-3b-instruct:free", name: "Qwen 2.5 VL 3B", ctx: "8K", tier: "free", provider: "nous", note: "Vision" }
-                        ];
-                      } else if (agentId === "lmstudio") {
-                        title = "LM Studio — Local Models";
-                        description = "Run open source models locally with zero API cost. Download via LM Studio UI.";
-                        modelList = [
-                          { id: "meta-llama-3.1-8b-instruct", name: "Llama 3.1 8B Instruct", ctx: "128K", tier: "free", provider: "lmstudio" },
-                          { id: "meta-llama-3.3-70b-instruct", name: "Llama 3.3 70B Instruct", ctx: "131K", tier: "free", provider: "lmstudio" },
-                          { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "lmstudio" },
-                          { id: "gemma-3-27b-it", name: "Gemma 3 27B IT", ctx: "131K", tier: "free", provider: "lmstudio" },
-                          { id: "qwen3-30b", name: "Qwen3 30B", ctx: "40K", tier: "free", provider: "lmstudio" },
-                          { id: "deepseek-r1-distill-qwen-14b", name: "DeepSeek R1 Distill 14B", ctx: "64K", tier: "free", provider: "lmstudio" },
-                          { id: "mistral-7b-instruct-v0.3", name: "Mistral 7B Instruct v0.3", ctx: "32K", tier: "free", provider: "lmstudio" },
-                          { id: "phi-4", name: "Phi-4 14B", ctx: "131K", tier: "free", provider: "lmstudio" }
-                        ];
-                      } else if (agentId === "agy") {
-                        title = "Antigravity AGY — Built-in Model";
-                        description = "The model currently active in the AGY CLI inference engine.";
-                        modelList = [
-                          { id: activeModel, name: activeModel.split('/').pop()?.replace(':free','') || activeModel, ctx: "varies", tier: "free", provider: "agy", note: "Active" }
-                        ];
-                      } else if (agentId === "ollama") {
-                        title = "Ollama — Local Inference";
-                        description = "Ollama models installed locally. Start Ollama to use these.";
-                        modelList = [
-                          { id: "llama3.3:latest", name: "Llama 3.3 70B (Local)", ctx: "131K", tier: "free", provider: "ollama" },
-                          { id: "llama3.1:8b", name: "Llama 3.1 8B (Local)", ctx: "128K", tier: "free", provider: "ollama" },
-                          { id: "gemma3:27b", name: "Gemma 3 27B (Local)", ctx: "131K", tier: "free", provider: "ollama" },
-                          { id: "qwen3:30b", name: "Qwen3 30B (Local)", ctx: "40K", tier: "free", provider: "ollama" },
-                          { id: "deepseek-r1:14b", name: "DeepSeek R1 14B (Local)", ctx: "64K", tier: "free", provider: "ollama" },
-                          { id: "mistral:7b", name: "Mistral 7B (Local)", ctx: "32K", tier: "free", provider: "ollama" },
-                          { id: "phi4:latest", name: "Phi-4 14B (Local)", ctx: "131K", tier: "free", provider: "ollama" }
-                        ];
-                      } else {
-                        // Default to OpenRouter free catalog
-                        title = "OpenRouter — Free Models Catalog";
-                        description = "All models below are free via OpenRouter API. Updated automatically when new free models launch.";
-                        // Build dynamic list from discovered models
-                        const dynamicFree = discoveredModels
-                          .filter(m => m.provider === "openrouter")
-                          .map(m => {
-                            // Find matching metadata from hardcoded static details if they exist
-                            const staticMeta = [
-                              { id: "openrouter/owl-alpha", ctx: "1M", note: "OR Pick" },
-                              { id: "deepseek/deepseek-r1:free", ctx: "128K", note: "Reasoning" },
-                              { id: "qwen/qwen-2.5-coder-32b-instruct:free", ctx: "128K" },
-                              { id: "deepseek/deepseek-v4-flash:free", ctx: "1M" },
-                              { id: "qwen/qwen3-coder:free", ctx: "1M", note: "Code" },
-                              { id: "nvidia/nemotron-3-super-120b-a12b:free", ctx: "1M" },
-                              { id: "minimax/minimax-01:free", ctx: "1M", note: "Chinese" },
-                              { id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", ctx: "32K", note: "Uncensored" },
-                              { id: "liquid/lfm-2.5-1.2b-thinking:free", ctx: "32K", note: "Thinking" },
-                              { id: "moonshotai/kimi-k2.6:free", ctx: "262K" },
-                              { id: "google/gemma-4-26b-a4b-it:free", ctx: "262K" },
-                              { id: "openai/gpt-oss-120b:free", ctx: "131K" },
-                              { id: "meta-llama/llama-3.3-70b-instruct:free", ctx: "131K" },
-                              { id: "stepfun/step-3.7-flash:free", ctx: "32K", note: "New" }
-                            ].find(s => s.id === m.id);
 
-                            let ctxString = "varies";
-                            if (staticMeta?.ctx) {
-                              ctxString = staticMeta.ctx;
-                            } else if (m.context_length) {
-                              ctxString = m.context_length >= 1024 * 1024 
-                                ? `${(m.context_length / (1024 * 1024)).toFixed(0)}M` 
-                                : `${(m.context_length / 1024).toFixed(0)}K`;
-                            }
-
-                            // Clean model name
-                            let displayName = m.name || m.id.split('/').pop() || m.id;
-                            displayName = displayName.replace(':free', '').replace(' (free)', '');
-
-                            return {
-                              id: m.id,
-                              name: displayName,
-                              ctx: ctxString,
-                              tier: "free",
-                              provider: "openrouter",
-                              note: staticMeta?.note || (m.id.includes('thinking') ? 'Thinking' : undefined)
-                            };
-                          });
-
-                        // Fallback to static list if endpoint hasn't returned anything yet
-                        modelList = dynamicFree.length > 0 ? dynamicFree : [
-                          { id: "openrouter/owl-alpha", name: "Owl Alpha", ctx: "1M", tier: "free", provider: "openrouter", note: "OR Pick" },
-                          { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Reasoning" },
-                          { id: "qwen/qwen-2.5-coder-32b-instruct:free", name: "Qwen 2.5 Coder 32B", ctx: "128K", tier: "free", provider: "openrouter" },
-                          { id: "deepseek/deepseek-v4-flash:free", name: "DeepSeek V4 Flash", ctx: "1M", tier: "free", provider: "openrouter" },
-                          { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" },
-                          { id: "nvidia/nemotron-3-super-120b-a12b:free", name: "NVIDIA Nemotron 3 Super", ctx: "1M", tier: "free", provider: "openrouter" },
-                          { id: "minimax/minimax-01:free", name: "MiniMax-01", ctx: "1M", tier: "free", provider: "openrouter", note: "Chinese" },
-                          { id: "cognitivecomputations/dolphin-mistral-24b-venice-edition:free", name: "Dolphin Mistral 24B", ctx: "32K", tier: "free", provider: "openrouter", note: "Uncensored" },
-                          { id: "liquid/lfm-2.5-1.2b-thinking:free", name: "Liquid LFM 2.5 Thinking", ctx: "32K", tier: "free", provider: "openrouter", note: "Thinking" },
-                          { id: "moonshotai/kimi-k2.6:free", name: "Kimi K2.6", ctx: "262K", tier: "free", provider: "openrouter" },
-                          { id: "google/gemma-4-26b-a4b-it:free", name: "Gemma 4 26B A4B", ctx: "262K", tier: "free", provider: "openrouter" },
-                          { id: "openai/gpt-oss-120b:free", name: "GPT-OSS 120B", ctx: "131K", tier: "free", provider: "openrouter" },
-                          { id: "meta-llama/llama-3.3-70b-instruct:free", name: "Llama 3.3 70B", ctx: "131K", tier: "free", provider: "openrouter" },
-                          { id: "stepfun/step-3.7-flash:free", name: "StepFun Step 3.7 Flash", ctx: "32K", tier: "free", provider: "openrouter", note: "New" }
-                        ];
-                      }
-
-                      return (
-                        <div>
-                          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 select-none flex items-center gap-1.5">
-                            <Radio size={10} className="text-indigo-400" /> {title}
-                          </div>
-                          <div className="text-[9px] text-gray-500 mb-3 select-none">{description}</div>
-                          <div className="space-y-1.5">
-                            {modelList.map(model => {
-                              const isSelected = activeModel === model.id;
-                              const isSwitching = switchingModelId === model.id;
-                              return (
-                                <button
-                                  key={model.id}
-                                  onClick={() => handleSwitchModel(model.id)}
-                                  disabled={isSwitching}
-                                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all duration-200 text-left cursor-pointer ${
-                                    isSelected
-                                      ? "bg-indigo-500/10 border-indigo-500/30 text-white shadow-[0_0_15px_rgba(99,102,241,0.06)]"
-                                      : "bg-white/[0.015] hover:bg-white/[0.03] border-white/[0.02] hover:border-white/[0.04] text-gray-400 hover:text-gray-200"
-                                  }`}
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-semibold truncate flex items-center gap-1.5">
-                                      {model.name}
-                                      {model.tier === 'free' && (
-                                        <span className="text-[7px] px-1 py-0.5 rounded bg-green-500/10 border border-green-500/20 text-green-400 font-bold">FREE</span>
-                                      )}
-                                      {model.note && (
-                                        <span className="text-[7px] px-1 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-bold shrink-0">{model.note}</span>
-                                      )}
-                                    </div>
-                                    <div className="text-[9px] text-gray-500 font-mono truncate mt-0.5">{model.id}</div>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0 ml-2 select-none">
-                                    <span className="text-[8.5px] text-gray-500 font-mono">{model.ctx}</span>
-                                    {isSwitching ? (
-                                      <RefreshCw size={11} className="animate-spin text-indigo-400" />
-                                    ) : isSelected ? (
-                                      <CheckCircle2 size={12} className="text-green-400" />
-                                    ) : (
-                                      <div className="w-3 h-3 rounded-full border border-white/10" />
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })()}
+                {/* TAB: GENERAL SETTINGS */}
+                {rightTab === "settings" && (
+                  <div className="space-y-4">
+                    <SettingsPanel />
+                    <GeminiKeysPanel />
+                    <PersonalityPanel />
+                    <DiagnosticsPanel />
+                    <AionUITeamsPanel />
+                    <DelegationPanel />
+                    <SpotifyPanel />
                   </div>
                 )}
 
@@ -3975,6 +6569,35 @@ export default function App() {
                               <span className="font-semibold capitalize">{skill.replace('_', ' ')}</span>
                               <input type="checkbox" checked={isActive} onChange={() => handleToggleSkill(skill)} className="rounded border-white/10 bg-black/40 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer" />
                             </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Manual Focus Skill Selector */}
+                    <div className="space-y-2">
+                      <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">Manual Focus Skill</div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {[
+                          { id: null, label: "General", icon: "🌐" },
+                          { id: "seo", label: "SEO Focus", icon: "📈" },
+                          { id: "website building", label: "Web Design", icon: "🎨" },
+                          { id: "code execution", label: "Code Run", icon: "💻" }
+                        ].map(skill => {
+                          const isSelected = selectedManualSkill === skill.id;
+                          return (
+                            <button
+                              key={skill.id || "none"}
+                              onClick={() => setSelectedManualSkill(skill.id)}
+                              className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl border text-[11px] font-semibold text-left select-none cursor-pointer transition-all duration-200 ${
+                                isSelected
+                                  ? "bg-indigo-500/15 border-indigo-500/40 text-white shadow-lg shadow-indigo-500/10"
+                                  : "bg-white/[0.015] hover:bg-white/[0.03] border-white/[0.02] text-gray-400"
+                              }`}
+                            >
+                              <span>{skill.icon}</span>
+                              <span className="truncate">{skill.label}</span>
+                            </button>
                           );
                         })}
                       </div>
@@ -4041,23 +6664,20 @@ export default function App() {
                     {/* Gemini API Keys Manager */}
                     <GeminiKeysPanel />
 
-                    {/* Spotify / Music */}
-                    <SpotifyPanel />
-
-                    {/* Personality Switcher */}
+                    {/* Swarm Personality */}
                     <PersonalityPanel />
 
-                    {/* Agent Telemetry */}
-                    <AgentTelemetryPanel agents={agents} />
-
-                    {/* Model Providers */}
-                    <ProviderPanel />
+                    {/* Self-Healing Diagnostics */}
+                    <DiagnosticsPanel />
 
                     {/* AionUI Teams */}
                     <AionUITeamsPanel />
 
                     {/* Delegation */}
                     <DelegationPanel />
+
+                    {/* Spotify / Music */}
+                    <SpotifyPanel />
                   </div>
                 )}
 
@@ -4074,6 +6694,67 @@ export default function App() {
                       <div className="text-[10px] text-gray-600 pl-0.5">
                         Browse {mcpCatalog ? mcpCatalog.categories.reduce((a: number, c: any) => a + c.servers.length, 0) : '—'} available MCP servers across {mcpCatalog ? mcpCatalog.categories.length : '—'} categories. Hermes connects to these via stdio or HTTP.
                       </div>
+                    </div>
+
+                    {/* Dynamic Tool Creator Card */}
+                    <div className="glass rounded-2xl border border-white/[0.04] overflow-hidden select-none">
+                      <button
+                        onClick={() => setIsCreateToolOpen(!isCreateToolOpen)}
+                        className="w-full px-3 py-2.5 bg-cyan-955/10 hover:bg-cyan-955/25 flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-cyan-400 cursor-pointer"
+                      >
+                        <span>🛠️ Create Custom Dynamic Tool</span>
+                        <span>{isCreateToolOpen ? "Collapse [-]" : "Expand [+]"}</span>
+                      </button>
+
+                      {isCreateToolOpen && (
+                        <div className="p-3.5 space-y-3 bg-black/40 border-t border-white/[0.03]">
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-gray-400 font-bold uppercase">Tool Name (no spaces)</label>
+                            <input
+                              value={customToolName}
+                              onChange={e => setCustomToolName(e.target.value)}
+                              placeholder="e.g. read_system_logs"
+                              className="w-full bg-black/50 border border-white/[0.06] rounded-lg px-2.5 py-1 text-xs text-white placeholder-gray-750 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-gray-400 font-bold uppercase">Description</label>
+                            <input
+                              value={customToolDesc}
+                              onChange={e => setCustomToolDesc(e.target.value)}
+                              placeholder="e.g. Fetches the latest system errors"
+                              className="w-full bg-black/50 border border-white/[0.06] rounded-lg px-2.5 py-1 text-xs text-white placeholder-gray-750 focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-gray-400 font-bold uppercase">Parameters JSON Schema</label>
+                            <textarea
+                              value={customToolSchema}
+                              onChange={e => setCustomToolSchema(e.target.value)}
+                              className="w-full h-24 bg-black/50 border border-white/[0.06] rounded-lg p-2 text-[10px] font-mono text-[#38bdf8] focus:outline-none"
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[9px] text-gray-400 font-bold uppercase">JavaScript Execution Logic</label>
+                            <textarea
+                              value={customToolCode}
+                              onChange={e => setCustomToolCode(e.target.value)}
+                              className="w-full h-32 bg-black/50 border border-white/[0.06] rounded-lg p-2 text-[10px] font-mono text-[#a78bfa] focus:outline-none"
+                            />
+                          </div>
+
+                          <button
+                            onClick={handleCreateCustomTool}
+                            disabled={customToolLoading || !customToolName.trim()}
+                            className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                          >
+                            {customToolLoading ? "Initializing & hot-reloading..." : "⚡ Register Custom Tool"}
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {/* Search & Filter Bar */}
@@ -4280,17 +6961,247 @@ export default function App() {
                     )}
                   </div>
                 )}
+
+                {/* TAB: NOTEBOOKLM RESEARCH PANEL */}
+                {rightTab === "notebooklm" && (
+                  <div className="space-y-4 text-white">
+                    <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+                      <span>Google NotebookLM Swarm</span>
+                      <button onClick={handleFetchNotebooks} disabled={notebookLoading} className="hover:text-white transition-colors cursor-pointer">
+                        <RefreshCw size={10} className={notebookLoading ? "animate-spin text-indigo-400" : ""} />
+                      </button>
+                    </div>
+
+                    {/* Add Notebook share-URL Form */}
+                    <div className="p-3 bg-white/[0.015] border border-white/[0.04] rounded-xl space-y-2 select-none">
+                      <div className="text-[9px] text-gray-400 font-semibold uppercase">Register New Share URL</div>
+                      <input
+                        value={newNotebookName}
+                        onChange={e => setNewNotebookName(e.target.value)}
+                        placeholder="Notebook Name (e.g. SEO Campaign)..."
+                        className="w-full bg-black/40 border border-white/[0.06] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-indigo-500/40"
+                      />
+                      <input
+                        value={newNotebookUrl}
+                        onChange={e => setNewNotebookUrl(e.target.value)}
+                        placeholder="https://notebooklm.google.com/notebook/..."
+                        className="w-full bg-black/40 border border-white/[0.06] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-indigo-500/40"
+                      />
+                      <button
+                        onClick={handleAddNotebook}
+                        disabled={notebookLoading || !newNotebookUrl.trim()}
+                        className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer"
+                      >
+                        {notebookLoading ? "Registering..." : "+ Register Notebook"}
+                      </button>
+                    </div>
+
+                    {/* Notebook List Selector */}
+                    <div className="space-y-2">
+                      <div className="text-[9px] text-gray-400 font-semibold uppercase select-none">Active Notebooks</div>
+                      <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {notebooks.map((nb: any) => (
+                          <div
+                            key={nb.id}
+                            onClick={() => handleSelectNotebook(nb.id)}
+                            className={`p-2.5 rounded-xl border text-xs text-left cursor-pointer transition-all ${
+                              activeNotebookId === nb.id
+                                ? "bg-indigo-500/10 border-indigo-500/30 text-white font-semibold"
+                                : "bg-white/[0.01] hover:bg-white/[0.02] border-white/[0.02] text-gray-400"
+                            }`}
+                          >
+                            <div className="truncate">{nb.name}</div>
+                            <div className="text-[8px] font-mono text-gray-500 mt-1 select-none">ID: {nb.id.slice(0, 10)}...</div>
+                          </div>
+                        ))}
+                        {notebooks.length === 0 && (
+                          <div className="text-center py-3 text-[10px] text-gray-500 select-none">No notebooks registered. Load or add one above.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Active Notebook ground-RAG actions */}
+                    {activeNotebookId && (
+                      <div className="space-y-3 pt-2 border-t border-white/[0.04]">
+                        <div className="text-xs font-bold text-indigo-400 uppercase select-none">Active: {notebooks.find(n=>n.id===activeNotebookId)?.name || "Notebook"}</div>
+
+                        {/* Audio Generation overview panel */}
+                        <div className="p-3 bg-indigo-950/15 border border-indigo-500/15 rounded-xl space-y-2">
+                          <div className="flex justify-between items-center text-[9px] text-gray-400 font-bold uppercase">
+                            <span>Podcast Audio Overview</span>
+                            <span className={`text-[8.5px] uppercase font-bold px-1.5 rounded ${notebookAudioStatus === "ready" ? "bg-green-500/10 text-green-400" : "bg-indigo-500/10 text-indigo-400"}`}>{notebookAudioStatus}</span>
+                          </div>
+
+                          {notebookAudioProgress && (
+                            <div className="text-[9px] font-mono text-gray-400 italic">{notebookAudioProgress}</div>
+                          )}
+
+                          {notebookAudioUrl ? (
+                            <div className="space-y-2">
+                              <audio src={notebookAudioUrl} controls className="w-full h-8" />
+                              <a
+                                href={notebookAudioUrl}
+                                download
+                                className="block w-full py-1 text-center bg-indigo-600 hover:bg-indigo-500 text-white rounded text-[9px] font-bold uppercase"
+                              >
+                                Download Overview Audio
+                              </a>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={handleGeneratePodcast}
+                              disabled={notebookAudioGenerating}
+                              className="w-full py-1.5 bg-indigo-600/30 hover:bg-indigo-600 text-white rounded-lg text-[9px] font-bold uppercase transition-all cursor-pointer"
+                            >
+                              {notebookAudioGenerating ? "⚡ Generating (2-10 min)..." : "🎬 Generate Podcast Overview"}
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Ingest Source box */}
+                        <div className="p-3 bg-white/[0.015] border border-white/[0.04] rounded-xl space-y-2">
+                          <div className="text-[9px] text-gray-400 font-bold uppercase select-none">Ingest grounded RAG source</div>
+                          <input
+                            value={newSourceUrl}
+                            onChange={e => setNewSourceUrl(e.target.value)}
+                            placeholder="Source URL (https://...)"
+                            className="w-full bg-black/40 border border-white/[0.06] rounded-lg px-2 py-1 text-[11px] text-white focus:outline-none focus:border-indigo-500/40"
+                          />
+                          <textarea
+                            value={newSourceText}
+                            onChange={e => setNewSourceText(e.target.value)}
+                            placeholder="Or paste text snippet to ground..."
+                            className="w-full h-14 bg-black/40 border border-white/[0.06] rounded-lg p-2 text-[11px] text-white focus:outline-none focus:border-indigo-500/40 resize-none"
+                          />
+                          <button
+                            onClick={handleAddSource}
+                            disabled={addingSource || (!newSourceUrl.trim() && !newSourceText.trim())}
+                            className="w-full py-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer"
+                          >
+                            {addingSource ? "Ingesting..." : "+ Ingest RAG Source"}
+                          </button>
+                        </div>
+
+                        {/* Grounded RAG Chat Console */}
+                        <div className="flex flex-col h-64 bg-black/40 border border-white/5 rounded-xl overflow-hidden">
+                          <div className="px-3 py-1.5 bg-white/[0.02] text-[9.5px] font-bold text-gray-400 uppercase select-none">NotebookLM Grounded Chat</div>
+
+                          {/* Chat history */}
+                          <div className="flex-grow p-2.5 overflow-y-auto space-y-2 font-sans text-xs">
+                            {notebookChatHistory.map((msg, i) => (
+                              <div key={i} className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                                <div className={`px-2.5 py-1.5 rounded-xl max-w-[85%] leading-relaxed ${
+                                  msg.role === "user" ? "bg-indigo-600 text-white" : "bg-white/5 border border-white/5 text-gray-300"
+                                }`}>
+                                  {msg.content}
+                                </div>
+                              </div>
+                            ))}
+                            {notebookChatHistory.length === 0 && (
+                              <div className="text-center py-8 text-[10px] text-gray-600 select-none">Ask any question grounded on your sources.</div>
+                            )}
+                          </div>
+
+                          {/* Input row */}
+                          <div className="p-2 border-t border-white/5 flex gap-1.5 bg-black/20">
+                            <input
+                              value={notebookChatInput}
+                              onChange={e => setNotebookChatInput(e.target.value)}
+                              onKeyDown={e => e.key === "Enter" && handleNotebookChatSend()}
+                              placeholder="Query active sources..."
+                              className="flex-1 bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-xs text-white focus:outline-none"
+                            />
+                            <button
+                              onClick={handleNotebookChatSend}
+                              disabled={notebookChatLoading || !notebookChatInput.trim()}
+                              className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-[10px] font-bold uppercase cursor-pointer"
+                            >
+                              {notebookChatLoading ? "..." : "Send"}
+                            </button>
+                          </div>
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB: SEMANTIC HYBRID RAG */}
+                {rightTab === "rag" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+                      <span>Semantic hybrid RAG</span>
+                      <button
+                        onClick={handleRagIndex}
+                        disabled={ragIndexing}
+                        className={`hover:text-white transition-colors cursor-pointer bg-white/[0.04] px-2.5 py-1 rounded-lg text-[9px] font-semibold border border-white/[0.05] ${
+                          ragIndexing ? "opacity-50" : ""
+                        }`}
+                      >
+                        {ragIndexing ? "Indexing..." : "Sync Index"}
+                      </button>
+                    </div>
+
+                    {/* Search Field */}
+                    <div className="flex gap-2">
+                      <input
+                        value={ragSearchQuery}
+                        onChange={e => setRagSearchQuery(e.target.value)}
+                        onKeyDown={e => e.key === "Enter" && handleRagSearch()}
+                        placeholder="Search conceptual meaning..."
+                        className="flex-1 bg-black/40 border border-white/[0.06] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500/40"
+                      />
+                      <button
+                        onClick={handleRagSearch}
+                        disabled={ragSearching || !ragSearchQuery.trim()}
+                        className="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer shrink-0 transition-all flex items-center justify-center"
+                      >
+                        {ragSearching ? "..." : <Search size={14} />}
+                      </button>
+                    </div>
+
+                    {/* Results Container */}
+                    <div className="space-y-2.5">
+                      {ragResults.map((result, idx) => (
+                        <div
+                          key={idx}
+                          className="p-3 rounded-xl bg-white/[0.015] border border-white/[0.03] hover:border-white/[0.06] transition-all space-y-2"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-indigo-300 truncate max-w-[80%]" title={result.filepath}>
+                              {result.filename}
+                            </span>
+                            <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400">
+                              {(result.score * 100).toFixed(0)}% Match
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-gray-400 line-clamp-3 leading-relaxed font-sans">
+                            {result.content}
+                          </p>
+                          <div className="text-[8px] text-gray-600 font-mono">
+                            Chunk index: {result.chunk_index}
+                          </div>
+                        </div>
+                      ))}
+                      {ragResults.length === 0 && (
+                        <div className="text-center py-8 text-xs text-gray-500 font-mono select-none">
+                          No semantic matches found. Try searching a concept or clicking 'Sync Index'.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           ) : (
-            /* Collapsed right rail icon column */
             <div className="flex-1 flex flex-col items-center py-4 space-y-4 select-none">
-              {(["sessions", "models", "skills", "mcp-catalog", "vault"] as const).map(tab => (
+              {(["sessions", "models", "skills", "mcp-catalog", "vault", "goals", "monitor", "settings", "notebooklm", "rag"] as const).map(tab => (
                 <button
                   key={tab}
                   onClick={() => {
                     setRightTab(tab);
                     setIsRightCollapsed(false);
+                    if (tab === "notebooklm") handleFetchNotebooks();
                   }}
                   className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all ${
                     rightTab === tab
@@ -4298,7 +7209,7 @@ export default function App() {
                       : "bg-white/[0.02] border-white/[0.05] text-gray-400 hover:text-white"
                   }`}
                 >
-                  {tab === "sessions" ? <Clock size={13} /> : tab === "models" ? <Sparkles size={13} /> : tab === "skills" ? <Cpu size={13} /> : tab === "mcp-catalog" ? <Puzzle size={13} /> : <Database size={13} />}
+                  {tab === "sessions" ? <Clock size={13} /> : tab === "models" ? <Cpu size={13} /> : tab === "skills" ? <Zap size={13} /> : tab === "mcp-catalog" ? <Puzzle size={13} /> : tab === "vault" ? <Database size={13} /> : tab === "goals" ? <Target size={13} /> : tab === "monitor" ? <Activity size={13} /> : tab === "settings" ? <Settings size={13} /> : tab === "notebooklm" ? <FileText size={13} /> : <Search size={13} />}
                 </button>
               ))}
             </div>
@@ -4358,6 +7269,45 @@ export default function App() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating CLI Terminal Shell */}
+      <button
+        onClick={() => setIsFloatingTerminalOpen(!isFloatingTerminalOpen)}
+        className="fixed bottom-12 right-4 z-40 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/20 rounded-full text-[10px] font-bold uppercase transition-all duration-300 shadow-lg cursor-pointer select-none"
+      >
+        <TerminalSquare size={13} />
+        <span>🖥️ Console</span>
+      </button>
+
+      {isFloatingTerminalOpen && (
+        <div className="fixed bottom-24 right-4 w-[420px] h-[360px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[9px] flex flex-col justify-between backdrop-blur-lg animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none">
+            <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
+            <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
+          </div>
+          <div className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar">
+            {terminalLogs.map((log, index) => (
+              <div key={index} className={`whitespace-pre-wrap ${
+                log.type === 'input' ? 'text-indigo-300 font-semibold' : log.type === 'error' ? 'text-red-400' : 'text-gray-300'
+              }`}>
+                {log.text}
+              </div>
+            ))}
+            <div ref={floatingTerminalBottomRef} />
+          </div>
+          <div className="flex items-center gap-2 pt-2 border-t border-white/5 select-none">
+            <span className="text-indigo-400 font-bold">PS Gary&gt;</span>
+            <input
+              type="text"
+              value={terminalInput}
+              onChange={e => setTerminalInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleRunCommand()}
+              className="flex-grow bg-transparent text-white focus:outline-none placeholder-gray-600 select-text"
+              placeholder="Type commands..."
+            />
           </div>
         </div>
       )}

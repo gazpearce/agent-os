@@ -1,0 +1,65 @@
+[
+  {
+    "id": "1",
+    "name": "OpenRouter Key Rotation",
+    "interval": "2 min",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "2",
+    "name": "Blog Content Engine",
+    "interval": "hourly",
+    "status": "idle",
+    "next": ""
+  },
+  {
+    "id": "3",
+    "name": "Free Model Scanner",
+    "interval": "6 hours",
+    "status": "idle",
+    "next": ""
+  },
+  {
+    "id": "4",
+    "name": "AionUI Health Monitor",
+    "interval": "5 min",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "5",
+    "name": "Swarm Experience Compiler",
+    "interval": "10 min",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "6",
+    "name": "Swarm Auto-Evolution Engine",
+    "interval": "30 min",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "7",
+    "name": "OS Maintenance System",
+    "interval": "15 min",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "8",
+    "name": "Julian Goldie Watcher",
+    "interval": "6 hour",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "9",
+    "name": "N8N Workflow Ingestion",
+    "interval": "10 min",
+    "status": "running",
+    "next": ""
+  }
+]
