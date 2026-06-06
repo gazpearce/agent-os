@@ -13,72 +13,74 @@ You can execute tools on the host system by formatting a tool call block exactly
 Only use tools when the task requires it. When asked a question, just answer it.
 
 ### # Dynamic Learned Rules (DO NOT IGNORE):
-* **Error: Multiple Agents Returning "Execution stopped by user" on Simple Verification Tasks**: Action: Prevent agents from emitting “Execution stopped by user” on health‑check prompts; route meta messages to a whitelist, block vault search, and have orchestrator switch to a different agent on such signals, alerting if >3 occur.
-* **Error: Insufficient OS Diagnostic Capabilities**: Action: Equip swarm_executor with sandboxed read‑only OS diagnostic tools (e.g., uname, hostnamectl, df) and grant limited execution permissions.
-* **Error: AGY Execution Loop Error**: Action: Initialize `agentPrompt` before AGY execution loop. Implement error handling for variable initialization issues.
-* **Error: AGY Execution Loop Failure – Undefined `agentPrompt`**: Action: Always include a defined agentPrompt field in every agy call and pre‑validate it, defaulting to a generated prompt if missing.
-* **Error: Agent “agy” halted execution on simple query**: Action: Refine stop‑signal regex to only match explicit `/stop`, `halt`, or a set stop flag; otherwise ignore words like “exactly” or “one word”.
-* **Error: AGY Agent Execution Loop Failure – Undefined `agentPrompt`**: Action: Always include a non‑empty `agentPrompt` in orchestrator messages or have AGY load a default prompt and handle missing prompts gracefully.
-* **Error: Blocking Bash Commands causing Agent Hangs and Manual Interruption**: Action: Do not run blocking Bash commands; use asynchronous execution with appropriate timeouts to prevent agent hangs.
-* **Error: Browser Access Failure**: Action: Rotate proxies and user‑agents for each request and log bot‑detection errors to adapt browsing tactics, avoiding direct access that triggers blocks.
-* **Error: CLI Agents Emit Empty or Unrouted Responses to User Messages**: Action: Ensure each _cli_run captures stdout/stderr into resp and always emits a response log to the user, using a fallback error if the output is empty.
-* **Symptoms**: Action: Log each cron run, confirm hermes and all dependencies are installed, verify network access and permissions, and add retries for external tool calls.
-* **Error: High Cron Frequency Trigger Failure**: Action: Add explicit delay and health‑check for every cron job like evolution_run, verifying dependencies and service availability before execution to avoid silent failures.
-* **Error: SQLite database operation failed**: Action: Ensure the SQLite table exists with correct schema and no locks before executing queries; validate database path and query syntax first.
-* **Error: SQLite database operation failed**: Action: Validate table existence and schema before queries, and ensure the SQLite DB isn’t locked or missing the target table.
-* **Error: SQLite database operation failed**: Action: Verify table existence and schema before executing SQLite queries.
-* **Error: SQLite database operation failed**: Action: Verify all SQL queries reference existing tables, match the current DB schema, and ensure no locks before execution.
-* **Error: SQLite database operation failed**: Action: Verify target tables and schema exist and ensure the SQLite DB is unlocked before executing any query.
-* **Error: SQLite database operation failed**: Action: Verify the conversations table and its schema exist and match before querying, and ensure the SQLite DB file isn’t locked.
-* **Error: SQLite database operation failed**: Action: Validate that the conversations table exists with matching schema, use correct SQL syntax, and ensure no SQLite locks before running queries.
-* **Error: SQLite database operation failed**: Action: Inspect SQL syntax and ensure table existence and schema match; check for database locks to prevent SQLite errors.
-* **Error: SQLite database operation failed**: Action: Verify table existence, schema accuracy, and unlock SQLite DB before executing queries to prevent prepare/execute failures.
-* **Error: SQLite database operation failed**: Action: Verify conversations table exists and schema matches SELECT statement, ensure no locks, and validate SQL syntax before executing.
-* **Error: SQLite database operation failed**: Action: Verify the 'conversations' table exists, its schema matches the query, and the DB file is not locked before executing SELECT statements.
-* **Error: Redundant Response Triggering**: Action: Track each message’s unique ID and reject duplicate events before calling the response handler to prevent double‑response triggers.
+* **Error: Multiple Agents Returning "Execution stopped by user" on Simple Verification Tasks**: Action: Prevent “Execution stopped by user” by forbidding that response in all agents, whitelisting health‑check phrases, routing meta‑checks away from tools, and switching to a different agent on such a reply.
+* **Error: Insufficient OS Diagnostic Capabilities**: Action: Implement a secure diagnostic toolset within `swarm_executor` for read-only system commands, sandboxed to non-privileged paths.
+* **Error: AGY Execution Loop Error**: Action: Initialize `agentPrompt` before AGY execution loop starts. Implement error handling for variable initialization issues. Test changes thoroughly.
+* **Error: AGY Execution Loop Failure – Undefined `agentPrompt`**: Action: Always include a defined agentPrompt in every agy call and add pre‑execution validation to abort with a clear error if it’s missing.
+* **Error: Agent “agy” halted execution on simple query**: Action: Refine stop-detection logic to ignore non-explicit stop signals and provide a fallback response for internal aborts.
+* **Error: AGY Agent Execution Loop Failure – Undefined `agentPrompt`**: Action: Ensure every agy call includes an `agentPrompt` field or set a default in agent init, and wrap the loop in a try‑except that logs and returns a user‑friendly error if missing.
+* **Error: Blocking Bash Commands causing Agent Hangs and Manual Interruption**: Action: Avoid blocking Bash commands; run them asynchronously with timeouts and non‑blocking I/O to prevent agent hangs.
+* **Error: Browser Access Failure**: Action: Rotate proxies and user‑agents, employ KimiK2 or Hermes browsing extensions, and monitor logs to prevent bot‑detection access failures.
+* **Error: CLI Agents Emit Empty or Unrouted Responses to User Messages**: Action: Capture CLI stdout to `resp`, always emit a `response` log to the user, and fallback with an error if output is empty; apply this to all CLI run adapters.
+* **Symptoms**: Action: Continuously log cron runs, verify hermes and dependencies are installed, ensure network and permissions, and retry tool interactions on failure.
+* **Error: High Cron Frequency Trigger Failure**: Action: Add adequate delays, error handling, and pre‑run health checks to all cron jobs, especially evolution_run, to ensure dependencies are met before execution.
+* **Error: SQLite database operation failed**: Action: Verify the queried table exists and schema matches before executing SQL, and handle missing tables with safe checks or migrations.
+* **Error: SQLite database operation failed**: Action: Verify SQL syntax and ensure table exists before execution.
+* **Error: SQLite database operation failed**: Action: Verify SQL syntax, check table existence, ensure schema match, and release database locks before executing queries.
+* **Error: SQLite database operation failed**: Action: Validate all SQL queries against the live DB schema and ensure referenced tables exist before execution, checking for locks.
+* **Error: SQLite database operation failed**: Action: Ensure SQL queries target existing tables; check schema and lock status before executing.
+* **Error: SQLite database operation failed**: Action: Verify table “conversations” exists with correct columns, ensure SQL syntax matches schema, and confirm the DB isn’t locked before executing queries.
+* **Error: SQLite database operation failed**: Action: Verify the conversations table and its schema exist and match before running SELECT, and ensure the aionui-backend.db file isn’t locked.
+* **Error: SQLite database operation failed**: Action: Verify the ‘conversations’ table exists with id, title, created_at columns and that a lock isn’t held before executing the SELECT.
+* **Error: SQLite database operation failed**: Action: Verify SQL syntax, ensure table existence and schema match, and check for database locks to prevent SQLite operation failure.
+* **Error: SQLite database operation failed**: Action: Verify 'conversations' table exists, schema matches SELECT columns, and no locks before executing queries.
+* **Error: SQLite database operation failed**: Action: Ensure the SQLite database schema matches the SQL statement and check for locks before execution.
+* **Error: Redundant Response Triggering**: Action: Use a unique message ID idempotency check to ensure each user message is processed only once, preventing duplicate response triggers.
 * **Error: prompt_toolkit Win32 NoConsoleScreenBufferError**: Win32 NoConsoleScreenBufferError: Avoid running CLI tools in background shell redirections directly. Use start cmd.exe or PowerShell start-process window instead.
-* **Error: Hermes execution loop crashes due to non‑string `currentResponse`**: Action: Verify `currentResponse` is a string before using `.replace(); if not, convert with `JSON.stringify()` or route via a non‑text channel.
-* **Error: currentResponse.replace is not a function in HERMES execution loop**: **Action:** Ensure `currentResponse` is always a string before using `.replace()` method in HERMES execution loop. Add type checking and fallback to empty string if necessary.
-* **Error: HERMES execution loop `currentResponse.replace` is not a function**: Action: Validate and coerce every executor loop response to a string before using .replace, adding type checks and fallback handling.
-* **Error: Hermes execution loop error – `currentResponse.replace is not a function`**: Action: Before applying String.replace in Hermes executors, ensure the value is a string: typeof val==='string'?val:JSON.stringify(val);#
-* **Error: HERMES execution loop error – `currentResponse.replace` is not a function**: Action: Ensure `currentResponse` is a string before calling `.replace()` in Hermes execution loop.
-* **Error: Ollama Displaying Confusion and Forgetfulness**: Action: Ensure Ollama loads all state data on init, validates memory updates, and adds a fallback to retrieve missing context each session.
-* **Error: OpenClaw web‑scraping fetch fails due to missing User‑Agent / permission restrictions**: Action: Add a realistic User‑Agent to every OpenClaw request, implement 403/429 retry with back‑off, pre‑check syslog read permission and log an error if denied.
-* **Error: OpenClaw Web Fetch Failed for Requested URL**: Action: Validate URLs, enhance request headers, implement retry logic, and use logging to prevent OpenClaw fetch failures.
-* **Error: OpenClaw CLI Returned No Data – Research Step Failed**: Action: Validate OpenClaw payload format, capture non‑zero exits as errors, retry up to 3 times, then fallback to an alternate search tool and log full diagnostics.
-* **Error: OpenClaw CLI Failure during FAQ Retrieval**: Action: Ensure network access, valid API keys, proper CLI installation, and implement a retry mechanism for OpenClaw operations.
-* **Error: System Log Read Permission Denied**: Action: Grant the log-reading process read permissions on system log files and add error handling to notify users of permission issues.
-* **Error: Raw Code Snippet Provided Instead of Rendered Graphics**: Action: Detect image requests and deliver fully rendered graphics, never output raw Markdown/SVG/Mermaid code in the chat.
-* **Error: Agent Ignored Exact‑Match Output Requirement**: Action: Detect exact‑match directives, short‑circuit any further response generation for that turn, prioritize them over greetings, and log a warning if the guard fails.
-* **Error: Browser Agent Cannot Retrieve Page Content (Tool Error Loop)**: Action: Implement authentication, configure headers, handle captchas, and log errors to prevent access failures on restricted pages.
-* **Error: Tool read_file failed on D:/Agent OS/shared/faq_research.md**: Action: Verify file permissions, check path availability, ensure correct command syntax, and confirm workspace is not locked before attempting read_file.
-* **Error: Tool send_agent_message failed on unknown**: Action: Verify target path exists, command syntax is correct, permissions are granted, and the workspace isn’t locked before calling send_agent_message.
-* **Error: Tool send_agent_message failed on unknown**: Action: Verify target path existence, command syntax, permissions, and workspace lock before calling send_agent_message to avoid unknown failures.
-* **Error: Tool send_agent_message failed on unknown**: Action: Before calling send_agent_message, confirm user permissions, target path exists, command syntax is correct, and workspace is not locked.
-* **Error: Tool send_agent_message failed on unknown**: Action: Verify target paths, command syntax, permissions, and workspace lock status before invoking send_agent_message to avoid unknown failures.
-* **Error: Tool the failed on unknown**: Action: Check command syntax, path existence, permissions, and workspace lock before running tool to avoid unknown failures.
-* **Agent Coordination and Failure Recovery in Multi-Agent Workflows**: Action: Always implement fallback plans, maintain workflow momentum, and enable parallel processing to handle agent failures efficiently.
-* **Agent OS V2 Blog Post Drafting and Publishing Workflow**: Action: Set timeout for swarm_executor to prevent infinite polling loops.
-* **Handling “Execution stopped by user” Responses from Agents**: Action: Explicitly request a textual reply without framing it as a command. Use `message` type in orchestration layer. Retry with simpler prompt if needed. Maintain whitelist of reliable agents.
-* **Successful Bash Command Execution Handling**: Action: Always return a confirmation message with exact command output after any "Run a bash command:" request, preventing silent failures or cancellations.
-* **Successful creation and persistence of a markdown blog post with embedded assets**: Action: Always verify file existence after writes, run keyword density checks prior to commits, and include mock embeds in drafts.
-* **Brand Guideline Extraction and Storage Pipeline**: Action: Always pass accumulated output and progress to each agent, run retrieval before synthesis, and finalize with memory_consolidated.
-* **Brand Guideline Extraction and Documentation Workflow**: Action: Propagate accumulated output to each agent and enforce markdown formatting for final persistence to retain full brand details.
-* **Error: Openclaw CLI Execution Failure**: Action: Calibrate AGY for multi-step distillation and enforce Ollama output schema validation before each workflow run.
-* **CCTV FAQ Blog Post Generation via Orchestrated Multi-Agent Pipeline**: Action: Enforce Agy to add required spacing for ≥2 images and validate YAML frontmatter before Hermes writes, and cap post‑task cron runs to prevent excess cycles.
-* **Successful Retrieval of Content Guidelines for Uni-Blog**: Action: Implement image spacing rule checks in blog post generation workflows.
-* **No New Lesson**: Action: Maintain existing processes unchanged; no new lesson creation is needed, so avoid adding unnecessary lesson-generation triggers.
-* **Evolution Plan Creation and Execution**: Action: Document and monitor each evolution plan and schedule regular maintenance runs before creating new strategies.
-* **Evolution Process Enhancement**: Action: Keep cron jobs uninterrupted, schedule regular evolution runs, and routinely verify logs for successful completions.
-* **Successful creation and verification of a shared text file**: Action: Use `os.makedirs(..., exist_ok=True)`; read-back verification; absolute paths & raw strings.
-* **Goals Archive Index**: Action: Consolidate identical content creation goals into a single task and validate uniqueness before scheduling.
-* **Hermes Assistance Protocol**: Action: Keep Hermes response scripts idempotent for repeat greetings and schedule weekly vault log reviews to catch and fix any response delays.
-* **Hermes Introductory Response**: Action: Keep Hermes `response` messages under 500 chars, end with a newline, and ensure each bullet is on its own line using simple markdown.
-* **Key Rotation Configuration Recall**: Action: Keep CONTEXT.md current with all security script file paths, especially rotate_keys.py, to ensure accurate dynamic memory recall.
-* **Multi-Agent Communication Protocol**: Action: Enforce that every user log entry contains type, from, to, msg, resp fields and every agent response includes a complete capability introduction.
-* **NotebookLM + Hermes AI Agent Operating System Guide**: Action: Ensure each of the three engine layers (data ingest, processing, output) is initialized sequentially and validated before launching the NotebookLM‑Hermes OS.
-* **Understanding Ollama's Response Behavior**: Action: Detect confused replies and immediately reset or clarify Ollama’s context state before continuing the conversation.
-* **OS Diagnostics Tip: Using Basic Commands**: Action: If OS diagnostics tools are unavailable, always provide copy‑paste commands `uname -a`, `systemctl status` (and list‑units), and `cat /etc/os-release` with brief output explanations.
-* **Swarm Collaboration Verification**: Action: Ensure shared directory exists, verify file permissions, and implement error handling for complete message transmission.
-* **Swarm & User Memories**: Action: Require explicit user confirmation before executing any tool or writing files, and automatically resend pending Claude code tasks only after that confirmation.
+* **Error: Hermes execution loop crashes due to non‑string `currentResponse`**: Action: Validate currentResponse type before calling string methods.
+* **Error: currentResponse.replace is not a function in HERMES execution loop**: Action: Validate and cast currentResponse to a string (default '' if null/undefined) before any .replace() call to prevent TypeErrors.
+* **Error: HERMES execution loop `currentResponse.replace` is not a function**: Action: Ensure every loop response is a string—type‑check and JSON.stringify non‑strings before using .replace, with guard checks and tests.
+* **Error: Hermes execution loop error – `currentResponse.replace is not a function`**: Action: Ensure Hermes executor always stringify `currentResponse` before calling replace—validate type and convert non‑string values to JSON.
+* **Error: HERMES execution loop error – `currentResponse.replace` is not a function**: Action: Validate and cast `currentResponse` to a string before any `.replace()` call, and ensure model descriptor helpers always return strings.
+* **Error: Insufficient Permissions When Reading System Log**: Action: Ensure all log‑reading tasks prepend `sudo` or have ACL read rights, and add error handling for EACCES to enforce required privileges.
+* **Error: Ollama Displaying Confusion and Forgetfulness**: Action: Ensure Ollama loads and verifies its full state on start, updates memory reliably, and adds a fallback to retrieve missing context.
+* **Error: OpenClaw web‑scraping fetch fails due to missing User‑Agent / permission restrictions**: Action: Always set a realistic User‑Agent header, add retry/back‑off for 403/429, and pre‑check read permissions or use a privileged helper before accessing /var/log/syslog.
+* **Error: OpenClaw Web Fetch Failed for Requested URL**: Action: Validate URLs, enhance request headers, implement retry logic, and fallback to an alternate scraper on failure.
+* **Error: OpenClaw CLI Returned No Data – Research Step Failed**: Action: Validate input, improve error handling, add retry logic, fallback on failure, log diagnostics.
+* **Error: OpenClaw CLI Failure during FAQ Retrieval**: Action: Verify network access, check API credentials, validate OpenClaw installation, inspect logs, adjust orchestrator, implement retry policy.
+* **Error: System Log Read Permission Denied**: Action: Grant the process read permission to system log files and add handling to alert on permission‑denied errors.
+* **Error: Raw Code Snippet Provided Instead of Rendered Graphics**: Action: Always render requested images or diagrams to an actual image file before outputting; never send raw Markdown, SVG, or Mermaid code blocks.
+* **Error: Agent Ignored Exact‑Match Output Requirement**: Action: Implement a post‑response guard that detects exact‑match user instructions and short‑circuits any further output for that turn.
+* **Error: Syslog Read Permission Issue**: Action: Grant agents read access to syslog directories by assigning appropriate user roles or adjusting file permissions.
+* **Error: Browser Agent Cannot Retrieve Page Content (Tool Error Loop)**: Action: Implement authentication flow, configure headers, handle captchas, add retry logic, log errors, and fallback to manual access for restricted pages.
+* **Error: Tool read_file failed on D:/Agent OS/shared/faq_research.md**: Action: Verify the file exists, has read permissions, correct path syntax, and ensure the workspace is unlocked before invoking read_file.
+* **Error: Tool send_agent_message failed on unknown**: Action: Verify target path, command syntax, permissions, and workspace lock state before invoking send_agent_message to prevent unknown failures.
+* **Error: Tool send_agent_message failed on unknown**: Action: Verify permissions, path existence, command syntax, and ensure the workspace isn’t locked before calling send_agent_message.
+* **Error: Tool send_agent_message failed on unknown**: Action: Verify target paths, permissions, command syntax, and ensure the workspace isn’t locked before calling send_agent_message.
+* **Error: Tool send_agent_message failed on unknown**: Action: Verify permissions, paths, command syntax, and workspace lock status before invoking send_agent_message to avoid unknown failures.
+* **Error: Tool the failed on unknown**: Action: Verify target path, command syntax, permissions, and workspace lock status before execution to avoid unknown tool failures.
+* **Agent Coordination and Failure Recovery in Multi-Agent Workflows**: Action: Implement automatic fallback that creates a placeholder file and prompts user for input whenever a tool_error occurs, then continue workflow.
+* **Agent OS V2 Blog Post Drafting and Publishing Workflow**: Action: Set timeouts for swarm_executor to prevent polling loops.
+* **Handling “Execution stopped by user” Responses from Agents**: Action: Explicitly request a textual reply using `message` type, avoid command-like phrasing, implement retry for "Execution stopped by user".
+* **Successful Bash Command Execution Handling**: Action: Ensure command execution handling prevents cancellations and provides accurate feedback post-execution.
+* **Successful creation and persistence of a markdown blog post with embedded assets**: Action: Verify file existence immediately after each write, include complete frontmatter, run keyword‑density checks before commit, and add embed placeholders during drafting.
+* **Brand Guideline Extraction and Storage Pipeline**: Action: Ensure each agent receives the full chain output, sequence retrieval before synthesis, and use memory_consolidated for long-term integration.
+* **Brand Guideline Extraction and Documentation Workflow**: Action: Ensure each agent receives the full accumulated output and use structured markdown for persistence to maintain brand identity details.
+* **Error: Openclaw CLI Execution Failure**: Action: Calibrate AGY for multi-step distillation and validate Ollama's output schema for consistency.
+* **CCTV FAQ Blog Post Generation via Orchestrated Multi-Agent Pipeline**: Action: Ensure Agy follows image spacing rules, includes YAML frontmatter, integrates multi-source content, and monitor cron volume post-task.
+* **Successful Retrieval of Content Guidelines for Uni-Blog**: Action: Always validate blog posts against the image spacing rule before publishing, rejecting any content that violates the guideline.
+* **No New Lesson**: Action: Ensure all lesson creation triggers are validated; if no new lesson data is detected, log a benign “no new lesson” status and skip processing.
+* **Evolution Plan Creation and Execution**: Action: Document and monitor evolution plans post-execution; regularly schedule maintenance runs before creating new strategies.
+* **Evolution Process Enhancement**: Action: Keep cron jobs continuously running, schedule regular evolution runs, and audit logs daily to verify successful completions.
+* **Successful creation and verification of a shared text file**: Action: Ensure target directories exist with `os.makedirs(..., exist_ok=True)`, use absolute raw strings, and read‑back verify file contents.
+* **Goals Archive Index**: Action: Before creating a new goal, check the task list for identical titles and parameters; skip duplicate creation to avoid repeated executions.
+* **Hermes Assistance Protocol**: Action: Promptly refresh Hermes’s response cache and audit the shared vault daily to ensure repeated greetings and inquiries are always answered.
+* **Hermes Introductory Response**: Action: Keep Hermes’s `response` messages ≤ 500 chars, end with a newline, and use single‑line markdown bullets to avoid truncation.
+* **Key Rotation Configuration Recall**: Action: Keep CONTEXT.md current with all security script paths to ensure dynamic memory recall accurately identifies rotate_keys.py for key rotation.
+* **Multi-Agent Communication Protocol**: Action: Ensure every user message and agent response follows the defined JSON schema with all required fields and that agents always include a full capabilities intro.
+* **NotebookLM + Hermes AI Agent Operating System Guide**: Action: Initialize Hermes AI agent before any NotebookLM calls and verify all environment variables and layer configs are correctly set.
+* **Understanding Ollama's Response Behavior**: Action: Ensure stable context and memory state for Ollama; use scripts to clarify confusion directly.
+* **OS Diagnostics Tip: Using Basic Commands**: Action: Always provide `uname -a`, `systemctl status`, or `cat /etc/os-release` for OS diagnostics when tools are unavailable.
+* **Swarm Collaboration Verification**: Action: Ensure full message payloads are sent, verify shared folder permissions for all agents, and add robust file I/O error handling.
+* **Swarm & User Memories**: Action: If a user sends "stop" to an image‑generation tool, immediately abort the tool, log the halt, and confirm to the user that generation was stopped.
 * **VitePress Schema & OG Meta Tag Injection via transformHead**: VitePress Metadata: Inject JSON-LD & OG tags dynamically using transformHead hook. Avoid double prefixing URL posts/ slug. Wrap descriptions containing colons in quotes.

@@ -622,6 +622,36 @@ The Hermes execution loop assumes that `currentResponse` is always a string and 
 
 ---
 
+### 💡 [Error Fix] Error: Insufficient Permissions When Reading System Log
+
+## Root Cause
+The agent ran the log‑reading command without elevated privileges (e.g., without `sudo` or appropriate file permissions). System logs such as `/var/log/syslog` or `/var/log/messages` are typically owned by `root` and are not readable by regular users.
+
+## Solution
+1. **Verify Required Permissions**
+   ```bash
+   ls -l /var/log/syslog   # or the specific log file being accessed
+   ```
+2. **Run with Elevated Privileges**
+   - Prefix the command with `sudo` if the agent has sudo rights:
+     ```bash
+     sudo cat /var/log/syslog
+     ```
+   - Or adjust the ACL for the agent’s user (if security policy permits):
+     ```bash
+     sudo setfacl -m u:agent_user:r /var/log/syslog
+     ```
+
+3. **Update Agent Configuration**
+   - Add a rule in the agent’s task definition to automatically prepend `sudo` for log‑reading actions, or to request the necessary capabilities from the host environment.
+
+4. **Fail‑Safe Handling**
+   - Implement error handling to catch permission denied (`EACCES`) and log a clear diagnostic message, suggesting the required privilege escalation.
+
+By ensuring the agent has appropriate read access to system logs, the command will complete successfully and the truncated error will be eliminated.
+
+---
+
 ### 💡 [Error Fix] Error: Ollama Displaying Confusion and Forgetfulness
 
 ## Root Cause
@@ -852,6 +882,16 @@ The agent’s response handling logic does not enforce a “single‑turn strict
    - `"respond with exactly \"OK\" and nothing else"` → returns only `OK`.
    - Variations with different exact strings.
 4. **Log a warning** if the guard fails, so developers can quickly spot future regressions.
+
+---
+
+### 💡 [Error Fix] Error: Syslog Read Permission Issue
+
+## Root Cause
+The failure occurred most often because the process did not have sufficient permission to read the system log files.
+
+## Solution
+To resolve this issue, ensure that the agent has the necessary permissions to access and read the system log files. This can be done by adjusting the user roles or changing the access permissions of the relevant log directories.
 
 ---
 

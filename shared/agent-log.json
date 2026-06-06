@@ -1,1631 +1,5 @@
 [
   {
-    "timestamp": "2026-06-06T01:55:30.928Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 02:55:30"
-  },
-  {
-    "timestamp": "2026-06-06T01:56:30.681Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 02:56:30"
-  },
-  {
-    "timestamp": "2026-06-06T01:57:30.931Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 02:57:30"
-  },
-  {
-    "timestamp": "2026-06-06T01:59:30.935Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 02:59:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:01:30.598Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 03:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:01:30.600Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 03:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:01:30.691Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:01:30.939Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:03:30.953Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:03:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:05:30.953Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:05:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:06:30.565Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 03:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:06:30.689Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:06:32.796Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T02:07:30.959Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:07:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:09:30.966Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:09:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:11:30.594Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 03:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:11:30.596Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 03:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:11:30.687Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:11:30.966Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:13:30.971Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:13:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:15:30.977Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:15:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:16:30.695Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:16:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:17:30.991Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:17:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:19:31.002Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:19:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:21:30.477Z",
-    "type": "cron_run",
-    "name": "Swarm Auto-Evolution Engine",
-    "status": "success",
-    "info": "Executed at 03:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:21:30.478Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-06T02:21:30.570Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 03:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:21:30.601Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 03:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:21:30.606Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 03:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:21:30.694Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:21:31.004Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:21:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:21:32.898Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T02:21:44.342Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
-  },
-  {
-    "timestamp": "2026-06-06T02:23:31.010Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:23:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:25:31.012Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:25:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:26:30.693Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:26:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:27:31.017Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:27:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:29:31.019Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:29:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:31:30.610Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 03:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:31:30.612Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 03:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:31:30.703Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:31:31.028Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:31:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:33:31.030Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:33:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:35:31.035Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:35:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:36:30.577Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 03:36:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:36:30.701Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:36:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:36:32.838Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T02:37:31.040Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:37:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:39:31.053Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:39:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:41:30.614Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 03:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:41:30.617Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 03:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:41:30.706Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:41:31.063Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:41:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:43:31.068Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:43:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:45:31.067Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:45:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:46:30.710Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:46:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:47:31.081Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:47:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:49:31.086Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:49:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:51:30.465Z",
-    "type": "cron_run",
-    "name": "Swarm Auto-Evolution Engine",
-    "status": "success",
-    "info": "Executed at 03:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:51:30.467Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-06T02:51:30.573Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 03:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:51:30.620Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 03:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:51:30.622Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 03:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:51:30.712Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:51:31.100Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:51:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:51:32.997Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T02:51:44.253Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
-  },
-  {
-    "timestamp": "2026-06-06T02:53:31.105Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:53:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:55:31.112Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:55:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:56:30.718Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 03:56:30"
-  },
-  {
-    "timestamp": "2026-06-06T02:57:31.122Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:57:31"
-  },
-  {
-    "timestamp": "2026-06-06T02:59:31.132Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 03:59:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:01:30.615Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 04:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:01:30.618Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 04:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:01:30.723Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:01:31.142Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:01:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:03:31.142Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:03:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:05:31.142Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:05:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:06:30.566Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 04:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:06:30.722Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:06:32.770Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T03:07:31.142Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:07:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:09:31.142Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:09:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:11:30.611Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 04:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:11:30.613Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 04:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:11:30.719Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:11:31.153Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:11:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:13:31.164Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:13:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:15:31.177Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:15:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:16:30.721Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:16:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:17:31.176Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:17:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:19:31.187Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:19:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:21:30.450Z",
-    "type": "cron_run",
-    "name": "Swarm Auto-Evolution Engine",
-    "status": "success",
-    "info": "Executed at 04:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:21:30.452Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-06T03:21:30.558Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 04:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:21:30.605Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 04:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:21:30.607Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 04:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:21:30.729Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:21:31.193Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:21:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:21:32.822Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T03:21:43.625Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
-  },
-  {
-    "timestamp": "2026-06-06T03:23:31.200Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:23:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:25:31.198Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:25:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:26:30.738Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:26:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:27:31.201Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:27:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:29:31.200Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:29:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:31:30.612Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 04:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:31:30.614Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 04:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:31:30.735Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:31:31.201Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:31:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:33:31.203Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:33:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:35:31.204Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:35:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:36:30.556Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 04:36:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:36:30.742Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:36:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:36:32.709Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T03:37:31.203Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:37:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:39:31.202Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:39:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:41:30.615Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 04:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:41:30.618Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 04:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:41:30.739Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:41:31.200Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:41:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:43:31.198Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:43:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:45:31.196Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:45:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:46:30.745Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:46:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:47:31.194Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:47:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:49:31.193Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:49:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:51:30.437Z",
-    "type": "cron_run",
-    "name": "Swarm Auto-Evolution Engine",
-    "status": "success",
-    "info": "Executed at 04:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:51:30.438Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-06T03:51:30.544Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 04:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:51:30.621Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 04:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:51:30.624Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 04:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:51:30.746Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:51:31.193Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:51:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:51:32.939Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T03:51:44.138Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
-  },
-  {
-    "timestamp": "2026-06-06T03:53:31.191Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:53:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:55:31.190Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:55:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:56:30.754Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 04:56:30"
-  },
-  {
-    "timestamp": "2026-06-06T03:57:31.189Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:57:31"
-  },
-  {
-    "timestamp": "2026-06-06T03:59:31.187Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 04:59:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:01:30.616Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 05:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:01:30.618Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 05:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:01:30.755Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:01:31.186Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:01:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:03:31.185Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:03:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:05:31.183Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:05:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:06:30.537Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 05:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:06:30.754Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:06:32.957Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T04:07:31.182Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:07:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:09:31.182Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:09:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:11:30.619Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 05:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:11:30.622Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 05:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:11:30.758Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:11:31.180Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:11:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:13:31.179Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:13:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:15:31.178Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:15:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:16:30.761Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:16:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:17:31.176Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:17:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:19:31.175Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:19:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:21:30.416Z",
-    "type": "cron_run",
-    "name": "Swarm Auto-Evolution Engine",
-    "status": "success",
-    "info": "Executed at 05:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:21:30.418Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-06T04:21:30.541Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 05:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:21:30.618Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 05:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:21:30.621Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 05:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:21:30.758Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:21:31.176Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:21:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:21:33.167Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T04:21:43.867Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
-  },
-  {
-    "timestamp": "2026-06-06T04:23:31.184Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:23:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:25:31.194Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:25:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:26:30.756Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:26:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:27:31.193Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:27:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:29:31.204Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:29:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:31:30.616Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 05:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:31:30.619Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 05:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:31:30.756Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:31:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:31:31.205Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:31:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:33:31.218Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:33:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:35:31.223Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:35:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:36:30.533Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 05:36:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:36:30.766Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:36:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:36:32.853Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T04:37:31.230Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:37:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:39:31.241Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:39:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:41:30.613Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 05:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:41:30.615Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 05:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:41:30.767Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:41:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:41:31.248Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:41:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:43:31.250Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:43:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:45:31.256Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:45:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:46:30.768Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:46:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:47:31.262Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:47:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:49:31.270Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:49:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:51:30.403Z",
-    "type": "cron_run",
-    "name": "Swarm Auto-Evolution Engine",
-    "status": "success",
-    "info": "Executed at 05:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:51:30.404Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-06T04:51:30.526Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 05:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:51:30.619Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 05:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:51:30.622Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 05:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:51:30.774Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:51:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:51:31.270Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:51:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:51:32.774Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T04:51:42.558Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
-  },
-  {
-    "timestamp": "2026-06-06T04:53:31.281Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:53:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:55:31.294Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:55:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:56:30.776Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 05:56:30"
-  },
-  {
-    "timestamp": "2026-06-06T04:57:31.305Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:57:31"
-  },
-  {
-    "timestamp": "2026-06-06T04:59:31.307Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 05:59:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:01:30.621Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 06:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:01:30.624Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 06:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:01:30.776Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 06:01:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:01:31.318Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:01:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:03:31.319Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:03:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:05:31.332Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:05:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:06:30.528Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 06:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:06:30.776Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 06:06:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:06:32.606Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-06T05:07:31.341Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:07:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:09:31.352Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:09:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:11:30.622Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 06:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:11:30.624Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 06:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:11:30.776Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 06:11:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:11:31.365Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:11:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:13:31.376Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:13:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:15:31.380Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:15:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:16:30.786Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 06:16:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:17:31.388Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:17:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:19:31.396Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:19:31"
-  },
-  {
-    "timestamp": "2026-06-06T05:21:30.341Z",
-    "type": "cron_run",
-    "name": "Julian Goldie Watcher",
-    "status": "success",
-    "info": "Executed at 06:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:21:30.387Z",
-    "type": "cron_run",
-    "name": "Swarm Auto-Evolution Engine",
-    "status": "success",
-    "info": "Executed at 06:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:21:30.389Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-06T05:21:30.527Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 06:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:21:30.620Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 06:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:21:30.623Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 06:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:21:30.784Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 06:21:30"
-  },
-  {
-    "timestamp": "2026-06-06T05:21:31.410Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 06:21:31"
-  },
-  {
     "timestamp": "2026-06-06T05:21:32.830Z",
     "type": "maintenance_run",
     "status": "success",
@@ -6871,5 +5245,1627 @@
     "name": "OpenRouter Key Rotation",
     "status": "success",
     "info": "Executed at 16:48:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:50:33.203Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 16:50:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:33.127Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 16:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:33.129Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-06T15:52:33.133Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 16:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:33.143Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 16:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:33.147Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 16:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:33.167Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 16:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:33.205Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 16:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:35.406Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T15:52:39.755Z",
+    "type": "experience_learned",
+    "file": "error_vault/syslog_permission_issue.md",
+    "title": "syslog_permission_issue.md"
+  },
+  {
+    "timestamp": "2026-06-06T15:52:46.269Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-06T15:54:33.208Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 16:54:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:56:33.219Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 16:56:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:57:33.167Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 16:57:33"
+  },
+  {
+    "timestamp": "2026-06-06T15:58:33.228Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 16:58:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:00:33.231Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:00:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:02:33.146Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 17:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:02:33.151Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 17:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:02:33.173Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:02:33.238Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:02:59.442Z",
+    "type": "experience_learned",
+    "file": "error_vault/log_read_permission_error.md",
+    "title": "log_read_permission_error.md"
+  },
+  {
+    "timestamp": "2026-06-06T16:04:33.236Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:04:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:06:33.240Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:06:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:07:33.132Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 17:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:07:33.178Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:07:35.453Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T16:08:33.250Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:08:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:10:33.253Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:10:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:12:33.150Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 17:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:12:33.153Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 17:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:12:33.181Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:12:33.255Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:14:33.257Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:14:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:16:33.264Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:16:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:17:33.192Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:17:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:18:33.278Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:18:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:20:33.280Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:20:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:22:33.113Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 17:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:22:33.115Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-06T16:22:33.128Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 17:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:22:33.145Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 17:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:22:33.147Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 17:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:22:33.190Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:22:33.282Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:22:35.479Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T16:22:46.017Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-06T16:24:33.292Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:24:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:26:33.296Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:26:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:27:33.202Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:27:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:28:33.310Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:28:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:30:33.319Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:30:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:32:33.140Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 17:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:32:33.143Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 17:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:32:33.202Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:32:33.326Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:34:33.338Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:34:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:36:33.341Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:36:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:37:33.124Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 17:37:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:37:33.201Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:37:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:37:35.176Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T16:38:33.356Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:38:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:40:33.355Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:40:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:42:33.140Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 17:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:42:33.143Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 17:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:42:33.201Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:42:33.356Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:44:33.369Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:44:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:46:33.381Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:46:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:47:33.200Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:47:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:48:33.385Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:48:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:50:33.388Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:50:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:52:33.100Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 17:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:52:33.101Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-06T16:52:33.131Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 17:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:52:33.135Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 17:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:52:33.138Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 17:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:52:33.208Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:52:33.394Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:52:35.616Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T16:52:46.353Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-06T16:54:33.409Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:54:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:56:33.407Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:56:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:57:33.221Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 17:57:33"
+  },
+  {
+    "timestamp": "2026-06-06T16:58:33.422Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 17:58:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:00:33.426Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:00:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:02:33.146Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 18:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:02:33.149Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 18:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:02:33.224Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:02:33.425Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:04:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:04:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:06:33.425Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:06:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:07:33.130Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 18:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:07:33.223Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:07:35.122Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T17:08:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:08:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:10:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:10:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:12:33.145Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 18:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:12:33.147Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 18:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:12:33.222Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:12:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:14:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:14:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:16:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:16:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:17:33.222Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:17:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:18:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:18:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:20:33.423Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:20:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:22:33.098Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 18:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:22:33.100Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-06T17:22:33.129Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 18:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:22:33.145Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 18:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:22:33.147Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 18:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:22:33.222Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:22:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:22:35.396Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T17:22:45.696Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-06T17:24:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:24:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:26:33.424Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:26:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:27:33.222Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:27:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:28:33.438Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:28:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:30:33.438Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:30:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:32:33.142Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 18:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:32:33.145Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 18:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:32:33.220Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:32:33.452Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:34:33.451Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:34:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:36:33.452Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:36:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:37:33.125Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 18:37:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:37:33.233Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:37:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:37:35.203Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T17:38:33.465Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:38:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:40:33.464Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:40:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:42:33.138Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 18:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:42:33.141Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 18:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:42:33.231Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:42:33.464Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:44:33.464Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:44:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:46:33.464Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:46:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:47:33.231Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:47:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:48:33.464Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:48:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:50:33.464Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:50:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:52:33.092Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 18:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:52:33.095Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-06T17:52:33.123Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 18:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:52:33.139Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 18:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:52:33.141Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 18:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:52:33.232Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:52:33.465Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:52:35.333Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T17:52:45.816Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-06T17:54:33.479Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:54:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:56:33.479Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:56:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:57:33.231Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 18:57:33"
+  },
+  {
+    "timestamp": "2026-06-06T17:58:33.479Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 18:58:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:00:33.479Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:00:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:02:33.137Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 19:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:02:33.140Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 19:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:02:33.230Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:02:33.478Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:04:33.478Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:04:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:06:33.478Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:06:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:07:33.122Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 19:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:07:33.231Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:07:35.171Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T18:08:33.479Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:08:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:10:33.479Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:10:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:12:33.138Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 19:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:12:33.140Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 19:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:12:33.230Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:12:33.494Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:14:33.509Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:14:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:16:33.509Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:16:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:17:33.230Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:17:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:18:33.524Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:18:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:20:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:20:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:22:33.090Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 19:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:22:33.091Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-06T18:22:33.120Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 19:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:22:33.136Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 19:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:22:33.138Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 19:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:22:33.229Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:22:33.525Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:22:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:22:35.360Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T18:22:45.974Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-06T18:24:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:24:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:26:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:26:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:27:33.228Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:27:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:28:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:28:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:30:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:30:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:32:33.135Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 19:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:32:33.138Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 19:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:32:33.228Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:32:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:32:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:34:33.522Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:34:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:36:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:36:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:37:33.119Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 19:37:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:37:33.228Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:37:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:37:35.157Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T18:38:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:38:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:40:33.523Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:40:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:42:33.135Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 19:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:42:33.137Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 19:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:42:33.228Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:42:33.522Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:42:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:44:33.536Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:44:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:46:33.549Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:46:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:47:33.239Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:47:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:48:33.563Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:48:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:50:33.563Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:50:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:52:33.081Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 19:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:52:33.083Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-06T18:52:33.128Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 19:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:52:33.131Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 19:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:52:33.134Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 19:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:52:33.251Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:52:33.574Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:52:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:52:35.367Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T18:52:46.066Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-06T18:54:33.575Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:54:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:56:33.590Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:56:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:57:33.264Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 19:57:33"
+  },
+  {
+    "timestamp": "2026-06-06T18:58:33.590Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 19:58:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:00:33.604Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 20:00:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:02:33.137Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 20:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:02:33.140Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 20:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:02:33.277Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 20:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:02:33.618Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 20:02:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:04:33.632Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 20:04:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:06:33.631Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 20:06:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:07:33.135Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 20:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:07:33.274Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 20:07:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:07:35.136Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-06T19:08:33.646Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 20:08:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:10:33.659Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 20:10:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:12:33.132Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 20:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:12:33.135Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 20:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:12:33.272Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 20:12:33"
+  },
+  {
+    "timestamp": "2026-06-06T19:12:33.660Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 20:12:33"
   }
 ]

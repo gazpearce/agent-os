@@ -7336,19 +7336,36 @@ export default function App() {
 
       {/* ─── SYSTEM SETTINGS OVERLAY MODAL ─── */}
       {isSettingsModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[150] animate-in fade-in duration-200">
-          <div className="w-[1000px] h-[720px] bg-[#070714]/95 border border-white/[0.08] rounded-2xl flex flex-col overflow-hidden shadow-2xl relative">
+        <div 
+          onClick={() => setIsSettingsModalOpen(false)}
+          className="fixed inset-0 bg-black/75 backdrop-blur-lg flex items-center justify-center z-[150] animate-in fade-in duration-300"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()} // Stop click propagation to prevent modal closure
+            className="w-[1000px] h-[720px] bg-[#060611]/98 border border-white/[0.06] rounded-3xl flex flex-col overflow-hidden shadow-[0_0_80px_rgba(79,70,229,0.18)] relative transition-all duration-300 animate-in zoom-in-95 ease-out"
+          >
             <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
             
             {/* Header */}
-            <div className="glass-strong h-14 flex items-center justify-between px-6 shrink-0 border-b border-white/[0.05] bg-[#03030d]/80 select-none">
-              <div className="flex items-center gap-2">
-                <Settings className="text-indigo-400" size={16} />
-                <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">⚙️ System Configuration & Swarm Settings</span>
+            <div className="glass-strong h-16 flex items-center justify-between px-6 shrink-0 border-b border-white/[0.05] bg-[#03030b]/90 select-none">
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setIsSettingsModalOpen(false)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 hover:scale-[1.02] text-white text-[9px] font-extrabold uppercase tracking-wider transition-all cursor-pointer shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                >
+                  ← Back to Workspace
+                </button>
+                <div className="flex items-center gap-2.5">
+                  <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                    <Settings className="animate-spin-slow" size={14} />
+                  </div>
+                  <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">System Configuration & Swarm Settings</span>
+                </div>
               </div>
               <button 
                 onClick={() => setIsSettingsModalOpen(false)} 
-                className="p-1 rounded bg-white/[0.03] hover:bg-white/[0.08] text-gray-500 hover:text-white cursor-pointer transition-colors"
+                className="p-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.08] hover:text-white text-gray-400 border border-white/[0.04] cursor-pointer transition-all hover:scale-105"
+                title="Close settings and return to workspace"
               >
                 <X size={14} />
               </button>
