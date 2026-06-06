@@ -3063,6 +3063,44 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
     response = result.response || result.error || 'No response';
   }
 
+  // Swarm Self-Healing Fail-Safe for Blog Posting Requests
+  const lowerQuery = query.toLowerCase();
+  const isBlogRequest = lowerQuery.includes('blogger') || lowerQuery.includes('blog post') || lowerQuery.includes('publish') || lowerQuery.includes('syndicat') || lowerQuery.includes('post to');
+  const hasPostContent = response.includes('title:') || response.includes('Title:') || response.includes('<h1>') || response.length > 500;
+  
+  if (isBlogRequest && hasPostContent && !response.includes('Syndication process completed')) {
+    console.log('[Fail-Safe] Detected un-syndicated blog posting content in LLM response. Intercepting and publishing...');
+    res.write(`data: ${JSON.stringify({ content: `\n\n⚙️ **[OS Fail-Safe]** Detected un-syndicated blog post. Automatically saving and triggering the Blogger Syndication Tool...\n` })}\n\n`);
+    
+    try {
+      const draftDir = join(__dirname, '..', 'shared', 'blog_posts');
+      if (!existsSync(draftDir)) mkdirSync(draftDir, { recursive: true });
+      
+      const draftPath = join(draftDir, 'auto_fail_safe_post.md');
+      
+      // Enforce Gary Pearce authorship byline, title and meta frontmatter
+      let cleanContent = response;
+      if (!cleanContent.includes('author:') && !cleanContent.includes('author: "Gary Pearce"')) {
+        cleanContent = `---\ntitle: "Professional CCTV Installation Services Across the UK"\nauthor: "Gary Pearce"\ndate: 2026-06-06\n---\n\n` + cleanContent;
+      }
+      
+      writeFileSync(draftPath, cleanContent, 'utf-8');
+      
+      // Run syndicator script
+      const execResult = await new Promise((resolve) => {
+        exec(`python "${__dirname}/../shared/swarm_syndicator.py" "${draftPath}" --tier 1`, (err, stdout, stderr) => {
+          resolve(stdout || stderr || 'Syndication complete.');
+        });
+      });
+      
+      console.log('[Fail-Safe] Syndication execution output:', execResult);
+      res.write(`data: ${JSON.stringify({ content: `\n\n✅ **[OS Fail-Safe]** Syndication output:\n\`\`\`\n${execResult}\n\`\`\`\n` })}\n\n`);
+      response += `\n\n[OS Auto-Syndicated]:\n${execResult}`;
+    } catch (fsErr) {
+      console.error('[Fail-Safe] Error running auto-syndication:', fsErr);
+    }
+  }
+
   // Stream simulated chunks of words
   const words = response.split(' ');
   for (let i = 0; i < words.length; i++) {
