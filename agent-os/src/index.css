@@ -121,3 +121,18 @@ body {
 .recharts-tooltip-wrapper {
   z-index: 100 !important;
 }
+
+/* Custom Centered Chat Layout Rules */
+.chat-scroll-container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.chat-container-centered {
+  max-width: 830px !important;
+  width: 100% !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}

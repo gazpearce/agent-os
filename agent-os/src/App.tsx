@@ -7,7 +7,7 @@ import {
   Layers, Radio, Shield, Terminal, Database, Workflow, TerminalSquare, RefreshCw,
   ChevronLeft, ChevronRight, Plus, Trash2, Save, Play, Users, Kanban,
   Network, FileText, X, ExternalLink, Globe, Puzzle, Download, Search, Filter,
-  Target, FolderOpen, XCircle, Settings
+  Target, FolderOpen, XCircle, Settings, MessageSquare, Send, Loader2
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -36,6 +36,56 @@ interface ChatMessage {
   time: string;
   isError?: boolean;
   tools?: string[];
+}
+
+interface ThreadedMessage extends ChatMessage {
+  replies?: ThreadedMessage[];
+}
+
+function buildMessageTree(messages: ChatMessage[]): ThreadedMessage[] {
+  const tree: ThreadedMessage[] = [];
+  let currentBrainstorm: ThreadedMessage | null = null;
+  let currentCritique: ThreadedMessage | null = null;
+
+  messages.forEach((msg) => {
+    const threaded: ThreadedMessage = { ...msg, replies: [] };
+    const id = msg.id || "";
+
+    if (id.startsWith("msg_brainstorm_")) {
+      if (
+        id.includes("_agy_") ||
+        id.includes("_orchestrator_") ||
+        id.includes("_openclaw_") ||
+        id.includes("_hermes_") ||
+        id.includes("_claude_") ||
+        id.startsWith("msg_brainstorm_end_")
+      ) {
+        if (currentBrainstorm) {
+          currentBrainstorm.replies?.push(threaded);
+        } else {
+          tree.push(threaded);
+        }
+      } else {
+        currentBrainstorm = threaded;
+        tree.push(threaded);
+      }
+    } else if (id.startsWith("msg_critique_")) {
+      if (id.startsWith("msg_critique_header_")) {
+        currentCritique = threaded;
+        tree.push(threaded);
+      } else {
+        if (currentCritique) {
+          currentCritique.replies?.push(threaded);
+        } else {
+          tree.push(threaded);
+        }
+      }
+    } else {
+      tree.push(threaded);
+    }
+  });
+
+  return tree;
 }
 
 interface SessionInfo {
@@ -3723,9 +3773,150 @@ export default function App() {
     }
   ]);
   const [threadLoading, setThreadLoading] = useState<Record<string, boolean>>({});
+  const [expandedThreads, setExpandedThreads] = useState<Record<string, boolean>>({});
+  const [threadReplyInputs, setThreadReplyInputs] = useState<Record<string, string>>({});
 
   // Swarm & Specialist Chat Thread States
   const [chatMode, setChatMode] = useState<'collab' | 'single'>('collab');
+  const [activeSpecialistId, setActiveSpecialistId] = useState<string | null>(null);
+  const [specialistChatInput, setSpecialistChatInput] = useState<string>("");
+
+  const handleOpenSpecialistPanel = async (agentId: string) => {
+    setActiveSpecialistId(agentId);
+    
+    if (!chatThreads[agentId]) {
+      const targetAgentObj = agents.find(a => a.id === agentId) || agents[0];
+      const initialMsgs = [
+        {
+          id: `welcome-${agentId}`,
+          agent: agentId,
+          msg: `### ${targetAgentObj?.name || agentId} at your service ⚡\nRole: *${targetAgentObj?.role || 'Specialist Agent'}*\nLayer: **${targetAgentObj?.layer || 'L3'}**\n\nHow can I assist you with your tasks today?`,
+          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        }
+      ];
+      
+      if (activeSessionId) {
+        try {
+          const res = await fetch(`/api/session-detail?id=${activeSessionId}`);
+          if (res.ok) {
+            const data = await res.json();
+            const rawList = Array.isArray(data) ? data : (data.messages || []);
+            const filtered = rawList
+              .map((m: any) => ({
+                id: m.id,
+                agent: m.agent || (m.role === 'user' ? 'user' : 'hermes'),
+                msg: m.content,
+                parentId: m.parentId,
+                time: m.created_at
+                  ? new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+                  : 'Restored'
+              }))
+              .filter((m: any) => 
+                (m.agent === 'user' && m.parentId === agentId) || 
+                (m.agent === agentId && (!m.id || (!m.id.startsWith('msg_brainstorm_') && !m.id.startsWith('msg_critique_'))))
+              );
+            
+            if (filtered.length > 0) {
+              setChatThreads(prev => ({
+                ...prev,
+                [agentId]: [initialMsgs[0], ...filtered]
+              }));
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Failed to fetch specialist history:", e);
+        }
+      }
+      
+      setChatThreads(prev => ({
+        ...prev,
+        [agentId]: initialMsgs
+      }));
+    }
+  };
+
+  const handleSendSpecialistMessage = async (agentId: string) => {
+    const text = specialistChatInput;
+    if (!text.trim()) return;
+    
+    const userMsgId = 'msg-direct-' + Date.now();
+    const newUserMsg = {
+      id: userMsgId,
+      agent: 'user',
+      msg: text,
+      parentId: agentId,
+      time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    };
+    
+    setChatThreads(prev => ({
+      ...prev,
+      [agentId]: [...(prev[agentId] || []), newUserMsg]
+    }));
+    setSpecialistChatInput("");
+    setThreadLoading(prev => ({ ...prev, [agentId]: true }));
+    
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: text,
+          model: activeModel,
+          agent: agentId,
+          activeSessionId: activeSessionId
+        })
+      });
+      
+      if (res.ok && res.body?.getReader) {
+        const assistantMsgId = 'msg-reply-' + Date.now();
+        setChatThreads(prev => ({
+          ...prev,
+          [agentId]: [...(prev[agentId] || []), {
+            id: assistantMsgId,
+            agent: agentId,
+            msg: "",
+            time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+          }]
+        }));
+        
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let accumulated = "";
+        
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("data: ")) {
+              const dataText = trimmed.slice(6).trim();
+              if (dataText === "[DONE]") continue;
+              try {
+                const parsed = JSON.parse(dataText);
+                if (parsed.content) {
+                  accumulated += parsed.content;
+                  setChatThreads(prev => {
+                    const currentList = prev[agentId] || [];
+                    return {
+                      ...prev,
+                      [agentId]: currentList.map(m => m.id === assistantMsgId ? { ...m, msg: accumulated } : m)
+                    };
+                  });
+                }
+              } catch {}
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to send direct message to agent:", e);
+    } finally {
+      setThreadLoading(prev => ({ ...prev, [agentId]: false }));
+    }
+  };
   const [chatThreads, setChatThreads] = useState<Record<string, ChatMessage[]>>(() => {
     return {
       collab: [
@@ -4208,9 +4399,11 @@ export default function App() {
             time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
             tools: []
           }]);
+          let activeWriteMsgId = assistantMsgId;
+          const accumulatedResponses: Record<string, string> = { [activeWriteMsgId]: "" };
+          
           const reader = res.body.getReader();
           const decoder = new TextDecoder();
-          let accumulatedResponse = "";
           while (true) {
             const { value, done } = await reader.read();
             if (done) break;
@@ -4223,8 +4416,46 @@ export default function App() {
                 if (dataText === "[DONE]") continue;
                 try {
                   const parsed = JSON.parse(dataText);
+                  if (parsed.sessionId) {
+                    setActiveSessionId(parsed.sessionId);
+                    fetchSessionsList();
+                  }
+                  
+                  if (parsed.newMsgId) {
+                    activeWriteMsgId = parsed.newMsgId;
+                    if (!accumulatedResponses[activeWriteMsgId]) {
+                      accumulatedResponses[activeWriteMsgId] = "";
+                      
+                      // Auto expand new sub-threads
+                      const isNewBrainstormHeader = activeWriteMsgId.startsWith('msg_brainstorm_') && 
+                        !activeWriteMsgId.includes('_agy_') && 
+                        !activeWriteMsgId.includes('_orchestrator_') && 
+                        !activeWriteMsgId.includes('_openclaw_') && 
+                        !activeWriteMsgId.includes('_hermes_') && 
+                        !activeWriteMsgId.includes('_claude_');
+                      const isNewCritiqueHeader = activeWriteMsgId.startsWith('msg_critique_header_');
+                      if (isNewBrainstormHeader || isNewCritiqueHeader) {
+                        setExpandedThreads(prev => ({ ...prev, [activeWriteMsgId]: true }));
+                      }
+
+                      setChatMessages(prev => {
+                        if (prev.some(m => m.id === activeWriteMsgId)) return prev;
+                        return [...prev, {
+                          id: activeWriteMsgId,
+                          agent: parsed.agent || targetAgent,
+                          msg: "",
+                          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
+                          tools: []
+                        }];
+                      });
+                    }
+                  }
+
                   if (parsed.content) {
-                    accumulatedResponse += parsed.content;
+                    if (accumulatedResponses[activeWriteMsgId] === undefined) {
+                      accumulatedResponses[activeWriteMsgId] = "";
+                    }
+                    accumulatedResponses[activeWriteMsgId] += parsed.content;
                     if (voiceUpdatesEnabled) {
                       const text = parsed.content;
                       if (
@@ -4246,13 +4477,13 @@ export default function App() {
                   }
                   setChatMessages(prev => {
                     const updated = [...prev];
-                    const idx = updated.findIndex(m => m.id === assistantMsgId);
+                    const idx = updated.findIndex(m => m.id === activeWriteMsgId);
                     if (idx !== -1) {
                       const current = updated[idx];
                       const newTools = parsed.tool ? [...(current.tools || []), parsed.tool] : current.tools || [];
                       updated[idx] = { 
                         ...current, 
-                        msg: accumulatedResponse,
+                        msg: accumulatedResponses[activeWriteMsgId],
                         tools: newTools
                       };
                     }
@@ -4267,7 +4498,8 @@ export default function App() {
           }
           // URL auto-open for streaming too
           const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
-          const msgMatch = accumulatedResponse.match(urlRegex) || [];
+          const finalResponse = accumulatedResponses[activeWriteMsgId] || "";
+          const msgMatch = finalResponse.match(urlRegex) || [];
           if (msgMatch.length > 0) {
             const href = (msgMatch[0] || "").startsWith("http") ? msgMatch[0] : "http://" + msgMatch[0];
             window.open(href || "https://google.com", "_blank");
@@ -4319,6 +4551,39 @@ export default function App() {
     } finally {
       setThreadLoading(prev => ({ ...prev, [currentThreadId]: false }));
       fetchSessionsList(); // Refresh session list after a query
+    }
+  };
+
+  // Send user intervention comment to the active running swarm
+  const handleSendIntervention = async (text: string, customInputKey?: string) => {
+    if (!text.trim()) return;
+    
+    const userMsgId = 'msg-intervene-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
+    
+    setChatMessages(prev => [...prev, { 
+      id: userMsgId, 
+      agent: "user", 
+      msg: text, 
+      time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) 
+    }]);
+    
+    if (customInputKey) {
+      setThreadReplyInputs(prev => ({ ...prev, [customInputKey]: "" }));
+    } else {
+      setChatInput("");
+    }
+    
+    try {
+      await fetch("/api/chat/intervene", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          activeSessionId
+        })
+      });
+    } catch (err) {
+      console.error("Failed to send intervention:", err);
     }
   };
 
@@ -4474,10 +4739,15 @@ export default function App() {
       const res = await fetch(`/api/session-detail?id=${sessionId}`);
       if (res.ok) {
         const data = await res.json();
-        const mapped = data.map((m: any) => ({
-          agent: m.role === 'user' ? 'user' : 'hermes',
+        const rawList = Array.isArray(data) ? data : (data.messages || []);
+        const mapped = rawList.map((m: any) => ({
+          id: m.id,
+          agent: m.agent || (m.role === 'user' ? 'user' : 'hermes'),
           msg: m.content,
-          time: 'Restored'
+          parentId: m.parentId,
+          time: m.created_at
+            ? new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+            : 'Restored'
         }));
         setChatMessages(mapped.length > 0 ? mapped : [
           { agent: "hermes", msg: "Empty session log context.", time: "System Info" }
@@ -4615,6 +4885,10 @@ export default function App() {
   const currentAgent = chatMode === 'collab'
     ? { id: "orchestrator", name: "Swarm Orchestrator", role: "Manager · Coordinator", icon: <Users size={18} />, status: "online", color: "#6366f1" }
     : (agents.find(a => a.id === activeAgent) || agents[0]);
+
+  const messageTree = chatMode === 'collab'
+    ? buildMessageTree(chatMessages)
+    : chatMessages.map(m => ({ ...m, replies: [] }));
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#020208] text-[#e2e8f0] overflow-hidden selection:bg-indigo-500/30 selection:text-white">
@@ -4858,13 +5132,12 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   {agents.map(agent => {
-                    const isActive = activeAgent === agent.id;
+                    const isActive = activeSpecialistId === agent.id;
                     return (
                       <button
                         key={agent.id}
                         onClick={() => {
-                          handleSwitchThread('single', agent.id);
-                          // Switch to center chat tab when clicking any agent
+                          handleOpenSpecialistPanel(agent.id);
                           setCenterTab("chat");
                         }}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left border transition-all duration-200 cursor-pointer ${
@@ -4971,7 +5244,7 @@ export default function App() {
 
               {agents.map(agent => (
                 <div key={agent.id} className="relative group cursor-pointer" onClick={() => {
-                  handleSwitchThread('single', agent.id);
+                  handleOpenSpecialistPanel(agent.id);
                   setIsLeftCollapsed(false);
                   setCenterTab("chat");
                 }}>
@@ -5078,7 +5351,10 @@ export default function App() {
 
           {/* ─── TAB 1: LIVE CONVERSATIONAL CHAT PANE ─── */}
           {centerTab === "chat" && (
-            <div className="flex-1 flex flex-col overflow-hidden justify-between">
+            <div className="flex-grow flex overflow-hidden w-full h-full relative">
+              <div className={`flex flex-col h-full overflow-hidden justify-between transition-all duration-300 relative ${
+                activeSpecialistId && chatMode === 'collab' ? 'w-3/5 border-r border-white/[0.04]' : 'w-full'
+              }`}>
               {/* Mode Selector Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-950/60 bg-[#070715] shadow-lg select-none shrink-0">
                 <div className="flex items-center gap-4">
@@ -5121,8 +5397,8 @@ export default function App() {
               </div>
 
               {/* Centered Scrollable Conversation */}
-              <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-6 scroll-smooth">
-                <div className="max-w-4xl mx-auto w-full space-y-6">
+              <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-6 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <div className="space-y-6" style={{ maxWidth: '830px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
                   <AnimatePresence>
                     {chatMessages.length === 0 && !isCurrentLoading && (
                       <motion.div
@@ -5141,10 +5417,142 @@ export default function App() {
                         <div className="text-gray-600 text-xs">Send a message to start chatting</div>
                       </motion.div>
                     )}
-                    {chatMessages.map((msg, i) => {
+                    {messageTree.map((msg, i) => {
                       const isUser = msg.agent === "user";
                       const isSystem = msg.agent === "system";
                       const agentMeta = agents.find(a => a.id === msg.agent);
+                      
+                      const isThreadHeader = msg.id && (
+                        (msg.id.startsWith("msg_brainstorm_") && 
+                         !msg.id.includes("_agy_") && 
+                         !msg.id.includes("_orchestrator_") && 
+                         !msg.id.includes("_openclaw_") && 
+                         !msg.id.includes("_hermes_") && 
+                         !msg.id.includes("_claude_")) || 
+                        msg.id.startsWith("msg_critique_header_")
+                      );
+                      const hasReplies = msg.replies && msg.replies.length > 0;
+                      
+                      if (isThreadHeader || hasReplies) {
+                        const uniqueAgents = Array.from(new Set((msg.replies || []).map(r => r.agent)));
+                        const isExpanded = expandedThreads[msg.id || ""] || false;
+                        
+                        return (
+                          <motion.div
+                            key={msg.id || i}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-[#0b0b18]/70 border border-[#1f2347]/50 shadow-xl p-5 rounded-2xl space-y-4"
+                          >
+                            <div className="flex gap-3 items-start">
+                              <div
+                                className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border shadow-lg select-none"
+                                style={{ 
+                                  backgroundColor: `${agentMeta?.color || "#6366f1"}15`, 
+                                  borderColor: `${agentMeta?.color || "#6366f1"}30`,
+                                  color: agentMeta?.color || "#6366f1" 
+                                }}
+                              >
+                                {agentMeta?.icon || <Zap size={16} />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-1.5 select-none">
+                                  <span className="text-[12px] font-bold text-white font-mono">{agentMeta?.name || msg.agent}</span>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleOpenSpecialistPanel(msg.agent)}
+                                      className="text-[10.5px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
+                                      title={`Open 1-on-1 Chat with ${agentMeta?.name || msg.agent}`}
+                                    >
+                                      <MessageSquare size={10} />
+                                      <span>1-on-1</span>
+                                    </button>
+                                    <span className="text-[9px] text-gray-500 font-mono">{msg.time}</span>
+                                  </div>
+                                </div>
+                                <div className="text-[13.5px] text-[#cbd5e1] leading-relaxed">
+                                  <Markdown text={msg.msg} />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Thread Control Info Row */}
+                            <div className="flex items-center justify-between pt-2.5 border-t border-white/[0.04]">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-gray-500 font-mono font-semibold select-none">Participants:</span>
+                                <div className="flex -space-x-1.5 select-none">
+                                  {uniqueAgents.map(aId => {
+                                    const aMeta = agents.find(a => a.id === aId) || { name: aId, color: '#a855f7', icon: <Bot size={12} /> };
+                                    return (
+                                      <div 
+                                        key={aId} 
+                                        className="w-5.5 h-5.5 rounded-full border border-black flex items-center justify-center text-[10px]"
+                                        style={{ backgroundColor: `${aMeta.color}20`, color: aMeta.color, borderColor: `${aMeta.color}40` }}
+                                        title={aMeta.name || aId}
+                                      >
+                                        {aMeta.icon}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+
+                              <button
+                                onClick={() => setExpandedThreads(prev => ({ ...prev, [msg.id!]: !prev[msg.id!] }))}
+                                className="text-xs font-mono font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none"
+                              >
+                                {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                                <span>{isExpanded ? 'Hide discussion' : `Show discussion (${(msg.replies || []).length} replies)`}</span>
+                              </button>
+                            </div>
+
+                            {/* Expanded Nested Replies */}
+                            {isExpanded && (
+                              <div className="pl-4 ml-4 border-l border-white/[0.06] space-y-3 mt-2 relative">
+                                {(msg.replies || []).map((reply, rIdx) => {
+                                  const replyAgentMeta = agents.find(a => a.id === reply.agent) || { name: reply.agent, color: '#a855f7', icon: <Bot size={14} /> };
+                                  return (
+                                    <div key={reply.id || rIdx} className="flex gap-3 items-start animate-[fadeIn_0.2s_ease-out]">
+                                      <div 
+                                        className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 text-[11px]"
+                                        style={{ backgroundColor: `${replyAgentMeta.color}15`, color: replyAgentMeta.color, border: `1px solid ${replyAgentMeta.color}25` }}
+                                      >
+                                        {replyAgentMeta.icon}
+                                      </div>
+                                      <div className="flex-1 min-w-0 bg-white/[0.015] hover:bg-white/[0.025] border border-white/[0.03] rounded-xl px-4 py-2.5 transition-all">
+                                        <div className="flex items-center justify-between mb-1 select-none">
+                                          <span className="text-[11px] font-bold text-white font-mono">{replyAgentMeta.name}</span>
+                                          <span className="text-[8.5px] text-gray-500 font-mono">{reply.time}</span>
+                                        </div>
+                                        <div className="text-[12.5px] text-[#cbd5e1] leading-relaxed">
+                                          <Markdown text={reply.msg} />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+
+                                {/* Inline Thread Reply Input */}
+                                <div className="flex gap-2 items-center bg-black/40 border border-[#1f2347] focus-within:border-indigo-500/40 rounded-xl px-3 py-2 mt-3 transition-all select-none">
+                                  <span className="text-gray-500 font-mono text-xs select-none">&gt;</span>
+                                  <input
+                                    value={threadReplyInputs[msg.id!] || ""}
+                                    onChange={e => setThreadReplyInputs(prev => ({ ...prev, [msg.id!]: e.target.value }))}
+                                    onKeyDown={e => {
+                                      if (e.key === "Enter") {
+                                        handleSendIntervention(threadReplyInputs[msg.id!] || "", msg.id!);
+                                      }
+                                    }}
+                                    placeholder={`Reply to this ${msg.id?.startsWith("msg_brainstorm_") ? "brainstorm" : "critique"} discussion...`}
+                                    className="w-full bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </motion.div>
+                        );
+                      }
+
                       return (
                         <motion.div
                           key={i}
@@ -5184,6 +5592,21 @@ export default function App() {
                               borderColor: `${agentMeta?.color || "#a855f7"}1d`
                             } : undefined}
                           >
+                            {!isUser && !isSystem && !msg.isError && (
+                              <div className="flex items-center justify-between mb-2 select-none border-b border-white/[0.03] pb-1.5">
+                                <span className="text-[11px] font-bold font-mono" style={{ color: agentMeta?.color || '#a855f7' }}>
+                                  {agentMeta?.name || msg.agent}
+                                </span>
+                                <button
+                                  onClick={() => handleOpenSpecialistPanel(msg.agent)}
+                                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
+                                  title={`Open 1-on-1 Chat with ${agentMeta?.name || msg.agent}`}
+                                >
+                                  <MessageSquare size={10} />
+                                  <span>1-on-1</span>
+                                </button>
+                              </div>
+                            )}
                             {msg.isError && (
                               <div className="flex items-center gap-1.5 text-red-400 font-bold mb-2 text-xs select-none">
                                 <AlertTriangle size={12} /> Execution Failure
@@ -5283,18 +5706,25 @@ export default function App() {
               </div>
 
               {/* Centered Floating Input Container */}
-              <div className="p-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none">
-                <div className="max-w-4xl mx-auto w-full">
+              <div className="p-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none flex justify-center w-full">
+                <div className="chat-container-centered">
                   <div className="w-full flex flex-col gap-2">
                     <div className="w-full flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all">
                       <span className="text-gray-500 font-mono pl-4 pr-1 select-none text-[15px]">&gt;</span>
                       <input
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && !isCurrentLoading && handleSendMessage()}
-                        disabled={isCurrentLoading}
-                        placeholder={isCurrentLoading ? `${currentAgent.name} is working...` : `Type your command or ask ${currentAgent.name}...`}
-                        className="w-full bg-transparent pl-2 pr-4 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none disabled:opacity-50"
+                        onKeyDown={e => {
+                          if (e.key === "Enter") {
+                            if (isCurrentLoading) {
+                              handleSendIntervention(chatInput);
+                            } else {
+                              handleSendMessage();
+                            }
+                          }
+                        }}
+                        placeholder={isCurrentLoading ? "Type to chat with AGY / send feedback to active swarm..." : `Type your command or ask ${currentAgent.name}...`}
+                        className="w-full bg-transparent pl-2 pr-4 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none"
                       />
                     </div>
                     
@@ -5367,6 +5797,92 @@ export default function App() {
                   </div>
                 </div>
               </div>
+              </div>
+
+              {/* Right Column: Specialist 1-on-1 Panel */}
+              {activeSpecialistId && chatMode === 'collab' && (() => {
+                const specAgentMeta = agents.find(a => a.id === activeSpecialistId) || { name: activeSpecialistId, color: '#6366f1', icon: <Bot size={16} />, role: 'Specialist Agent' };
+                const specMessages = chatThreads[activeSpecialistId] || [];
+                return (
+                  <div className="w-2/5 flex flex-col h-full overflow-hidden bg-[#070715]/90 border-l border-white/[0.04] backdrop-blur-md justify-between animate-[slideInRight_0.25s_cubic-bezier(0.16,1,0.3,1)]">
+                    {/* Header */}
+                    <div className="glass-strong h-14 flex items-center justify-between px-4 shrink-0 border-b border-white/[0.04] bg-[#03030d]/80 select-none">
+                      <div className="flex items-center gap-2">
+                        <div style={{ color: specAgentMeta.color }} className="drop-shadow-[0_0_5px_rgba(255,255,255,0.15)] shrink-0">{specAgentMeta.icon}</div>
+                        <span className="text-[11px] font-bold text-white uppercase tracking-wider">{specAgentMeta.name} (1-on-1)</span>
+                      </div>
+                      <button 
+                        onClick={() => setActiveSpecialistId(null)}
+                        className="text-gray-500 hover:text-white transition-colors cursor-pointer p-1"
+                        title="Close 1-on-1 Chat"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Scrollable Conversation */}
+                    <div className="flex-grow overflow-y-auto p-4 space-y-4">
+                      {specMessages.map((m, idx) => {
+                        const isUser = m.agent === 'user';
+                        return (
+                          <div key={m.id || idx} className={`flex gap-2.5 ${isUser ? 'justify-end' : ''}`}>
+                            {!isUser && (
+                              <div 
+                                className="w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 border shadow-md"
+                                style={{ backgroundColor: `${specAgentMeta.color}15`, borderColor: `${specAgentMeta.color}30`, color: specAgentMeta.color }}
+                              >
+                                {specAgentMeta.icon}
+                              </div>
+                            )}
+                            <div 
+                              className={`max-w-[80%] rounded-xl px-3.5 py-2.5 break-words text-xs ${
+                                isUser 
+                                  ? 'bg-indigo-600/20 border border-indigo-500/35 text-white shadow-[0_2px_12px_rgba(99,102,241,0.1)]' 
+                                  : 'bg-white/[0.02] border border-white/[0.05] text-[#cbd5e1]'
+                              }`}
+                            >
+                              <Markdown text={m.msg} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {threadLoading[activeSpecialistId] && (
+                        <div className="flex gap-2.5">
+                          <div 
+                            className="w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 border shadow-md bg-white/[0.02] border-white/[0.05] text-indigo-400"
+                          >
+                            <Loader2 size={12} className="animate-spin" />
+                          </div>
+                          <div className="bg-white/[0.015] border border-white/[0.03] text-gray-500 text-[10px] px-3.5 py-2.5 rounded-xl animate-pulse">
+                            Thinking/responding...
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Input Area */}
+                    <div className="p-3 border-t border-white/[0.04] bg-[#03030d]/50 select-none">
+                      <div className="flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500/50 transition-all">
+                        <input 
+                          value={specialistChatInput}
+                          onChange={e => setSpecialistChatInput(e.target.value)}
+                          onKeyDown={e => {
+                            if (e.key === "Enter") handleSendSpecialistMessage(activeSpecialistId);
+                          }}
+                          placeholder={`Ask ${specAgentMeta.name} directly...`}
+                          className="w-full bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none py-1"
+                        />
+                        <button 
+                          onClick={() => handleSendSpecialistMessage(activeSpecialistId)}
+                          className="p-1 text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
+                        >
+                          <Send size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           )}
 

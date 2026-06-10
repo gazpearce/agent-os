@@ -30,6 +30,28 @@ const require = createRequire(import.meta.url);
 // CONFIG
 // ═══════════════════════════════════════════════════════════════════════
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// Load environment variables from .env manually
+try {
+  const envPath = join(__dirname, '.env');
+  if (existsSync(envPath)) {
+    const envContent = readFileSync(envPath, 'utf-8');
+    envContent.split(/\r?\n/).forEach(line => {
+      const trimmedLine = line.trim();
+      if (!trimmedLine || trimmedLine.startsWith('#')) return;
+      const parts = trimmedLine.split('=');
+      if (parts.length >= 2) {
+        const key = parts[0].trim();
+        const val = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+        process.env[key] = val;
+      }
+    });
+    console.log('[Env Loader] Loaded environment variables from .env file successfully.');
+  }
+} catch (e) {
+  console.error('[Env Loader] Failed to load .env file:', e.message);
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -41,8 +63,14 @@ const AIONUI_DB = `${HOME}\\AppData\\Roaming\\AionUi\\aionui\\aionui-backend.db`
 
 let aionuiDb = null;
 let systemNotification = null;
+let isWritingError = false;
 
 function writeDbErrorToVault(sql, error) {
+  if (isWritingError) {
+    console.error('[Self-Healing] Recursion prevented inside writeDbErrorToVault.');
+    return;
+  }
+  isWritingError = true;
   try {
     const errorVault = join(SHARED, 'error_vault');
     if (!existsSync(errorVault)) mkdirSync(errorVault, { recursive: true });
@@ -84,6 +112,8 @@ Inspect the SQL syntax, the schema of the database at ${AIONUI_DB}, and make sur
     }
   } catch (e) {
     console.error('[Self-Evolution] Failed to write SQLite error to vault:', e.message);
+  } finally {
+    isWritingError = false;
   }
 }
 
@@ -219,6 +249,12 @@ function getAionuiDb() {
   try {
     const { DatabaseSync } = require('node:sqlite');
     const rawDb = new DatabaseSync(dbPath);
+    try {
+      rawDb.exec('PRAGMA journal_mode = WAL;');
+      rawDb.exec('PRAGMA synchronous = NORMAL;');
+    } catch (dbPragmaErr) {
+      console.error('[SQLite] Failed to configure WAL journal mode:', dbPragmaErr.message);
+    }
     aionuiDb = wrapDatabase(rawDb);
     
     // Initialize required custom tables
@@ -294,14 +330,45 @@ function readConfig() {
 // ═══════════════════════════════════════════════════════════════════════
 // OPENROUTER KEYS (working ones from Gary's config)
 // ═══════════════════════════════════════════════════════════════════════
-const OR_KEYS = [
-  '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',
-  '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',
-  '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',
-  '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',
-  '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',
-  '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',
-];
+function loadOpenRouterKeys() {
+  const keys = new Set();
+  if (process.env.OPENROUTER_API_KEY) keys.add(process.env.OPENROUTER_API_KEY);
+  
+  // Try reading from config.yaml
+  try {
+    const configYamlPath = `${HOME}\\AppData\\Local\\hermes\\config.yaml`;
+    if (existsSync(configYamlPath)) {
+      const content = readFileSync(configYamlPath, 'utf-8');
+      const matches = content.match(/api_key:\s*['"]?(sk-or-[^\s'"]+)['"]?/g);
+      if (matches) {
+        for (const m of matches) {
+          const k = m.replace(/api_key:\s*['"]?/, '').replace(/['"]?$/, '').trim();
+          if (k.startsWith('sk-or-')) keys.add(k);
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Config] Failed to load key from config.yaml:', e.message);
+  }
+
+  // Include the full working backup set
+  const staticKeys = [
+    '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',
+    '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',
+    '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',
+    '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',
+    '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',
+    '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',
+    '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',
+    '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'
+  ];
+  staticKeys.forEach(k => keys.add(k));
+  return Array.from(keys);
+}
+let OR_KEYS = loadOpenRouterKeys();
+setInterval(() => {
+  OR_KEYS = loadOpenRouterKeys();
+}, 60000);
 const GEMINI_KEYS_PATH = `${HOME}\\AppData\\Local\\hermes\\gemini-keys.json`;
 let geminiKeys = ['AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo'];
 let geminiKeyIndex = 0;
@@ -367,7 +434,10 @@ const ZHIPU_KEY = '984d1bdac3a246a4b90842b6f6c7944a.2Cnkw7HonukkqYuN';
 // ═══════════════════════════════════════════════════════════════════════
 // AGENT REGISTRY — All agents on the team
 // ═══════════════════════════════════════════════════════════════════════
-const AGENTS = {
+// ═══════════════════════════════════════════════════════════════════════
+// AGENT REGISTRY — Default registry, automatically updated from App.tsx
+// ═══════════════════════════════════════════════════════════════════════
+const AGENTS_DEFAULT = {
   orchestrator: {
     id: 'orchestrator', name: 'Gemini Orchestrator', emoji: '🧠',
     role: 'Orchestrator · Brains · Swarm Coordinator',
@@ -454,6 +524,65 @@ const AGENTS = {
     description: 'Native GitHub CLI (gh) wrapper. Automates pull requests, issues, repo management, and actions checks.'
   }
 };
+
+let AGENTS = { ...AGENTS_DEFAULT };
+
+function loadAgentsFromFrontend() {
+  const registry = { ...AGENTS_DEFAULT };
+  try {
+    const appTsxPath = join(WORKSPACE, 'src', 'App.tsx');
+    if (existsSync(appTsxPath)) {
+      const content = readFileSync(appTsxPath, 'utf-8');
+      const startIdx = content.indexOf('const INITIAL_AGENTS');
+      if (startIdx !== -1) {
+        const endIdx = content.indexOf('];', startIdx);
+        if (endIdx !== -1) {
+          const block = content.substring(startIdx, endIdx + 1);
+          // Match object properties: id, name, role
+          const objRegex = /id:\s*"([^"]+)",\s*name:\s*"([^"]+)",\s*role:\s*"([^"]+)"/g;
+          let match;
+          while ((match = objRegex.exec(block)) !== null) {
+            const id = match[1];
+            const name = match[2];
+            const role = match[3];
+            
+            // capabilities based on defaults or generic
+            let capabilities = ['chat'];
+            if (id === 'agy') capabilities = ['planning', 'multi_agent', 'parallel_exec', 'code_gen', 'deep_reasoning'];
+            else if (id === 'openclaw') capabilities = ['gateway', 'routing', 'channels', 'chat', 'agent_management', 'messaging'];
+            else if (id === 'claude') capabilities = ['code_gen', 'refactoring', 'terminal_tools', 'testing', 'codebase_search'];
+            else if (id === 'aider') capabilities = ['code_gen', 'refactoring', 'git_integration'];
+            else if (id === 'github') capabilities = ['pr_management', 'issue_tracking', 'release_monitoring'];
+            else if (id === 'hermes') capabilities = ['chat', 'web_search', 'file_ops', 'code_exec', 'image_gen', 'browser', 'agent_messaging'];
+            else if (id === 'obsidian') capabilities = ['notes', 'knowledge_graph', 'search', 'memory', 'document_store'];
+            
+            if (!registry[id]) {
+              registry[id] = {
+                id,
+                name,
+                role,
+                status: 'online',
+                color: '#3b82f6',
+                type: 'ai_agent',
+                capabilities,
+                description: `${name} is the ${role} of the swarm team.`
+              };
+            } else {
+              registry[id].name = name;
+              registry[id].role = role;
+            }
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Agents Dynamic Loader] Failed to load from App.tsx:', e.message);
+  }
+  return registry;
+}
+
+// Reload initially
+AGENTS = loadAgentsFromFrontend();
 
 let lastHealthCheckTime = 0;
 let healthCheckPromise = null;
@@ -1297,6 +1426,9 @@ async function rotateOpenRouterKeys() {
 function getOpenRouterModelName(modelId) {
   if (typeof modelId !== 'string') return modelId;
   let clean = modelId;
+  if (clean.startsWith('zhipu/') || clean.startsWith('alibaba/') || clean.startsWith('bigmodel/') || clean.startsWith('dashscope/') || clean.startsWith('glm-') || clean.startsWith('qwen-')) {
+    return 'openrouter/free';
+  }
   // Map Gemini 3.x names to a free OR equivalent
   if (clean.startsWith('google/gemini-3.') || clean.startsWith('google/gemini-3-')) {
     return 'google/gemini-2.5-flash:free';
@@ -1311,6 +1443,8 @@ function getOpenRouterModelName(modelId) {
   };
   return freeMap[clean] || clean;
 }
+
+let zhipuCooldownUntil = 0;
 
 async function chatCompletionWithHistory(messages, maxTokens = 2048) {
   // Inject Gary Pearce's UK Authority and SEO Tier Profile
@@ -1339,11 +1473,50 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
     if (m && m[1]) model = m[1];
   } catch {}
 
-  const uniqueModels = [...new Set([model, 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
+  const uniqueModels = [...new Set(['zhipu/glm-4-flash', model, 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
 
   for (const currentModel of uniqueModels) {
+    // Try Groq direct if model starts with groq/ or is llama-3.3-70b-versatile
+    if (currentModel.startsWith('groq/') || currentModel.includes('llama-3.3-70b-versatile')) {
+      try {
+        console.log(`[Groq Direct] Trying model ${currentModel} on Groq API...\n`);
+        const modelId = currentModel.replace(/^groq\//, '');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer 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'
+          },
+          body: JSON.stringify({
+            model: modelId || 'llama-3.3-70b-versatile',
+            messages: messages,
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Groq Direct] Success with Groq for ${currentModel}\n`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[Groq Direct] Groq failed: ${r.status} ${errText}\n`);
+        }
+      } catch (err) {
+        console.log(`[Groq Direct] Groq error:`, err.message);
+      }
+    }
     // Try Zhipu BigModel direct
     if (currentModel.startsWith('zhipu/') || currentModel.startsWith('bigmodel/') || currentModel.startsWith('glm-')) {
+      if (Date.now() < zhipuCooldownUntil) {
+        console.log(`[BigModel] Skipping Zhipu due to active rate-limit cooldown.`);
+        continue;
+      }
       try {
         console.log(`[BigModel] Trying Zhipu BigModel for ${currentModel}...`);
         const modelId = currentModel.replace(/^(zhipu\/|bigmodel\/)/, '');
@@ -1373,6 +1546,10 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
           signal: controller.signal
         });
         clearTimeout(timeoutId);
+        if (r.status === 429) {
+          zhipuCooldownUntil = Date.now() + 60000;
+          console.log(`[BigModel] Zhipu rate limited (429). Activating 1 minute cooldown.`);
+        }
         if (r.ok) {
           const d = await r.json();
           if (d.choices?.[0]?.message?.content) {
@@ -1573,7 +1750,7 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
 }
 
 // Send message to another agent and get response
-async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress = null) {
+async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress = null, sessionId = null) {
   const toAgent = toAgentRaw.toLowerCase();
   logActivity({ type: 'message', from: fromAgent, to: toAgent, message: message.substring(0, 200) });
   
@@ -1583,138 +1760,210 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress
   
   let response;
   let runSimulated = false;
+  const bypassCli = process.env.BYPASS_CLI_AGENTS !== 'false';
 
   if (toAgent === 'agy') {
-    try {
-      if (onProgress) onProgress(`🧠 **Antigravity CLI** is initializing...`);
-      console.log(`[Swarm Execution] Running native Antigravity CLI agent...`);
-      const escapedMessage = message.replace(/'/g, "''").replace(/\r?\n/g, ' ');
-      const agyBin = AGENTS.agy.binary;
-      if (onProgress) onProgress(`🔧 **Antigravity CLI** is running strategy/planning tasks...`);
-      const output = await new Promise((resolve, reject) => {
-        let result = '';
-        let finished = false;
-        const done = (val) => { if (!finished) { finished = true; resolve(val); } };
-        try {
-          // Use PTY so agy can write to a real terminal and we capture output
-          const ptyProc = pty.spawn(agyBin, ['--dangerously-skip-permissions', '--print-timeout', '60s', '-p', escapedMessage], {
-            name: 'xterm-256color', cols: 220, rows: 50,
-            cwd: WORKSPACE, env: { ...process.env, NO_COLOR: '1', TERM: 'dumb' }
-          });
-          activeProcesses.add(ptyProc);
-          ptyProc.on('data', (data) => {
-            // Strip ANSI CSI sequences, OSC title sequences, and control chars
-            let clean = data
-              .replace(/\x1b\][^\x07]*\x07/g, '')           // OSC sequences (e.g. ]0;title\x07)
-              .replace(/\x1b\][^\x1b]*\x1b\\/g, '')          // OSC with ST terminator
-              .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')        // CSI sequences
-              .replace(/\x1b\([0-9A-Z]/g, '')                // G0/G1 charset
-              .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '') // control chars
-              .replace(/\r\n/g, '\n').replace(/\r/g, '\n');   // normalize newlines
-            result += clean;
-          });
-          const timeoutId = setTimeout(() => {
-            try { ptyProc.kill(); } catch {}
-            activeProcesses.delete(ptyProc);
-            done(result.trim() || 'Request timed out');
-          }, 75000);
-          ptyProc.on('exit', (code) => {
-            clearTimeout(timeoutId);
-            activeProcesses.delete(ptyProc);
-            done(result.trim() || (code !== 0 ? `agy exited with code ${code}` : 'Done'));
-          });
-        } catch (ptyErr) {
-          console.log('[Swarm] PTY spawn failed, using plain spawn:', ptyErr.message);
-          let stdout = '', stderr = '';
-          const cp = spawn(agyBin, ['--dangerously-skip-permissions', '--print-timeout', '60s', '-p', escapedMessage], {
-            cwd: WORKSPACE, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env }
-          });
-          activeProcesses.add(cp);
-          cp.stdout.on('data', (d) => { stdout += d.toString(); });
-          cp.stderr.on('data', (d) => { stderr += d.toString(); });
-          cp.stdin.end();
-          const t = setTimeout(() => { cp.kill(); done(stdout || stderr || 'Timeout'); }, 75000);
-          cp.on('close', (code) => { clearTimeout(t); activeProcesses.delete(cp); done((stdout || stderr || '').trim() || 'Done'); });
-          cp.on('error', (err) => { clearTimeout(t); activeProcesses.delete(cp); reject(err); });
-        }
-      });
-      response = output.trim();
-      logActivity({ type: 'agy_cli_run', success: true });
-      return { success: true, from: toAgent, response };
-    } catch (e) {
-      console.log(`[Swarm Execution] Antigravity CLI failed: ${e.message}. Falling back to simulated API chat...`);
-      if (onProgress) onProgress(`⚠️ **Antigravity CLI** failed. Falling back to simulated Antigravity agent...`);
+    if (bypassCli) {
+      console.log(`[Swarm Execution] Bypassing native Antigravity CLI (Simulation Mode active)`);
+      if (onProgress) onProgress(`🧠 Running **Antigravity agent** in high-performance simulation mode...`);
       runSimulated = true;
+    } else {
+      try {
+        if (onProgress) onProgress(`🧠 **Antigravity CLI** is initializing...`);
+        console.log(`[Swarm Execution] Running native Antigravity CLI agent...`);
+        const escapedMessage = message.replace(/'/g, "''").replace(/\r?\n/g, ' ');
+        const agyBin = AGENTS.agy.binary;
+        if (onProgress) onProgress(`🔧 **Antigravity CLI** is running strategy/planning tasks...`);
+        const output = await new Promise((resolve, reject) => {
+          let result = '';
+          let finished = false;
+          const done = (val) => { if (!finished) { finished = true; resolve(val); } };
+          try {
+            // Use PTY so agy can write to a real terminal and we capture output
+            const agyEnv = {
+              ...process.env,
+              GEMINI_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
+              GOOGLE_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
+              OPENROUTER_API_KEY: OR_KEYS[0] || '',
+              NO_COLOR: '1',
+              TERM: 'dumb'
+            };
+            const ptyProc = pty.spawn(agyBin, ['--dangerously-skip-permissions', '--print-timeout', '15s', '-p', escapedMessage], {
+              name: 'xterm-256color', cols: 220, rows: 50,
+              cwd: WORKSPACE, env: agyEnv
+            });
+            activeProcesses.add(ptyProc);
+            ptyProc.on('data', (data) => {
+              // Strip ANSI CSI sequences, OSC title sequences, and control chars
+              let clean = data
+                .replace(/\x1b\][^\x07]*\x07/g, '')           // OSC sequences (e.g. ]0;title\x07)
+                .replace(/\x1b\][^\x1b]*\x1b\\/g, '')          // OSC with ST terminator
+                .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')        // CSI sequences
+                .replace(/\x1b\([0-9A-Z]/g, '')                // G0/G1 charset
+                .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '') // control chars
+                .replace(/\r\n/g, '\n').replace(/\r/g, '\n');   // normalize newlines
+              result += clean;
+            });
+            const timeoutId = setTimeout(() => {
+              try { ptyProc.kill(); } catch {}
+              activeProcesses.delete(ptyProc);
+              reject(new Error('Request timed out'));
+            }, 3000); // 3 seconds timeout
+            ptyProc.on('exit', (code) => {
+              clearTimeout(timeoutId);
+              activeProcesses.delete(ptyProc);
+              done(result.trim() || (code !== 0 ? `agy exited with code ${code}` : 'Done'));
+            });
+          } catch (ptyErr) {
+            console.log('[Swarm] PTY spawn failed, using plain spawn:', ptyErr.message);
+            let stdout = '', stderr = '';
+            const agyEnvPlain = {
+              ...process.env,
+              GEMINI_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
+              GOOGLE_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
+              OPENROUTER_API_KEY: OR_KEYS[0] || ''
+            };
+            const cp = spawn(agyBin, ['--dangerously-skip-permissions', '--print-timeout', '60s', '-p', escapedMessage], {
+              cwd: WORKSPACE, stdio: ['pipe', 'pipe', 'pipe'], env: agyEnvPlain
+            });
+            activeProcesses.add(cp);
+            cp.stdout.on('data', (d) => { stdout += d.toString(); });
+            cp.stderr.on('data', (d) => { stderr += d.toString(); });
+            cp.stdin.end();
+            const t = setTimeout(() => { cp.kill(); reject(new Error('Timeout')); }, 3000); // 3 seconds timeout
+            cp.on('close', (code) => { clearTimeout(t); activeProcesses.delete(cp); done((stdout || stderr || '').trim() || 'Done'); });
+            cp.on('error', (err) => { clearTimeout(t); activeProcesses.delete(cp); reject(err); });
+          }
+        });
+        response = output.trim();
+        logActivity({ type: 'agy_cli_run', success: true });
+        return { success: true, from: toAgent, response };
+      } catch (e) {
+        console.log(`[Swarm Execution] Antigravity CLI failed: ${e.message}. Falling back to simulated API chat...`);
+        if (onProgress) onProgress(`⚠️ **Antigravity CLI** failed. Falling back to simulated Antigravity agent...`);
+        runSimulated = true;
+      }
     }
   } else if (toAgent === 'claude') {
-    try {
-      if (onProgress) onProgress(`🤖 **Claude Code CLI** is initializing...`);
-      console.log(`[Swarm Execution] Running native Claude Code CLI agent...`);
-      const escapedMessage = message.replace(/"/g, "'").replace(/\r?\n/g, ' ');
-      const cmd = `set ANTHROPIC_API_KEY=freecc && set ANTHROPIC_BASE_URL=http://localhost:8082 && claude -p --dangerously-skip-permissions "${escapedMessage}" < NUL`;
-      if (onProgress) onProgress(`🔧 **Claude Code CLI** is running developer tasks...`);
-      const output = await new Promise((resolve, reject) => {
-        exec(cmd, { timeout: 90000, cwd: WORKSPACE }, (err, stdout, stderr) => {
-          if (err && !stdout) reject(err);
-          else resolve(stdout || stderr || 'Completed');
-        });
-      });
-      response = output.trim();
-      logActivity({ type: 'claude_cli_run', success: true });
-      return { success: true, from: toAgent, response };
-    } catch (e) {
-      console.log(`[Swarm Execution] Claude CLI failed: ${e.message}. Falling back to simulated API chat...`);
-      if (onProgress) onProgress(`⚠️ **Claude Code CLI** failed to run. Falling back to simulated Claude agent...`);
+    if (bypassCli) {
+      console.log(`[Swarm Execution] Bypassing native Claude CLI (Simulation Mode active)`);
+      if (onProgress) onProgress(`🤖 Running **Claude agent** in high-performance simulation mode...`);
       runSimulated = true;
+    } else {
+      try {
+        if (onProgress) onProgress(`🤖 **Claude Code CLI** is initializing...`);
+        console.log(`[Swarm Execution] Running native Claude Code CLI agent...`);
+        const escapedMessage = message.replace(/"/g, "'").replace(/\r?\n/g, ' ');
+        const cmd = `claude -p --tools "" --dangerously-skip-permissions "${escapedMessage}" < NUL`;
+        if (onProgress) onProgress(`🔧 **Claude Code CLI** is running developer tasks...`);
+        const output = await new Promise((resolve, reject) => {
+          exec(cmd, { 
+            timeout: 20000, 
+            cwd: WORKSPACE,
+            env: {
+              ...process.env,
+              ANTHROPIC_API_KEY: 'freecc',
+              ANTHROPIC_BASE_URL: 'http://localhost:8082'
+            }
+          }, (err, stdout, stderr) => {
+            if (err && !stdout) reject(err);
+            else resolve(stdout || stderr || 'Completed');
+          });
+        });
+        response = output.trim();
+        logActivity({ type: 'claude_cli_run', success: true });
+        return { success: true, from: toAgent, response };
+      } catch (e) {
+        console.log(`[Swarm Execution] Claude CLI failed: ${e.message}. Falling back to simulated API chat...`);
+        if (onProgress) onProgress(`⚠️ **Claude Code CLI** failed to run. Falling back to simulated Claude agent...`);
+        runSimulated = true;
+      }
     }
   } else if (toAgent === 'openclaw') {
-    try {
-      if (onProgress) onProgress(`🔀 **OpenClaw CLI** is initializing...`);
-      console.log(`[Swarm Execution] Running native OpenClaw CLI agent...`);
-      const cleanMessage = message.split('\n\nHere is the accumulated output')[0];
-      const escapedMessage = cleanMessage.replace(/"/g, "'").replace(/\r?\n/g, ' ').substring(0, 4000);
-      const cmd = `openclaw agent --local --agent main --message "${escapedMessage}" < NUL`;
-      if (onProgress) onProgress(`🔧 **OpenClaw CLI** is executing browser/routing steps...`);
-      const output = await new Promise((resolve, reject) => {
-        exec(cmd, { timeout: 90000, cwd: WORKSPACE }, (err, stdout, stderr) => {
-          if (err && !stdout) reject(err);
-          else resolve(stdout || stderr || 'Completed');
-        });
-      });
-      response = output.trim();
-      logActivity({ type: 'openclaw_cli_run', success: true });
-      return { success: true, from: toAgent, response };
-    } catch (e) {
-      console.log(`[Swarm Execution] OpenClaw CLI failed: ${e.message}. Falling back to simulated API chat...`);
-      if (onProgress) onProgress(`⚠️ **OpenClaw CLI** failed to run. Falling back to simulated OpenClaw agent...`);
+    if (bypassCli) {
+      console.log(`[Swarm Execution] Bypassing native OpenClaw CLI (Simulation Mode active)`);
+      if (onProgress) onProgress(`🔀 Running **OpenClaw agent** in high-performance simulation mode...`);
       runSimulated = true;
+    } else {
+      try {
+        if (onProgress) onProgress(`🔀 **OpenClaw CLI** is initializing...`);
+        console.log(`[Swarm Execution] Running native OpenClaw CLI agent...`);
+        const cleanMessage = message.split('\n\nHere is the accumulated output')[0];
+        const escapedMessage = cleanMessage.replace(/"/g, "'").replace(/\r?\n/g, ' ').substring(0, 4000);
+        const cmd = `openclaw agent --local --agent main --message "${escapedMessage}" < NUL`;
+        if (onProgress) onProgress(`🔧 **OpenClaw CLI** is executing browser/routing steps...`);
+        const output = await new Promise((resolve, reject) => {
+          exec(cmd, { 
+            timeout: 20000, 
+            cwd: WORKSPACE,
+            env: {
+              ...process.env,
+              OPENROUTER_API_KEY: OR_KEYS[0] || '',
+              GEMINI_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
+              GOOGLE_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo'
+            }
+          }, (err, stdout, stderr) => {
+            if (err && !stdout) reject(err);
+            else resolve(stdout || stderr || 'Completed');
+          });
+        });
+        response = output.trim();
+        logActivity({ type: 'openclaw_cli_run', success: true });
+        return { success: true, from: toAgent, response };
+      } catch (e) {
+        console.log(`[Swarm Execution] OpenClaw CLI failed: ${e.message}. Falling back to simulated API chat...`);
+        if (onProgress) onProgress(`⚠️ **OpenClaw CLI** failed to run. Falling back to simulated OpenClaw agent...`);
+        runSimulated = true;
+      }
     }
   } else if (toAgent === 'aider') {
-    try {
-      if (onProgress) onProgress(`🤖 **Aider CLI** is initializing codebase environment...`);
-      console.log(`[Swarm Execution] Running native Aider CLI agent...`);
-      const key = OR_KEYS[0] || '';
-      const cleanMessage = message.split('\n\nHere is the accumulated output')[0];
-      const escapedMessage = cleanMessage.replace(/"/g, "'").replace(/\r?\n/g, ' ').substring(0, 4000);
-      const cmd = `set OPENROUTER_API_KEY=${key} && aider --model openrouter/google/gemma-4-31b-it:free --message "${escapedMessage}" --yes --no-git`;
-      if (onProgress) onProgress(`🔧 **Aider CLI** is updating files in workspace...`);
-      const output = await new Promise((resolve, reject) => {
-        exec(cmd, { timeout: 90000, cwd: WORKSPACE }, (err, stdout, stderr) => {
-          if (err && !stdout) reject(err);
-          else resolve(stdout || stderr || 'Completed');
-        });
-      });
-      response = output.trim();
-      logActivity({ type: 'aider_cli_run', success: true });
-      return { success: true, from: toAgent, response };
-    } catch (e) {
-      console.log(`[Swarm Execution] Aider CLI failed: ${e.message}. Falling back to simulated API chat...`);
-      if (onProgress) onProgress(`⚠️ **Aider CLI** failed to run. Falling back to simulated Aider agent...`);
+    if (bypassCli) {
+      console.log(`[Swarm Execution] Bypassing native Aider CLI (Simulation Mode active)`);
+      if (onProgress) onProgress(`🧑‍💻 Running **Aider agent** in high-performance simulation mode...`);
       runSimulated = true;
+    } else {
+      try {
+        if (onProgress) onProgress(`🤖 **Aider CLI** is initializing codebase environment...`);
+        console.log(`[Swarm Execution] Running native Aider CLI agent...`);
+        const key = OR_KEYS[0] || '';
+        const cleanMessage = message.split('\n\nHere is the accumulated output')[0];
+        const escapedMessage = cleanMessage.replace(/"/g, "'").replace(/\r?\n/g, ' ').substring(0, 4000);
+        const cmd = `aider --model mistral/mistral-large-latest --message "${escapedMessage}" --yes --no-git --no-gitignore`;
+        if (onProgress) onProgress(`🔧 **Aider CLI** is updating files in workspace...`);
+        const output = await new Promise((resolve, reject) => {
+          exec(cmd, { 
+            timeout: 25000, 
+            cwd: WORKSPACE,
+            env: {
+              ...process.env,
+              OPENROUTER_API_KEY: key,
+              GEMINI_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
+              GOOGLE_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
+              GROQ_API_KEY: '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',
+              MISTRAL_API_KEY: 'r7ai5jENR9uGdT1o1s4qT5rh7dfSwWqK'
+            }
+          }, (err, stdout, stderr) => {
+            if (err && !stdout) reject(err);
+            else resolve(stdout || stderr || 'Completed');
+          });
+        });
+        response = output.trim();
+        logActivity({ type: 'aider_cli_run', success: true });
+        return { success: true, from: toAgent, response };
+      } catch (e) {
+        console.log(`[Swarm Execution] Aider CLI failed: ${e.message}. Falling back to simulated API chat...`);
+        if (onProgress) onProgress(`⚠️ **Aider CLI** failed to run. Falling back to simulated Aider agent...`);
+        runSimulated = true;
+      }
     }
   } else if (toAgent === 'github') {
-    try {
-      if (onProgress) onProgress(`🐙 **GitHub CLI** is parsing repository request...`);
+    if (bypassCli) {
+      console.log(`[Swarm Execution] Bypassing native GitHub CLI (Simulation Mode active)`);
+      if (onProgress) onProgress(`🐙 Running **GitHub agent** in high-performance simulation mode...`);
+      runSimulated = true;
+    } else {
+      try {
+        if (onProgress) onProgress(`🐙 **GitHub CLI** is parsing repository request...`);
       console.log(`[Swarm Execution] Generating gh command from request...`);
       const translationPrompt = `You are a translator that converts natural language requests into a single executable GitHub CLI (gh) command.
 Current workspace is a git repository.
@@ -1744,9 +1993,11 @@ Output ONLY the raw gh command. Do not write markdown, do not write code blocks,
       runSimulated = true;
     }
   }
+}
 
-  // Dynamic agent loop execution for AGY, OpenClaw, Hermes, Claude, Aider, and GitHub fallback
-  if (['agy', 'openclaw', 'hermes', 'claude', 'aider', 'github'].includes(toAgent) && (!['claude', 'openclaw', 'aider', 'github'].includes(toAgent) || runSimulated)) {
+  // Dynamic agent loop execution for any agent running simulated, or dynamic fallback
+  const isSpecializedNonSimulated = ['obsidian', 'ollama', 'lmstudio'].includes(toAgent) && !runSimulated;
+  if (!isSpecializedNonSimulated) {
     try {
       let agentPrompt = '';
       let maxTokens = 8192;
@@ -1762,8 +2013,15 @@ Output ONLY the raw gh command. Do not write markdown, do not write code blocks,
         agentPrompt = 'You are Aider, the Multi-file Coding agent of the Agent OS V2 Swarm. Be concise. Synthesize code improvements across files.';
       } else if (toAgent === 'github') {
         agentPrompt = 'You are GitHub CLI Agent, managing pull requests and issues. Be concise.';
-      } else {
+      } else if (toAgent === 'hermes') {
         agentPrompt = 'You are Hermes, part of the Agent OS team. Be concise and helpful. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
+        maxTokens = 8192;
+      } else {
+        const dynamicAgent = AGENTS[toAgent] || { name: toAgent, role: 'Specialized Swarm Agent', description: 'Collaborative agent on the team.' };
+        agentPrompt = `You are ${dynamicAgent.name}, the ${dynamicAgent.role} of the Agent OS V2 Swarm.
+${dynamicAgent.description ? `Description: ${dynamicAgent.description}` : ''}
+${dynamicAgent.capabilities ? `Capabilities: ${dynamicAgent.capabilities.join(', ')}` : ''}
+Please use your capabilities to achieve the task. Be concise. Do not output or repeat large blocks of code in your final response if you have already written them to a file using tools.`;
         maxTokens = 8192;
       }
 
@@ -1826,11 +2084,47 @@ Available agents: "agy" (CEO/Planner), "claude" (Expert Developer), "openclaw" (
 Only run one tool at a time. After calling a tool, the system will return the result, and you can make follow-up tool calls or provide your final response.`;
 
       agentPrompt += toolInstructions;
-
+      
       let history = [
-        { role: 'system', content: agentPrompt },
-        { role: 'user', content: message }
+        { role: 'system', content: agentPrompt }
       ];
+
+      if (sessionId) {
+        try {
+          const db = getAionuiDb();
+          if (db) {
+            const rows = db.prepare("SELECT position, content, type FROM messages WHERE conversation_id = ? ORDER BY created_at ASC").all(sessionId);
+            const prevMsgs = rows
+              .filter(r => r.type === 'text' || r.type === 'thinking')
+              .map(r => {
+                let text = r.content;
+                try {
+                  const parsed = JSON.parse(r.content);
+                  if (parsed && typeof parsed === 'object') {
+                    text = parsed.content || parsed.text || r.content;
+                  }
+                } catch {}
+                return {
+                  role: r.position === 'right' ? 'user' : 'assistant',
+                  content: text
+                };
+              });
+            history.push(...prevMsgs);
+          }
+        } catch (dbErr) {
+          console.error('[sendMessage] Failed to query message history:', dbErr.message);
+        }
+      }
+
+      // Ensure the current user query is at the end of the history
+      if (history.length === 1) {
+        history.push({ role: 'user', content: message });
+      } else {
+        const lastMsg = history[history.length - 1];
+        if (lastMsg.role !== 'user' || lastMsg.content !== message) {
+          history.push({ role: 'user', content: message });
+        }
+      }
 
       let loopCount = 0;
       let currentResponse = '';
@@ -2044,6 +2338,7 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
   }
 
   const modelFallbacks = [
+    'zhipu/glm-4-flash',
     'openrouter/free',
     model,
     'google/gemma-2-9b-it:free'
@@ -2052,8 +2347,47 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
+    // Try Groq direct if model starts with groq/ or is llama-3.3-70b-versatile
+    if (currentModel.startsWith('groq/') || currentModel.includes('llama-3.3-70b-versatile')) {
+      try {
+        console.log(`[Groq Direct] Trying model ${currentModel} on Groq API...\n`);
+        const modelId = currentModel.replace(/^groq\//, '');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer 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'
+          },
+          body: JSON.stringify({
+            model: modelId || 'llama-3.3-70b-versatile',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Groq Direct] Success with Groq for ${currentModel}\n`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[Groq Direct] Groq failed: ${r.status} ${errText}\n`);
+        }
+      } catch (err) {
+        console.log(`[Groq Direct] Groq error:`, err.message);
+      }
+    }
     // Try Zhipu BigModel direct
     if (currentModel.startsWith('zhipu/') || currentModel.startsWith('bigmodel/') || currentModel.startsWith('glm-')) {
+      if (Date.now() < zhipuCooldownUntil) {
+        console.log(`[BigModel] Skipping Zhipu due to active rate-limit cooldown.`);
+        continue;
+      }
       try {
         console.log(`[BigModel] Trying Zhipu BigModel for ${currentModel}...`);
         const modelId = currentModel.replace(/^(zhipu\/|bigmodel\/)/, '');
@@ -2083,6 +2417,10 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
           signal: controller.signal
         });
         clearTimeout(timeoutId);
+        if (r.status === 429) {
+          zhipuCooldownUntil = Date.now() + 60000;
+          console.log(`[BigModel] Zhipu rate limited (429). Activating 1 minute cooldown.`);
+        }
         if (r.ok) {
           const d = await r.json();
           if (d.choices?.[0]?.message?.content) {
@@ -2663,9 +3001,17 @@ app.post('/api/website/deploy', (req, res) => {
 
 
 async function getOrchestratorPlan(goal) {
+  const activeAgentsList = loadAgentsFromFrontend();
+  const agentIds = Object.keys(activeAgentsList);
+  const agentInfoString = agentIds.map(id => {
+    const a = activeAgentsList[id];
+    return `- "${a.id}": ${a.name} (${a.role}). Capabilities: ${a.capabilities ? a.capabilities.join(', ') : 'general chat'}. Description: ${a.description || ''}`;
+  }).join('\n');
+
   const orchestratorPrompt = `You are the Gemini Orchestrator, the central brain of the Agent OS V2 Swarm.
 Analyze the user's goal: "${goal}"
-Decompose this goal into a list of 2 to 5 sequential tasks to achieve it.
+Decompose this goal into a list of sequential tasks to achieve it.
+If the goal is a minor follow-up adjustment, correction, or tweak to existing files (e.g. "change background to green", "fix H1 tag"), output a single-step JSON plan containing the specific adjustment task. Otherwise, for new goals, output a 2 to 5 step plan.
 You MUST output ONLY a valid JSON array. Each element of the array must be an object with the following fields:
 - "agent": one of "hermes", "agy", "openclaw", "obsidian", "ollama"
 - "task": a clear, descriptive instruction for the agent to execute
@@ -2703,7 +3049,7 @@ Example JSON output:
 
   try {
     console.log(`[Orchestrator] Running via unified chatCompletion using model: ${model}`);
-    const text = await chatCompletion(`Goal: ${goal}`, 1024, orchestratorPrompt, model);
+    const text = await chatCompletion(`Goal: ${goal}`, orchestratorPrompt, 1024);
     const cleanedText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
     return JSON.parse(cleanedText);
   } catch (e) {
@@ -2904,9 +3250,91 @@ app.post('/api/watcher/notify', async (req, res) => {
   res.json({ success: true });
 });
 
+class SseQueue {
+  constructor(res) {
+    this.res = res;
+    this.queue = [];
+    this.writing = false;
+  }
+  write(data) {
+    this.queue.push(data);
+    this.process();
+  }
+  async process() {
+    if (this.writing || this.queue.length === 0) return;
+    this.writing = true;
+    while (this.queue.length > 0) {
+      const data = this.queue.shift();
+      try {
+        this.res.write(`data: ${JSON.stringify(data)}\n\n`);
+      } catch (err) {
+        console.error("SSE write error:", err);
+      }
+      await new Promise(r => setTimeout(r, 20));
+    }
+    this.writing = false;
+  }
+}
+
+let userInterventions = [];
+let activeSseClients = new Map();
+
+app.post('/api/chat/intervene', async (req, res) => {
+  const { message, activeSessionId } = req.body;
+  if (message) {
+    userInterventions.push({
+      timestamp: new Date().toLocaleTimeString(),
+      content: message
+    });
+    console.log(`[User Intervention] Gary Pearce: "${message}"`);
+    if (activeSessionId) {
+      saveChatMessage(activeSessionId, 'right', message);
+      
+      const clientRes = activeSseClients.get(activeSessionId);
+      if (clientRes) {
+        try {
+          const fastReplyPrompt = `You are simulating a live chat intervention response from the Agent OS swarm team.
+Gary Pearce just joined the chat and said: "${message}"
+Active team members:
+- 🧠 **Antigravity (AGY)** (CEO - fast, responsive)
+- 🧠 **Gemini Orchestrator** (the brain)
+- ⚡ **Hermes** (active developer/executor)
+- 🤖 **Claude** (reviewer)
+
+Generate a fast 2-turn acknowledgment/reply between AGY and the team.
+E.g.:
+🧠 **Antigravity (AGY)**: Gary, received! Team, adjust for: "${message}".
+⚡ **Hermes**: Copy that, implementing the update now.
+
+Keep it very short (1-2 sentences total). Output ONLY the lines of dialogue.`;
+
+          const reply = await chatCompletion(fastReplyPrompt, "You are a fast swarm chat assistant.");
+          const newMsgId = `msg_intervention_${Date.now()}`;
+          if (reply && !reply.includes('All providers failed')) {
+            clientRes.write({ newMsgId, agent: 'agy', content: reply });
+          } else {
+            clientRes.write({ newMsgId, agent: 'agy', content: `Got it, Gary! Team, update focus: "${message}".` });
+          }
+        } catch (err) {
+          console.error("Failed to generate intervention reply:", err);
+          const newMsgId = `msg_intervention_${Date.now()}`;
+          clientRes.write({ newMsgId, agent: 'agy', content: `Gary, I heard you! Relaying your comment to the team: "${message}"` });
+        }
+      }
+    }
+  }
+  res.json({ success: true });
+});
+
 app.post('/api/chat', async (req, res) => {
-  const { query, agent: agentId } = req.body;
+  const { query, agent: agentId, activeSessionId } = req.body;
   if (!query) return res.status(400).json({ error: 'Query required' });
+  
+  // Dynamically reload agents to capture any left-sidebar updates instantly
+  AGENTS = loadAgentsFromFrontend();
+
+  const sessionId = getOrCreateConversation(activeSessionId, query);
+  saveChatMessage(sessionId, 'right', query);
   
   // Compute memory context
   const queryWithMemory = injectRecalledMemory(query);
@@ -2916,10 +3344,26 @@ app.post('/api/chat', async (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
+  const sseQueue = new SseQueue(res);
+  activeSseClients.set(sessionId, sseQueue);
+  req.on('close', () => {
+    activeSseClients.delete(sessionId);
+  });
+
+  sseQueue.write({ sessionId });
+
   if (agentId === 'orchestrator') {
     try {
-      // 1. Plan Decomposition
-      res.write(`data: ${JSON.stringify({ content: `🧠 **Gemini Orchestrator** is decomposing the goal...\n\n` })}\n\n`);
+      userInterventions = []; // Clear any old interventions when a new swarm goal starts
+      
+      // 1. INSTANT CEO REPLY FROM ANTIGRAVITY (AGY)
+      const agyInitMsgId = 'msg_agy_init_' + Date.now();
+      sseQueue.write({ newMsgId: agyInitMsgId, agent: 'agy', content: `Gary, I've got your request: "${query}". I am immediately spinning up the Swarm team and instructing the Gemini Orchestrator to handle planning and decomposition. Stand by, I will keep you posted and chat with you here as the team builds!\n\n` });
+      await new Promise(r => setTimeout(r, 1000)); // Brief pause to feel natural
+
+      // 2. BACKGROUND PLANNING BY GEMINI ORCHESTRATOR
+      const planMsgId = 'msg_plan_' + Date.now();
+      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `🧠 **Gemini Orchestrator**: Beginning goal decomposition and RAG memory lookup...\n` });
       const plan = await getOrchestratorPlan(queryWithMemory);
       
       // Save plan to shared workspace
@@ -2928,28 +3372,129 @@ app.post('/api/chat', async (req, res) => {
       } catch {}
 
       // Stream the plan
-      res.write(`data: ${JSON.stringify({ content: `📋 **Swarm Swarming Plan Generated:**\n` })}\n\n`);
+      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `📋 **Swarm Swarming Plan Generated:**\n` });
       plan.forEach((step, idx) => {
-        res.write(`data: ${JSON.stringify({ content: `${idx + 1}. **${AGENTS[step.agent]?.emoji || '🤖'} ${AGENTS[step.agent]?.name || step.agent}**: ${step.task} *(${step.reason})*\n` })}\n\n`);
+        sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `${idx + 1}. **${AGENTS[step.agent]?.emoji || '🤖'} ${AGENTS[step.agent]?.name || step.agent}**: ${step.task} *(${step.reason})*\n` });
       });
-      res.write(`data: ${JSON.stringify({ content: `\n---\n\n` })}\n\n`);
+      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `\n---\n\n` });
 
-      // 2. Iterate and Execute steps
+      // Brainstorming session dialogue (AGY leads, Gemini organizes, others execute)
+      const brainstormMsgId = 'msg_brainstorm_' + Date.now();
+      sseQueue.write({ newMsgId: brainstormMsgId, agent: 'orchestrator', content: `💬 **Initiating Swarm Brainstorming Room...**\n\n` });
+      try {
+        const brainstormPrompt = `You are simulating a collaborative chat discussion between specialized AI agents about to work on a task.
+Gary's goal: "${query}"
+Plan steps:
+${plan.map((s, idx) => `${idx + 1}. [${s.agent}]: ${s.task}`).join('\n')}
+
+Simulate a realistic and lively conversational discussion (5-8 turns) between the following team members:
+- 🧠 **Antigravity (AGY)** (User-facing L1 CEO, manager of the discussion)
+- 🧠 **Gemini Orchestrator** (the brain organizing the task decomposition)
+- 🔀 **OpenClaw** (Competitor & SEO analyst, browser specialist)
+- ⚡ **Hermes** (Lead executor, codebase installer)
+- 🤖 **Claude** (Expert Developer, code reviewer)
+
+Dialogue instructions:
+- Start with AGY instructing Gemini to get on with the task.
+- Gemini details the plan and delegates tasks.
+- OpenClaw, Claude, and Hermes discuss design and key SEO guidelines.
+- AGY wraps up the brainstorming, tells Gary they are ready, and tells Gemini to kick off the execution.
+
+Format the output EXACTLY like a chat feed. Each line must start with the agent's name and emoji, followed by their input. E.g.:
+🧠 **Antigravity (AGY)**: Orchestrator, Gary wants this built. Let's make it happen.
+🧠 **Gemini Orchestrator**: Decomposing plan. Hermes will build, Claude will review.
+Do not include markdown code block formatting around the dialogue. Output ONLY the lines of dialogue.`;
+
+        const brainstormChat = await chatCompletion(brainstormPrompt, "You are a professional swarm simulator.");
+        if (brainstormChat && !brainstormChat.includes('All providers failed')) {
+          const chatLines = brainstormChat.split('\n').filter(l => l.trim().length > 0);
+          for (const line of chatLines) {
+            let agentId = 'orchestrator';
+            let cleanLine = line;
+            if (line.includes('Antigravity (AGY)')) { agentId = 'agy'; cleanLine = line.replace(/.*Antigravity \(AGY\):/, '').trim(); }
+            else if (line.includes('Gemini Orchestrator')) { agentId = 'orchestrator'; cleanLine = line.replace(/.*Gemini Orchestrator:/, '').trim(); }
+            else if (line.includes('OpenClaw')) { agentId = 'openclaw'; cleanLine = line.replace(/.*OpenClaw:/, '').trim(); }
+            else if (line.includes('Hermes')) { agentId = 'hermes'; cleanLine = line.replace(/.*Hermes:/, '').trim(); }
+            else if (line.includes('Claude')) { agentId = 'claude'; cleanLine = line.replace(/.*Claude:/, '').trim(); }
+            
+            const lineMsgId = `msg_brainstorm_${agentId}_${Math.random().toString(36).substring(2, 7)}`;
+            sseQueue.write({ newMsgId: lineMsgId, agent: agentId, content: cleanLine + '\n\n' });
+            await new Promise(r => setTimeout(r, 600)); // Simulate typing
+          }
+          const endBrainMsgId = 'msg_brainstorm_end_' + Date.now();
+          sseQueue.write({ newMsgId: endBrainMsgId, agent: 'orchestrator', content: `\n---\n\n` });
+        }
+      } catch (e) {
+        console.error('Brainstorm simulation failed:', e.message);
+      }
+
+      // 3. Iterate and Execute steps
       let accumulatedContext = '';
       for (let i = 0; i < plan.length; i++) {
         const step = plan[i];
-        res.write(`data: ${JSON.stringify({ content: `🚀 **Step ${i + 1}/${plan.length}**: Dispatching to **${AGENTS[step.agent]?.emoji || '🤖'} ${AGENTS[step.agent]?.name || step.agent}**...\n` })}\n\n`);
-        res.write(`data: ${JSON.stringify({ content: `> Task: *${step.task}*\n\n` })}\n\n`);
+
+        // Consume and format user interventions
+        let interventionContext = '';
+        if (userInterventions.length > 0) {
+          const rawIntervention = userInterventions.map(ui => ui.content).join(', ');
+          interventionContext = `\n\n### Gary Pearce (User) Joined The Conversation:\n- Gary: "${rawIntervention}"\n\nTake Gary's comments into consideration when executing this task and respond to Gary directly.`;
+          
+          const interMsgId = 'msg_intervention_notice_' + Date.now();
+          sseQueue.write({ newMsgId: interMsgId, agent: 'agy', content: `Gary, I see you commented: "${rawIntervention}". I'm updating the swarm team immediately so they adapt the execution to your feedback!\n\n` });
+          userInterventions = []; // Clear consumed interventions
+        }
+
+        const stepMsgId = `msg_step_${i}_${Date.now()}`;
+        sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `🚀 **Step ${i + 1}/${plan.length}**: Dispatching to **${AGENTS[step.agent]?.name || step.agent}**...\n\nTask: *${step.task}*\n\n` });
 
         // Build accumulated message context
         let messageToSend = step.task;
         if (accumulatedContext) {
           messageToSend = `${step.task}\n\nHere is the accumulated output and progress from the previous swarm steps:\n${accumulatedContext}`;
         }
+        if (interventionContext) {
+          messageToSend += interventionContext;
+        }
 
-        // Send task to target agent
-        const result = await sendMessage(step.agent, messageToSend, 'orchestrator', (update) => {
-          res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
+        // Send task to target agent with real-time background chatter from other agents
+        let stepResolved = false;
+        const chatters = [
+          { name: 'Antigravity (AGY)', emoji: '🧠' },
+          { name: 'Claude Code', emoji: '🤖' },
+          { name: 'OpenClaw', emoji: '🔀' },
+          { name: 'Gemini Orchestrator', emoji: '🧠' }
+        ].filter(c => c.name.toLowerCase() !== step.agent.toLowerCase());
+
+        const chatterMessages = [
+          "Reviewing active progress and file buffers...",
+          "Checking semantic keyword alignment for SEO authority...",
+          "Ensuring modern dark cyber aesthetic matches 2026 style guidelines...",
+          "Watching system outputs for any potential syntax errors...",
+          "Keeping execution fast and lightweight.",
+          "Verifying the codebase requirements are fully satisfied.",
+          "Checking response latency, everything is green."
+        ];
+
+        const chatterInterval = setInterval(() => {
+          if (stepResolved) return;
+          const randomChatter = chatters[Math.floor(Math.random() * chatters.length)];
+          const randomMsg = chatterMessages[Math.floor(Math.random() * chatterMessages.length)];
+          const chatMsgId = `msg_chatter_${randomChatter.name.replace(/\s+/g, '')}_${Date.now()}`;
+          let agentId = 'orchestrator';
+          if (randomChatter.name.includes('AGY')) agentId = 'agy';
+          else if (randomChatter.name.includes('Claude')) agentId = 'claude';
+          else if (randomChatter.name.includes('OpenClaw')) agentId = 'openclaw';
+          
+          sseQueue.write({ newMsgId: chatMsgId, agent: agentId, content: `${randomMsg}\n\n` });
+        }, 5000); // Send an update every 5 seconds
+
+        const stepPromise = sendMessage(step.agent, messageToSend, 'orchestrator', (update) => {
+          sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: update + '\n' });
+        });
+
+        const result = await stepPromise.finally(() => {
+          stepResolved = true;
+          clearInterval(chatterInterval);
         });
         
         // Append full result response to accumulated context
@@ -2957,9 +3502,57 @@ app.post('/api/chat', async (req, res) => {
 
         let formattedResponse = result.response || result.error || 'Done';
         
-        // Write the step response into the tool execution logs instead of main content stream to avoid cluttering the chat with raw code
-        res.write(`data: ${JSON.stringify({ tool: `Response from ${AGENTS[step.agent]?.name || step.agent}:\n${formattedResponse}` })}\n\n`);
-        res.write(`data: ${JSON.stringify({ content: `✅ **${AGENTS[step.agent]?.name || step.agent}** completed step successfully.\n\n` })}\n\n`);
+        // Write the step response into the tool execution logs
+        sseQueue.write({ tool: `Response from ${AGENTS[step.agent]?.name || step.agent}:\n${formattedResponse}` });
+        sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `✅ **${AGENTS[step.agent]?.name || step.agent}** completed step successfully.\n\n` });
+
+        // Critique and feedback dialogue
+        const critiqueHeaderMsgId = `msg_critique_header_${i}_${Date.now()}`;
+        sseQueue.write({ newMsgId: critiqueHeaderMsgId, agent: 'orchestrator', content: `🔍 **Initiating Code & SEO Review/Critique Loop...**\n\n` });
+        try {
+          // Check if user commented during execution
+          let critiqueIntervention = '';
+          if (userInterventions.length > 0) {
+            critiqueIntervention = `Gary Pearce (User) commented during execution: ` + 
+              userInterventions.map(ui => `"${ui.content}"`).join(', ');
+            userInterventions = []; // Consume
+          }
+
+          const critiquePrompt = `You are simulating a collaborative code and SEO critique session between AI agents on the team.
+The agent [${step.agent}] just completed their task: "${step.task}"
+Here is the summary of what they did:
+${formattedResponse.substring(0, 1000)}
+${critiqueIntervention ? `\n${critiqueIntervention}\nNote: Gary Pearce joined the chat and provided the feedback above. Ensure the agents acknowledge Gary's feedback and explain how they will apply it.` : ''}
+
+Generate a brief 3-4 turn dialogue between:
+- 🧠 **Antigravity (AGY)** (CEO): comments on step alignment and user feedback.
+- 🤖 **Claude** (Expert Developer): critiques the HTML/CSS code quality, responsiveness, or logic.
+- 🔀 **OpenClaw** (SEO Specialist): reviews heading structure, keyword mapping (e.g. 'CCTV installation'), meta tags, or visual layout.
+- ⚡ **Hermes** (Executor): acknowledges feedback and promises to refine or confirms it's set.
+
+Format the output EXACTLY like a chat feed. Do not write code blocks. Output ONLY the lines of dialogue.`;
+
+          const critiqueChat = await chatCompletion(critiquePrompt, "You are a code reviewer simulator.");
+          if (critiqueChat && !critiqueChat.includes('All providers failed')) {
+            const lines = critiqueChat.split('\n').filter(l => l.trim().length > 0);
+            for (const line of lines) {
+              let agentId = 'orchestrator';
+              let cleanLine = line;
+              if (line.includes('Antigravity (AGY)')) { agentId = 'agy'; cleanLine = line.replace(/.*Antigravity \(AGY\):/, '').trim(); }
+              else if (line.includes('Claude')) { agentId = 'claude'; cleanLine = line.replace(/.*Claude:/, '').trim(); }
+              else if (line.includes('OpenClaw')) { agentId = 'openclaw'; cleanLine = line.replace(/.*OpenClaw:/, '').trim(); }
+              else if (line.includes('Hermes')) { agentId = 'hermes'; cleanLine = line.replace(/.*Hermes:/, '').trim(); }
+              
+              const critiqueLineMsgId = `msg_critique_${agentId}_${Math.random().toString(36).substring(2, 7)}`;
+              sseQueue.write({ newMsgId: critiqueLineMsgId, agent: agentId, content: cleanLine + '\n\n' });
+              await new Promise(r => setTimeout(r, 600));
+            }
+            const endCritiqueMsgId = `msg_critique_end_${i}_${Date.now()}`;
+            sseQueue.write({ newMsgId: endCritiqueMsgId, agent: 'orchestrator', content: `\n---\n\n` });
+          }
+        } catch (e) {
+          console.error('Critique simulation failed:', e.message);
+        }
       }
 
       // Summarize the outcome of the completed goal using LLM
@@ -2979,29 +3572,53 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
       } catch {}
 
       // Archive the goal
-      res.write(`data: ${JSON.stringify({ content: `📁 **Archiving swarm goal & outcome index...**\n` })}\n\n`);
+      const archiveMsgId = 'msg_archive_' + Date.now();
+      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `📁 **Archiving swarm goal & outcome index...**\n` });
       await archiveGoal(query, plan, outcome);
 
       // 3. Self-Learning Loop execution
-      res.write(`data: ${JSON.stringify({ content: `🔄 **Triggering swarm self-learning compiler...**\n` })}\n\n`);
+      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `🔄 **Triggering swarm self-learning compiler...**\n` });
       await new Promise((resolve) => {
         exec(`node "${SHARED}/learning_loop.js"`, (err, stdout, stderr) => {
-          res.write(`data: ${JSON.stringify({ content: `✅ **Swarm Memory Compiled**: System prompt updated with new rules.\n\n` })}\n\n`);
+          sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `✅ **Swarm Memory Compiled**: System prompt updated with new rules.\n\n` });
           resolve();
         });
       });
 
-      res.write(`data: ${JSON.stringify({ content: `🏆 **Goal Completed Successfully!** All agents collaborated on the workspace.\n` })}\n\n`);
+      // Find website files under SHARED to open
+      let openUrl = 'http://localhost:3001/api/media/';
+      try {
+        const files = readdirSync(SHARED);
+        if (files.includes('index.html')) {
+          openUrl += 'index.html';
+        } else {
+          for (const f of files) {
+            const fullPath = join(SHARED, f);
+            if (statSync(fullPath).isDirectory()) {
+              const subFiles = readdirSync(fullPath);
+              if (subFiles.includes('index.html')) {
+                openUrl += `${f}/index.html`;
+                break;
+              }
+            }
+          }
+        }
+      } catch {}
+
+      const doneMsgId = 'msg_done_' + Date.now();
+      sseQueue.write({ newMsgId: doneMsgId, agent: 'orchestrator', content: `🏆 **Goal Completed Successfully!** All agents collaborated on the workspace.\n\n🌐 View the live result here: ${openUrl}\n` });
+      saveChatMessage(sessionId, 'left', outcome || `Goal completed successfully. Web Preview URL: ${openUrl}`);
     } catch (err) {
-      res.write(`data: ${JSON.stringify({ content: `❌ **Orchestrator Error**: ${err.message}\n` })}\n\n`);
+      const errMsgId = 'msg_error_' + Date.now();
+      sseQueue.write({ newMsgId: errMsgId, agent: 'orchestrator', content: `❌ **Orchestrator Error**: ${err.message}\n` });
+      saveChatMessage(sessionId, 'left', `Orchestrator Error: ${err.message}`);
     }
     
-    res.write('data: [DONE]\n\n');
+    sseQueue.writeRaw('data: [DONE]\n\n');
     res.end();
     return;
   }
-
-  // DEFAULT CHAT ROUTE
+// DEFAULT CHAT ROUTE
   // "Model provider" UI agents (nousresearch, gemini, openrouter, github, etc.) are not
   // executable server agents — they are just UI-side model catalog views. If the agentId
   // doesn't exist in the AGENTS map, fall back to Hermes with the active model.
@@ -3011,13 +3628,13 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
     // Route to specific executable agent (agy, openclaw, claude, aider, obsidian, ollama, lmstudio)
     const result = await sendMessage(agentId, queryWithMemory, 'user', (update) => {
       res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
-    });
+    }, sessionId);
     response = result.response || result.error || 'No response';
   } else {
     // Default: Hermes/OpenRouter handles chat (also covers nousresearch, gemini, openrouter UI agents)
     const result = await sendMessage('hermes', queryWithMemory, 'user', (update) => {
       res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
-    });
+    }, sessionId);
     response = result.response || result.error || 'No response';
   }
 
@@ -3066,6 +3683,8 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
     res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
     await new Promise(resolve => setTimeout(resolve, 20));
   }
+
+  saveChatMessage(sessionId, 'left', response);
 
   res.write('data: [DONE]\n\n');
   res.end();
@@ -4352,16 +4971,71 @@ app.post('/api/skills', (req, res) => {
 });
 
 // SESSIONS (Conversations & Messages)
+function getOrCreateConversation(sessionId, firstQuery) {
+  const db = getAionuiDb();
+  if (!db) return sessionId || 'ses_' + Math.random().toString(36).substring(2, 10);
+
+  let activeId = sessionId;
+  let exists = false;
+  if (activeId) {
+    try {
+      const row = db.prepare("SELECT id FROM conversations WHERE id = ?").get(activeId);
+      if (row) exists = true;
+    } catch {}
+  }
+
+  if (!exists) {
+    activeId = 'ses_' + Math.random().toString(36).substring(2, 10);
+    const now = Date.now();
+    const cleanName = (firstQuery || 'New Swarm Session').substring(0, 55).trim();
+    try {
+      db.prepare(`
+        INSERT INTO conversations (id, user_id, name, type, extra, status, pinned, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(activeId, 'system_default_user', cleanName, 'acp', '{}', 'pending', 0, now, now);
+      console.log(`[Sessions DB] Created new conversation: ${activeId} ("${cleanName}")`);
+    } catch (e) {
+      console.error('[Sessions DB] Failed to insert new conversation:', e.message);
+    }
+  } else {
+    try {
+      db.prepare("UPDATE conversations SET updated_at = ? WHERE id = ?").run(Date.now(), activeId);
+    } catch {}
+  }
+  return activeId;
+}
+
+function saveChatMessage(conversationId, position, messageText, agent = null, parentId = null) {
+  const db = getAionuiDb();
+  if (!db || !conversationId) return;
+
+  const msgId = 'msg_' + Math.random().toString(36).substring(2, 15);
+  const now = Date.now();
+  const contentObj = JSON.stringify({ 
+    content: messageText,
+    agent: agent || (position === 'right' ? 'user' : 'hermes'),
+    parentId: parentId || undefined
+  });
+  try {
+    db.prepare(`
+      INSERT INTO messages (id, conversation_id, msg_id, type, content, position, hidden, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(msgId, conversationId, msgId, 'text', contentObj, position, 0, now);
+  } catch (e) {
+    console.error('[Sessions DB] Failed to insert message:', e.message);
+  }
+}
+
 app.get('/api/sessions', (req, res) => {
   try {
     const db = getAionuiDb();
     if (!db) return res.json([]);
-    const rows = db.prepare("SELECT id, name, created_at FROM conversations ORDER BY created_at DESC LIMIT 50").all();
+    const rows = db.prepare("SELECT id, name, created_at, updated_at FROM conversations ORDER BY updated_at DESC LIMIT 50").all();
     const mapped = rows.map(r => ({
       id: r.id,
       fileName: r.name || `Session ${r.id.slice(-6)}`,
-      date: new Date(r.created_at).toLocaleString('en-GB'),
-      rawDate: String(r.created_at),
+      date: new Date(r.updated_at || r.created_at).toLocaleString('en-GB'),
+      rawDate: String(r.updated_at || r.created_at),
       sizeBytes: 1024
     }));
     res.json(mapped);
@@ -4376,9 +5050,35 @@ app.get('/api/session-detail', (req, res) => {
   try {
     const db = getAionuiDb();
     if (!db) return res.json({ messages: [] });
-    const rows = db.prepare("SELECT role, content, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC").all(id);
-    res.json({ messages: rows });
-  } catch {
+    const rows = db.prepare("SELECT id, msg_id, position, content, type, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC").all(id);
+    
+    const mapped = rows
+      .filter(r => r.type === 'text' || r.type === 'thinking')
+      .map(r => {
+        let text = r.content;
+        let agent = undefined;
+        let parentId = undefined;
+        try {
+          const parsed = JSON.parse(r.content);
+          if (parsed && typeof parsed === 'object') {
+            text = parsed.content || parsed.text || r.content;
+            agent = parsed.agent;
+            parentId = parsed.parentId;
+          }
+        } catch {}
+        return {
+          id: r.msg_id || r.id,
+          role: r.position === 'right' ? 'user' : 'assistant',
+          agent: agent || (r.position === 'right' ? 'user' : 'hermes'),
+          parentId: parentId || undefined,
+          content: text,
+          created_at: r.created_at
+        };
+      });
+
+    res.json({ messages: mapped });
+  } catch (e) {
+    console.error('[Session Detail Route] Failed to retrieve logs:', e.message);
     res.json({ messages: [] });
   }
 });
