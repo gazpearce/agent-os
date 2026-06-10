@@ -2701,57 +2701,15 @@ Example JSON output:
     }
   } catch {}
 
-  const modelFallbacks = [
-    'openrouter/free',
-    model,
-    'google/gemma-2-9b-it:free'
-  ];
-
-  const uniqueModels = [...new Set(modelFallbacks)];
-
-  let attempt = 0;
-  for (const currentModel of uniqueModels) {
-    for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 2)) {
-      attempt++;
-      try {
-        console.log(`[Orchestrator] Attempt ${attempt}: trying model ${currentModel} with key ${key.substring(0, 15)}...`);
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json', 
-            Authorization: `Bearer ${key}`, 
-            'HTTP-Referer': `http://localhost:${PORT}`, 
-            'X-Title': 'Agent OS' 
-          },
-          body: JSON.stringify({ 
-            model: currentModel, 
-            messages: [
-              { role: 'system', content: orchestratorPrompt }, 
-              { role: 'user', content: `Goal: ${goal}` }
-            ], 
-            max_tokens: 1024 
-          }),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        const d = await r.json();
-        if (d.error) {
-          console.log(`[Orchestrator] Model ${currentModel} with key ${key.substring(0, 15)} returned error:`, d.error.message);
-          continue;
-        }
-        const text = d.choices?.[0]?.message?.content || '[]';
-        const cleanedText = text.replace(/```json/g, '').replace(/```/g, '').trim();
-        console.log(`[Orchestrator] Model ${currentModel} succeeded!`);
-        return JSON.parse(cleanedText);
-      } catch (e) {
-        console.log(`[Orchestrator] Model ${currentModel} with key ${key.substring(0, 15)} failed/timed out:`, e.message);
-        continue;
-      }
-    }
+  try {
+    console.log(`[Orchestrator] Running via unified chatCompletion using model: ${model}`);
+    const text = await chatCompletion(`Goal: ${goal}`, 1024, orchestratorPrompt, model);
+    const cleanedText = text.replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
+    return JSON.parse(cleanedText);
+  } catch (e) {
+    console.log(`[Orchestrator] Unified chatCompletion failed:`, e.message);
   }
-  
+
   console.log('[Orchestrator] All keys failed. Using hard fallback plan.');
 
   // Hard fallback

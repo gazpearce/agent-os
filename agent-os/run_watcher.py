@@ -40,7 +40,7 @@ channel_url = 'https://www.youtube.com/@JulianGoldieSEO/videos'
 ydl_opts = {
     'quiet': True,
     'skip_download': True,
-    'playlistend': 5, # check latest 5 videos
+    'playlistend': 40, # check latest 40 videos to ensure we catch all missed ones
 }
 
 print(f"[Watcher] Querying latest videos from {channel_url}...")

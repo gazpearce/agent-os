@@ -172,6 +172,197 @@ function parseInline(text: string): React.ReactNode[] {
   });
 }
 
+function PodcastPlayer({ data }: { data: any }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [showTranscript, setShowTranscript] = useState(false);
+
+  useEffect(() => {
+    let interval: any;
+    if (isPlaying) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => {
+          if (prev >= 180) {
+            setIsPlaying(false);
+            return 0;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isPlaying]);
+
+  const formatTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${mins}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const hostsList = Array.isArray(data.hosts) ? data.hosts.join(' & ') : (data.hosts || 'Gary & Antigravity');
+
+  return (
+    <div className="my-4 p-5 rounded-2xl bg-gradient-to-br from-[#581c87]/20 via-[#1e1b4b]/20 to-black/50 border border-purple-500/20 backdrop-blur-xl shadow-2xl space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-purple-600/20 border border-purple-500/35 flex items-center justify-center text-purple-400 font-bold text-xl shadow-inner select-none">
+            🎙️
+          </div>
+          <div>
+            <h4 className="text-sm font-extrabold text-white">{data.title || 'Audio Overview'}</h4>
+            <div className="text-[10px] text-purple-300 font-mono mt-0.5">Hosts: {hostsList}</div>
+          </div>
+        </div>
+        <span className="text-[8px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20 select-none">
+          NotebookLM Overview
+        </span>
+      </div>
+
+      <p className="text-[11.5px] text-gray-400 leading-normal">{data.description || 'Generated audio summary of this article.'}</p>
+
+      {/* Audio Waveform and controls */}
+      <div className="bg-black/30 border border-white/[0.04] rounded-xl p-4 flex items-center gap-4">
+        <button
+          onClick={() => setIsPlaying(!isPlaying)}
+          className="w-10 h-10 rounded-full bg-purple-600 hover:bg-purple-500 text-white flex items-center justify-center shadow-lg transition-all transform hover:scale-105 active:scale-95 cursor-pointer shrink-0 select-none"
+        >
+          {isPlaying ? (
+            <span className="text-xs">⏸️</span>
+          ) : (
+            <span className="text-xs ml-0.5">▶️</span>
+          )}
+        </button>
+
+        <div className="flex-1 space-y-2">
+          {/* Waveform Visualization */}
+          <div className="h-6 flex items-end gap-0.5 px-1 overflow-hidden select-none">
+            {Array.from({ length: 48 }).map((_, idx) => {
+              const height = isPlaying 
+                ? 4 + Math.sin(idx * 0.5 + currentTime * 0.8) * 8 + Math.cos(idx * 0.2 + currentTime * 1.5) * 6
+                : 4 + Math.sin(idx * 0.3) * 3;
+              return (
+                <div 
+                  key={idx} 
+                  className={`flex-1 rounded-full transition-all duration-300 ${isPlaying ? 'bg-purple-400' : 'bg-gray-700'}`} 
+                  style={{ height: `${Math.max(2, Math.min(22, height))}px` }} 
+                />
+              );
+            })}
+          </div>
+
+          <div className="flex justify-between items-center text-[9px] font-mono text-gray-500">
+            <span>{formatTime(currentTime)}</span>
+            <span>{formatTime(180)}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Transcript Collapsible */}
+      {data.transcript && (
+        <div className="pt-2 border-t border-white/[0.04]">
+          <button
+            onClick={() => setShowTranscript(!showTranscript)}
+            className="text-[10px] font-bold text-purple-300 hover:text-purple-200 transition-colors flex items-center gap-1 cursor-pointer select-none"
+          >
+            💬 {showTranscript ? 'Hide Written Dialogue' : 'Read Written Dialogue'}
+          </button>
+          {showTranscript && (
+            <div className="mt-3 p-3 bg-black/40 border border-white/[0.03] rounded-xl text-[11.5px] text-gray-300 font-mono leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap select-text">
+              {data.transcript}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PresentationSlides({ data }: { data: any }) {
+  const [currentSlideIdx, setCurrentSlideIdx] = useState(0);
+  const [showNotes, setShowNotes] = useState(false);
+
+  const slides = Array.isArray(data.slides) ? data.slides : [];
+  if (slides.length === 0) return null;
+
+  const currentSlide = slides[currentSlideIdx];
+
+  return (
+    <div className="my-4 p-5 rounded-2xl bg-gradient-to-br from-[#831843]/15 via-[#1e1b4b]/15 to-black/60 border border-pink-500/20 backdrop-blur-xl shadow-2xl space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h4 className="text-[10px] font-mono font-bold text-pink-300 uppercase tracking-widest select-none">Interactive Presentation</h4>
+          <h3 className="text-sm font-extrabold text-white mt-0.5">{data.title || 'Slide Presentation'}</h3>
+        </div>
+        <span className="text-[9px] font-mono font-bold text-gray-500 select-none">
+          Slide {currentSlideIdx + 1} of {slides.length}
+        </span>
+      </div>
+
+      {/* Slide Screen Canvas */}
+      <div className="relative aspect-[16/9] bg-gradient-to-br from-black/80 to-pink-950/20 border border-pink-500/10 rounded-xl p-6 flex flex-col justify-between shadow-inner select-text">
+        <div className="space-y-4">
+          <h2 className="text-base font-extrabold text-white border-b border-white/10 pb-2 flex items-center gap-2 select-none">
+            <span className="text-pink-400 text-xs font-mono">0{currentSlideIdx + 1}.</span>
+            {currentSlide?.title || 'Slide Title'}
+          </h2>
+          <ul className="space-y-2.5">
+            {Array.isArray(currentSlide?.bullets) && currentSlide.bullets.map((bullet: string, idx: number) => (
+              <li key={idx} className="text-xs text-gray-200 flex items-start gap-2 leading-relaxed">
+                <span className="text-pink-400 mt-1 shrink-0 select-none">✨</span>
+                <span>{bullet}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex justify-between items-center text-[10px] text-gray-500 border-t border-white/[0.04] pt-2 mt-4 select-none">
+          <span>Gary & Antigravity OS</span>
+          <span className="font-mono text-pink-400/70">Confidential · Niche SEO Pipeline</span>
+        </div>
+      </div>
+
+      {/* Navigation Controls */}
+      <div className="flex justify-between items-center">
+        <button
+          onClick={() => setShowNotes(!showNotes)}
+          className={`px-3 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer select-none ${
+            showNotes 
+              ? 'bg-pink-500/25 text-pink-300 border border-pink-500/35 shadow-inner' 
+              : 'bg-white/[0.02] text-gray-400 hover:text-white border border-transparent'
+          }`}
+        >
+          {showNotes ? '📖 Hide Speaker Notes' : '📘 Show Speaker Notes'}
+        </button>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => setCurrentSlideIdx(prev => Math.max(0, prev - 1))}
+            disabled={currentSlideIdx === 0}
+            className="px-3 py-1.5 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] disabled:opacity-30 border border-white/[0.05] disabled:border-transparent text-xs text-white font-bold cursor-pointer transition-all select-none"
+          >
+            ◀ Previous
+          </button>
+          <button
+            onClick={() => setCurrentSlideIdx(prev => Math.min(slides.length - 1, prev + 1))}
+            disabled={currentSlideIdx === slides.length - 1}
+            className="px-3 py-1.5 rounded-lg bg-pink-600 hover:bg-pink-500 disabled:opacity-30 disabled:bg-gray-800 text-xs text-white font-bold cursor-pointer transition-all shadow-[0_0_10px_rgba(219,39,119,0.3)] select-none"
+          >
+            Next ▶
+          </button>
+        </div>
+      </div>
+
+      {/* Speaker Notes Drawer */}
+      {showNotes && currentSlide?.notes && (
+        <div className="p-3 bg-black/40 border border-white/[0.03] rounded-xl text-[11.5px] text-gray-300 font-sans leading-relaxed select-text">
+          <div className="text-[9px] uppercase font-bold tracking-wider text-pink-400 mb-1 font-mono select-none">Presenter Guide & Notes:</div>
+          {currentSlide.notes}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Markdown({ text }: { text: string }) {
   if (!text) return null;
   const parts = text.split(/(```[\s\S]*?```)/g);
@@ -182,6 +373,24 @@ function Markdown({ text }: { text: string }) {
           const match = part.match(/```(\w*)\n([\s\S]*?)```/);
           const lang = match ? match[1] : '';
           const code = match ? match[2] : part.slice(3, -3);
+
+          if (lang === 'podcast') {
+            try {
+              const data = JSON.parse(code);
+              return <PodcastPlayer key={i} data={data} />;
+            } catch (e) {
+              // fallback
+            }
+          }
+          if (lang === 'presentation') {
+            try {
+              const data = JSON.parse(code);
+              return <PresentationSlides key={i} data={data} />;
+            } catch (e) {
+              // fallback
+            }
+          }
+
           return (
             <div key={i} className="my-2.5 rounded-xl bg-black/45 border border-white/[0.04] overflow-hidden font-mono text-[13px] shadow-inner">
               <div className="flex items-center justify-between px-3.5 py-2 bg-white/[0.02] border-b border-white/[0.04] text-[9px] text-gray-500 uppercase font-sans select-none">
@@ -2030,6 +2239,140 @@ function VaultPanel() {
   );
 }
 
+/* ─────────── PAPERCLIP AGENT SWARM PANEL ─────────── */
+function PaperclipPanel() {
+  const [keyword, setKeyword] = useState('UK CCTV Compliance');
+  const [running, setRunning] = useState(false);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [activeStep, setActiveStep] = useState(0);
+
+  const startSwarm = async () => {
+    if (running) return;
+    setRunning(true);
+    setLogs(["[Orchestrator] Starting Paperclip Agent Swarm Team..."]);
+    setActiveStep(1);
+
+    try {
+      const res = await fetch('/api/paperclip/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword })
+      });
+      const data = await res.json();
+      if (data.success && data.logs) {
+        // Sequentially display logs to show execution progression
+        for (let i = 0; i < data.logs.length; i++) {
+          await new Promise(r => setTimeout(r, 1200));
+          setLogs(prev => [...prev, data.logs[i]]);
+          setActiveStep(Math.min(i + 1, 7));
+        }
+        setLogs(prev => [...prev, "🏁 Paperclip Swarm finished successfully! Output saved to Proposals folder."]);
+      } else {
+        setLogs(prev => [...prev, `❌ Error: ${data.error || 'Swarm failed to run'}`]);
+      }
+    } catch (e: any) {
+      setLogs(prev => [...prev, `❌ Network Error: ${e.message}`]);
+    } finally {
+      setRunning(false);
+      setActiveStep(0);
+    }
+  };
+
+  const steps = [
+    { num: 1, name: "Keyword Scout", role: "Market Intelligence", color: "text-blue-400" },
+    { num: 2, name: "Content Writer", role: "Content Engine", color: "text-pink-400" },
+    { num: 3, name: "On-Page Opt", role: "SEO Auditor", color: "text-indigo-400" },
+    { num: 4, name: "Backlink Builder", role: "Outreach & PR", color: "text-purple-400" },
+    { num: 5, name: "AI Citation", role: "Search Engine Authority", color: "text-yellow-400" },
+    { num: 6, name: "Publish Bot", role: "Deployer", color: "text-emerald-400" },
+    { num: 7, name: "Analytics Tracker", role: "Reporting Engine", color: "text-cyan-400" }
+  ];
+
+  return (
+    <div className="flex-grow flex flex-col md:flex-row gap-6 p-6 overflow-y-auto min-h-0 bg-[#070713]/40">
+      {/* Configuration & Controls */}
+      <div className="flex-1 space-y-5 bg-[#0b0b1e]/90 border border-white/[0.04] p-6 rounded-2xl shadow-2xl backdrop-blur-md">
+        <div className="flex items-center gap-2 pb-2 border-b border-white/5">
+          <Puzzle className="text-purple-400" size={16} />
+          <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Paperclip Swarm Configuration</h3>
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono">Target Niche / Main Keyword</label>
+            <input
+              type="text"
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              disabled={running}
+              className="w-full bg-[#05050d] border border-white/[0.06] rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-purple-500/50 font-mono transition-all"
+            />
+          </div>
+
+          <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10 space-y-2">
+            <h4 className="text-[10px] font-bold text-purple-300 uppercase font-mono">Paperclip Multi-Agent Architecture</h4>
+            <p className="text-[9.5px] text-gray-400 leading-relaxed">
+              Paperclip orchestrates a structured corporate hierarchy of 7 autonomous specialized agents. Tasks flow sequentially from keyword gathering to final publication and indexing, running 24/7 without manual intervention.
+            </p>
+          </div>
+
+          <button
+            onClick={startSwarm}
+            disabled={running}
+            className="w-full py-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-[11px] font-bold uppercase tracking-wider font-mono shadow-[0_0_15px_rgba(168,85,247,0.3)] transition-all cursor-pointer disabled:opacity-50"
+          >
+            {running ? "🚀 Swarm Active..." : "⚡ Deploy Paperclip Swarm"}
+          </button>
+        </div>
+      </div>
+
+      {/* Visual Swarm Flow Map & Logs */}
+      <div className="flex-1 flex flex-col gap-5">
+        {/* Swarm Hierarchy map */}
+        <div className="bg-[#0b0b1e]/90 border border-white/[0.04] p-5 rounded-2xl shadow-2xl backdrop-blur-md">
+          <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider font-mono mb-4">Swarm Workflow Sequence</h4>
+          <div className="space-y-2">
+            {steps.map(step => (
+              <div 
+                key={step.num}
+                className={`flex items-center gap-3 p-2 rounded-lg border transition-all ${
+                  activeStep === step.num 
+                    ? "bg-purple-500/10 border-purple-500/30 shadow-[0_0_8px_rgba(168,85,247,0.15)]" 
+                    : "bg-white/[0.01] border-white/[0.03] opacity-60"
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full border flex items-center justify-center text-[9px] font-bold font-mono ${
+                  activeStep === step.num ? "border-purple-400 bg-purple-500/20 text-purple-300" : "border-gray-700 text-gray-500"
+                }`}>
+                  {step.num}
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10.5px] font-bold text-white font-mono">{step.name}</div>
+                  <div className="text-[8px] text-gray-500 uppercase tracking-wide font-semibold">{step.role}</div>
+                </div>
+                {activeStep === step.num && <span className="text-[8px] text-purple-400 animate-pulse font-mono">ACTIVE</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Live Execution Logs */}
+        <div className="flex-1 bg-black/40 border border-white/[0.04] rounded-2xl p-4 flex flex-col overflow-hidden min-h-[200px]">
+          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider font-mono mb-2">Live Swarm Execution Logs</span>
+          <div className="flex-grow overflow-y-auto font-mono text-[10px] text-gray-400 space-y-1.5 pr-1">
+            {logs.map((log, i) => (
+              <div key={i} className={log.includes('🏁') ? 'text-emerald-400 font-bold' : log.includes('❌') ? 'text-rose-400' : 'text-gray-300'}>
+                &gt; {log}
+              </div>
+            ))}
+            {logs.length === 0 && <div className="text-gray-600 text-center py-12">Press 'Deploy Paperclip Swarm' to initialize campaign logging.</div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────── SWARM HUB & TEAM COLLABORATION WORKSPACE ─────────── */
 function SwarmHubPanel() {
   const [profile, setProfile] = useState({
@@ -2382,7 +2725,7 @@ function GoalsPanel() {
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
   const [activeAgent, setActiveAgent] = useState("hermes");
-  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm">("chat");
+  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm" | "paperclip">("chat");
 
   // YouTube Video Analyzer States
   const [ytUrl, setYtUrl] = useState<string>("");
@@ -2436,6 +2779,52 @@ export default function App() {
       alert("Error: " + e.message);
     } finally {
       setSeoGenerating(false);
+    }
+  };
+
+  const handleGenerateMultimedia = async (articleIdx: number, type: 'podcast' | 'presentation') => {
+    const art = seoArticles[articleIdx];
+    if (!art) return;
+    setMultimediaGenerating(true);
+    setMultimediaType(type);
+    try {
+      const res = await fetch("/api/seo/multimedia", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: art.content, type })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const jsonBlock = `\n\n\`\`\`${type}\n${JSON.stringify(data.result, null, 2)}\n\`\`\``;
+        const updatedContent = art.content + jsonBlock;
+        
+        const updatedArticles = [...seoArticles];
+        updatedArticles[articleIdx] = {
+          ...art,
+          content: updatedContent
+        };
+        setSeoArticles(updatedArticles);
+
+        if (seoAutoDeploy) {
+          const fileSlug = art.slug.replace(/[^a-zA-Z0-9_\-]+/g, '-');
+          const fileName = `knowledge_base/seo_deployed_articles/${fileSlug}.md`;
+          const fullContent = `# ${art.title}\n- **Niche Category**: ${seoKeyword}\n- **Date**: ${new Date().toLocaleString()}\n- **Status**: Deployed\n\n${updatedContent}`;
+          
+          await fetch("/api/shared/write", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: fileName, content: fullContent })
+          });
+        }
+        alert(`${type === 'podcast' ? 'Podcast Overview' : 'Presentation Slides'} generated and appended to article successfully!`);
+      } else {
+        alert("Multimedia generation failed: " + (data.error || "unknown error"));
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setMultimediaGenerating(false);
+      setMultimediaType(null);
     }
   };
 
@@ -3145,7 +3534,7 @@ export default function App() {
       });
       if (res.ok) {
         alert("Active tasks interrupted successfully!");
-        setChatLoading(false);
+        setThreadLoading({});
       }
     } catch (err: any) {
       console.error(err.message);
@@ -3276,7 +3665,7 @@ export default function App() {
   };
 
   // Collapsed Sidebar States
-  const [isLeftCollapsed, setIsLeftCollapsed] = useState(false);
+  const [isLeftCollapsed, setIsLeftCollapsed] = useState(true);
   const [isRightCollapsed, setIsRightCollapsed] = useState(true);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
 
@@ -3325,13 +3714,84 @@ export default function App() {
 
   // Chat state
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
+    {
+      id: 'welcome-collab',
+      agent: 'system',
+      msg: "### Swarm Collaboration Mode Active 🌐\nAll agents are now listening and coordinating in this shared screen. The main Orchestrator will manage the execution flow. You can issue instructions directly to the swarm.",
+      time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+    }
+  ]);
+  const [threadLoading, setThreadLoading] = useState<Record<string, boolean>>({});
+
+  // Swarm & Specialist Chat Thread States
+  const [chatMode, setChatMode] = useState<'collab' | 'single'>('collab');
+  const [chatThreads, setChatThreads] = useState<Record<string, ChatMessage[]>>(() => {
+    return {
+      collab: [
+        {
+          id: 'welcome-collab',
+          agent: 'system',
+          msg: "### Swarm Collaboration Mode Active 🌐\nAll agents are now listening and coordinating in this shared screen. The main Orchestrator will manage the execution flow. You can issue instructions directly to the swarm.",
+          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+        }
+      ]
+    };
+  });
+
+  const [multimediaGenerating, setMultimediaGenerating] = useState(false);
+  const [multimediaType, setMultimediaType] = useState<'podcast' | 'presentation' | null>(null);
+
+  const currentThreadId = chatMode === 'collab' ? 'collab' : activeAgent;
+  const isCurrentLoading = threadLoading[currentThreadId] || false;
+
+  // Switch between threads smoothly and synchronously
+  const handleSwitchThread = (newMode: 'collab' | 'single', newAgent: string) => {
+    const oldThreadId = chatMode === 'collab' ? 'collab' : activeAgent;
+    const nextThreadId = newMode === 'collab' ? 'collab' : newAgent;
+
+    // Save current messages under the old thread ID
+    setChatThreads(prev => ({
+      ...prev,
+      [oldThreadId]: chatMessages
+    }));
+
+    // Toggle active thread parameters
+    setChatMode(newMode);
+    setActiveAgent(newAgent);
+
+    // Fetch and load the history for the new thread ID
+    const saved = chatThreads[nextThreadId];
+    if (saved) {
+      setChatMessages(saved);
+    } else {
+      const targetAgentObj = agents.find(a => a.id === nextThreadId) || agents[0];
+      const welcomeMsg = nextThreadId === 'collab'
+        ? [
+            {
+              id: 'welcome-collab',
+              agent: 'system',
+              msg: "### Swarm Collaboration Mode Active 🌐\nAll agents are now listening and coordinating in this shared screen. The main Orchestrator will manage the execution flow. You can issue instructions directly to the swarm.",
+              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+            }
+          ]
+        : [
+            {
+              id: `welcome-${nextThreadId}`,
+              agent: nextThreadId,
+              msg: `### ${targetAgentObj?.name || nextThreadId} at your service ⚡\nRole: *${targetAgentObj?.role || 'Specialist Agent'}*\nLayer: **${targetAgentObj?.layer || 'L3'}**\n\nHow can I assist you with your tasks today?`,
+              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+            }
+          ];
+      setChatMessages(welcomeMsg);
+      setChatThreads(prev => ({ ...prev, [nextThreadId]: welcomeMsg }));
+    }
+  };
 
   const [loadingStep, setLoadingStep] = useState(0);
 
   useEffect(() => {
-    if (!chatLoading) {
+    if (!isCurrentLoading) {
       setLoadingStep(0);
       return;
     }
@@ -3339,7 +3799,7 @@ export default function App() {
       setLoadingStep(prev => (prev + 1) % 4);
     }, 1500);
     return () => clearInterval(interval);
-  }, [chatLoading]);
+  }, [isCurrentLoading]);
 
   const loadingMessages = [
     "Connecting to OpenRouter API...",
@@ -3664,10 +4124,10 @@ export default function App() {
     const isLastMessageFromUser = lastMsg && lastMsg.agent === "user";
 
     // Scroll only if they are already at the bottom, or if they just typed a message
-    if (isAtBottom || isLastMessageFromUser || chatLoading) {
+    if (isAtBottom || isLastMessageFromUser || isCurrentLoading) {
       chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [chatMessages, chatLoading]);
+  }, [chatMessages, isCurrentLoading]);
 
   useEffect(() => {
     terminalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -3716,16 +4176,25 @@ export default function App() {
 
     setChatMessages(prev => [...prev, { id: userMsgId, agent: "user", msg: textToSend, time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) }]);
     if (!customText) setChatInput("");
-    setChatLoading(true);
+    setThreadLoading(prev => ({ ...prev, [currentThreadId]: true }));
 
     try {
       // "Model provider" UI agents are view-only catalogs — chat always runs through hermes/OpenRouter
       const EXECUTABLE_AGENTS = ["agy", "hermes", "openclaw", "claude", "aider", "obsidian", "ollama", "lmstudio", "orchestrator"];
-      const effectiveAgent = EXECUTABLE_AGENTS.includes(activeAgent) ? activeAgent : "hermes";
+      const targetAgent = chatMode === 'collab' ? 'orchestrator' : activeAgent;
+      const targetAgentObj = agents.find(a => a.id === targetAgent);
+      const effectiveAgent = EXECUTABLE_AGENTS.includes(targetAgent) ? targetAgent : "hermes";
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: textToSend, model: activeModel, agent: effectiveAgent, providerAgent: activeAgent, selectedSkill: selectedManualSkill })
+        body: JSON.stringify({
+          query: textToSend,
+          model: activeModel,
+          agent: effectiveAgent,
+          providerAgent: targetAgent,
+          orchestratorAgent: activeAgent, // selected orchestrator in swarm mode!
+          selectedSkill: selectedManualSkill
+        })
       });
       
       if (res.ok) {
@@ -3735,7 +4204,7 @@ export default function App() {
           // Streaming response (old-style)
           setChatMessages(prev => [...prev, {
             id: assistantMsgId,
-            agent: activeAgent, msg: "",
+            agent: targetAgent, msg: "",
             time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
             tools: []
           }]);
@@ -3793,8 +4262,8 @@ export default function App() {
               }
             }
           }
-          if (voiceUpdatesEnabled && activeAgent !== 'orchestrator') {
-            speakText(`${activeAgent} has completed the execution.`);
+          if (voiceUpdatesEnabled && targetAgent !== 'orchestrator') {
+            speakText(`${targetAgentObj?.name || targetAgent} has completed the execution.`);
           }
           // URL auto-open for streaming too
           const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
@@ -3810,7 +4279,7 @@ export default function App() {
           if (data.error) {
             setChatMessages(prev => [...prev, {
               id: assistantMsgId,
-              agent: activeAgent,
+              agent: targetAgent,
               msg: `Error: ${data.error}`,
               time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
               isError: true
@@ -3818,7 +4287,7 @@ export default function App() {
           } else {
             setChatMessages(prev => [...prev, {
               id: assistantMsgId,
-              agent: data.agent || activeAgent,
+              agent: data.agent || targetAgent,
               msg: data.response || "No response received",
               time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
               tools: data.tokens ? [`tokens: ${data.tokens}`] : []
@@ -3848,7 +4317,7 @@ export default function App() {
         isError: true
       }]);
     } finally {
-      setChatLoading(false);
+      setThreadLoading(prev => ({ ...prev, [currentThreadId]: false }));
       fetchSessionsList(); // Refresh session list after a query
     }
   };
@@ -3999,7 +4468,7 @@ export default function App() {
 
   // Restores a selected session log
   const handleLoadSession = async (sessionId: string) => {
-    setChatLoading(true);
+    setThreadLoading(prev => ({ ...prev, [currentThreadId]: true }));
     setActiveSessionId(sessionId);
     try {
       const res = await fetch(`/api/session-detail?id=${sessionId}`);
@@ -4023,7 +4492,7 @@ export default function App() {
         time: "Error"
       }]);
     } finally {
-      setChatLoading(false);
+      setThreadLoading(prev => ({ ...prev, [currentThreadId]: false }));
     }
   };
 
@@ -4143,7 +4612,9 @@ export default function App() {
     console.log(_t);
   }
 
-  const currentAgent = agents.find(a => a.id === activeAgent) || agents[0];
+  const currentAgent = chatMode === 'collab'
+    ? { id: "orchestrator", name: "Swarm Orchestrator", role: "Manager · Coordinator", icon: <Users size={18} />, status: "online", color: "#6366f1" }
+    : (agents.find(a => a.id === activeAgent) || agents[0]);
 
   return (
     <div className="h-screen w-screen flex flex-col bg-[#020208] text-[#e2e8f0] overflow-hidden selection:bg-indigo-500/30 selection:text-white">
@@ -4270,12 +4741,40 @@ export default function App() {
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-            </span>
-            <span className="text-green-400 text-xs font-semibold">Systems Online</span>
+          <div className="flex items-center gap-4">
+            {/* Global Header Mode Switcher */}
+            <div className="flex bg-black/50 border border-white/[0.08] p-1 rounded-xl gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+              <button
+                id="header-swarm-mode-btn"
+                onClick={() => handleSwitchThread('collab', activeAgent)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                  chatMode === 'collab'
+                    ? "bg-indigo-600 text-white border border-indigo-400/35 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                    : "text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent"
+                }`}
+              >
+                <Users size={11} /> Swarm Mode
+              </button>
+              <button
+                id="header-specialist-mode-btn"
+                onClick={() => handleSwitchThread('single', activeAgent)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                  chatMode === 'single'
+                    ? "bg-indigo-600 text-white border border-indigo-400/35 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
+                    : "text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent"
+                }`}
+              >
+                <Bot size={11} /> Specialist Mode
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 border-l border-white/10 pl-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-green-400 text-xs font-semibold">Systems Online</span>
+            </div>
           </div>
         </div>
       </header>
@@ -4319,7 +4818,38 @@ export default function App() {
 
           {/* Expanded left rail contents */}
           {!isLeftCollapsed ? (
-            <div className="flex-1 overflow-y-auto p-4 space-y-5">
+            <div className="flex-1 overflow-y-auto p-4 space-y-5 font-sans">
+              {/* Mode Toggle Switcher */}
+              <div className="space-y-2 pb-2.5 border-b border-white/[0.04] select-none">
+                <div className="text-gray-500 text-[9px] font-bold uppercase tracking-widest font-mono">
+                  Workspace Mode
+                </div>
+                <div className="flex bg-black/50 border border-white/[0.08] p-1 rounded-xl gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)] w-full">
+                  <button
+                    id="sidebar-swarm-mode-btn"
+                    onClick={() => handleSwitchThread('collab', activeAgent)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                      chatMode === 'collab'
+                        ? "bg-indigo-600 text-white border border-indigo-400/35 shadow-[0_0_10px_rgba(99,102,241,0.35)]"
+                        : "text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent"
+                    }`}
+                  >
+                    <Users size={11} /> Swarm Mode
+                  </button>
+                  <button
+                    id="sidebar-specialist-mode-btn"
+                    onClick={() => handleSwitchThread('single', activeAgent)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                      chatMode === 'single'
+                        ? "bg-indigo-600 text-white border border-indigo-400/35 shadow-[0_0_10px_rgba(99,102,241,0.35)]"
+                        : "text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent"
+                    }`}
+                  >
+                    <Bot size={11} /> Specialist
+                  </button>
+                </div>
+              </div>
+
               {/* Swarm Node List */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-gray-500 text-[9px] font-bold uppercase tracking-widest select-none">
@@ -4333,9 +4863,9 @@ export default function App() {
                       <button
                         key={agent.id}
                         onClick={() => {
-                          setActiveAgent(agent.id);
-                          // Switch to center settings tab when clicking any agent so user can configure it
-                          setCenterTab("settings");
+                          handleSwitchThread('single', agent.id);
+                          // Switch to center chat tab when clicking any agent
+                          setCenterTab("chat");
                         }}
                         className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left border transition-all duration-200 cursor-pointer ${
                           isActive
@@ -4348,7 +4878,12 @@ export default function App() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-white truncate">{agent.name}</span>
+                            <span className="text-xs font-semibold text-white truncate flex items-center gap-1.5">
+                              {agent.name}
+                              {threadLoading[agent.id] && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" title="Executing background job..." />
+                              )}
+                            </span>
                             <span className="text-[7.5px] font-mono px-1 rounded bg-white/[0.03] text-gray-500 border border-white/[0.02]">{agent.layer}</span>
                           </div>
                           <div className="text-[9px] text-gray-500 truncate mt-0.5">{agent.role}</div>
@@ -4417,12 +4952,32 @@ export default function App() {
           ) : (
             /* Collapsed left rail icon indicators */
             <div className="flex-1 flex flex-col items-center py-4 space-y-4">
+              {/* Collapsed Mode Toggle Button */}
+              <button
+                id="collapsed-mode-toggle-btn"
+                onClick={() => handleSwitchThread(chatMode === 'collab' ? 'single' : 'collab', activeAgent)}
+                className={`w-8 h-8 rounded-lg border flex items-center justify-center transition-all duration-200 cursor-pointer relative group ${
+                  chatMode === 'collab'
+                    ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400 shadow-[0_0_10px_rgba(99,102,241,0.15)] animate-pulse'
+                    : 'bg-white/[0.015] border-white/[0.04] text-gray-500 hover:text-gray-300 hover:border-indigo-500/30'
+                }`}
+              >
+                {chatMode === 'collab' ? <Users size={14} /> : <Bot size={14} />}
+                <div className="absolute left-12 top-1.5 bg-[#0a0a16] border border-white/[0.08] text-[9.5px] px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none whitespace-nowrap">
+                  Toggle Mode ({chatMode === 'collab' ? 'Swarm' : 'Specialist'})
+                </div>
+              </button>
+              <div className="w-full border-t border-white/[0.04] my-1" />
+
               {agents.map(agent => (
                 <div key={agent.id} className="relative group cursor-pointer" onClick={() => {
-                  setActiveAgent(agent.id);
+                  handleSwitchThread('single', agent.id);
                   setIsLeftCollapsed(false);
+                  setCenterTab("chat");
                 }}>
-                  <div className="w-8 h-8 rounded-lg bg-white/[0.02] border border-white/[0.05] hover:border-indigo-500/30 flex items-center justify-center text-gray-400 hover:text-white transition-all">
+                  <div className={`w-8 h-8 rounded-lg bg-white/[0.02] border flex items-center justify-center text-gray-400 hover:text-white transition-all ${
+                    threadLoading[agent.id] ? 'border-green-500/50 animate-pulse bg-green-500/5' : 'border-white/[0.05] hover:border-indigo-500/30'
+                  }`}>
                     {agent.icon}
                   </div>
                   <div className={`absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border border-[#020208] status-dot status-${agent.status}`} />
@@ -4488,6 +5043,7 @@ export default function App() {
                 { id: "chat", label: "Chat", icon: <Bot size={14} /> },
                 { id: "kanban", label: "Kanban", icon: <Kanban size={14} /> },
                 { id: "swarm", label: "Swarm Hub", icon: <Users size={14} /> },
+                { id: "paperclip", label: "Paperclip", icon: <Puzzle size={14} /> },
                 { id: "studio", label: "Studio", icon: <Image size={14} /> },
                 { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={14} /> },
                 { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={14} /> },
@@ -4515,14 +5071,60 @@ export default function App() {
             <SwarmHubPanel />
           )}
 
+          {/* ─── TAB: PAPERCLIP SWARM ─── */}
+          {centerTab === "paperclip" && (
+            <PaperclipPanel />
+          )}
+
           {/* ─── TAB 1: LIVE CONVERSATIONAL CHAT PANE ─── */}
           {centerTab === "chat" && (
             <div className="flex-1 flex flex-col overflow-hidden justify-between">
+              {/* Mode Selector Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-950/60 bg-[#070715] shadow-lg select-none shrink-0">
+                <div className="flex items-center gap-4">
+                  <span className="text-gray-300 text-[10px] font-extrabold uppercase tracking-widest font-mono border-r border-white/10 pr-4">Workspace Mode:</span>
+                  <div className="flex bg-black/40 border border-white/[0.08] p-1 rounded-xl gap-2">
+                    <button
+                      onClick={() => handleSwitchThread('collab', activeAgent)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                        chatMode === 'collab'
+                          ? "bg-indigo-600 text-white border border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                          : "text-gray-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
+                      }`}
+                    >
+                      <Users size={13} /> Swarm Collab
+                    </button>
+                    <button
+                      onClick={() => handleSwitchThread('single', activeAgent)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                        chatMode === 'single'
+                          ? "bg-indigo-600 text-white border border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]"
+                          : "text-gray-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
+                      }`}
+                    >
+                      <Bot size={13} /> Specialist Chat
+                    </button>
+                  </div>
+                </div>
+
+                {chatMode === 'collab' ? (
+                  <div className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-inner">
+                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+                    ⚡ Swarm Active (Delegated Execution)
+                  </div>
+                ) : (
+                  <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-inner">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Direct: {currentAgent.name}
+                  </div>
+                )}
+              </div>
+
               {/* Centered Scrollable Conversation */}
               <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-6 scroll-smooth">
                 <div className="max-w-4xl mx-auto w-full space-y-6">
                   <AnimatePresence>
-                    {chatMessages.length === 0 && !chatLoading && (
+                    {chatMessages.length === 0 && !isCurrentLoading && (
                       <motion.div
                         key="welcome"
                         initial={{ opacity: 0, y: 10 }}
@@ -4661,7 +5263,7 @@ export default function App() {
                         </motion.div>
                       );
                     })}
-                    {chatLoading && (
+                    {isCurrentLoading && (
                       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3.5 select-none">
                         <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-purple-500/20 text-purple-400 animate-pulse">
                           <Zap size={16} />
@@ -4689,9 +5291,10 @@ export default function App() {
                       <input
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
-                        onKeyDown={e => e.key === "Enter" && handleSendMessage()}
-                        placeholder={`Type your command or ask ${currentAgent.name}...`}
-                        className="w-full bg-transparent pl-2 pr-4 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none"
+                        onKeyDown={e => e.key === "Enter" && !isCurrentLoading && handleSendMessage()}
+                        disabled={isCurrentLoading}
+                        placeholder={isCurrentLoading ? `${currentAgent.name} is working...` : `Type your command or ask ${currentAgent.name}...`}
+                        className="w-full bg-transparent pl-2 pr-4 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none disabled:opacity-50"
                       />
                     </div>
                     
@@ -6226,9 +6829,31 @@ export default function App() {
                             if (!art) return null;
                             return (
                               <div className="p-6 space-y-4 overflow-y-auto max-h-[450px]">
-                                <div>
-                                  <h3 className="text-sm font-extrabold text-white">{art.title}</h3>
-                                  <span className="text-[9px] font-mono text-gray-500 block mt-1">Slug: <span className="text-indigo-400">/{art.slug}</span></span>
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <h3 className="text-sm font-extrabold text-white">{art.title}</h3>
+                                    <span className="text-[9px] font-mono text-gray-500 block mt-1">Slug: <span className="text-indigo-400">/{art.slug}</span></span>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      onClick={() => handleGenerateMultimedia(selectedIdx, 'podcast')}
+                                      disabled={multimediaGenerating}
+                                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 disabled:bg-gray-800 text-white rounded-lg text-[9px] font-bold uppercase cursor-pointer transition-all flex items-center gap-1.5"
+                                    >
+                                      {multimediaGenerating && multimediaType === 'podcast' ? (
+                                        <RefreshCw size={10} className="animate-spin" />
+                                      ) : '🎙️ Podcast'}
+                                    </button>
+                                    <button
+                                      onClick={() => handleGenerateMultimedia(selectedIdx, 'presentation')}
+                                      disabled={multimediaGenerating}
+                                      className="px-3 py-1.5 bg-pink-600 hover:bg-pink-500 disabled:bg-gray-800 text-white rounded-lg text-[9px] font-bold uppercase cursor-pointer transition-all flex items-center gap-1.5"
+                                    >
+                                      {multimediaGenerating && multimediaType === 'presentation' ? (
+                                        <RefreshCw size={10} className="animate-spin" />
+                                      ) : '📊 Slides'}
+                                    </button>
+                                  </div>
                                 </div>
                                 <hr className="border-white/[0.04]" />
                                 <div className="text-xs text-gray-300 leading-relaxed font-sans select-text">
@@ -6313,7 +6938,6 @@ export default function App() {
                     {/* Active Telemetry list */}
                     <AgentTelemetryPanel agents={agents} />
                     {/* Active Telemetry list */}
-                    <AgentTelemetryPanel agents={agents} />
                     <div className="glass rounded-2xl p-4 border-white/[0.04] bg-[#0c0c26]/60 backdrop-blur-md">
                       <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-1.5"><Activity size={12} className="text-indigo-400" /> Token consumption (24h)</h3>
                       <div className="h-44 w-full">
@@ -6351,93 +6975,76 @@ export default function App() {
                           const agentId = activeAgent.toLowerCase();
                           let title = "OpenRouter Free Models";
                           let description = "Models available free via OpenRouter API key.";
+                          
+                          const buildModelList = (providerId: string) => {
+                            return discoveredModels
+                              .filter(m => m.provider === providerId)
+                              .map(m => {
+                                let ctxString = "varies";
+                                if (m.context_length) {
+                                  ctxString = m.context_length >= 1024 * 1024 
+                                    ? `${(m.context_length / (1024 * 1024)).toFixed(0)}M` 
+                                    : `${(m.context_length / 1024).toFixed(0)}K`;
+                                }
+                                let displayName = m.name || m.id.split('/').pop() || m.id;
+                                displayName = displayName.replace(':free', '').replace(' (free)', '');
+                                if (displayName.startsWith('alibaba/')) displayName = displayName.replace('alibaba/', '');
+                                if (displayName.startsWith('zhipu/')) displayName = displayName.replace('zhipu/', '');
+                                if (displayName.startsWith('google/')) displayName = displayName.replace('google/', '');
+                                return {
+                                  id: m.id,
+                                  name: displayName,
+                                  ctx: ctxString,
+                                  tier: m.id.includes(':free') ? 'free' : undefined,
+                                  provider: providerId
+                                };
+                              });
+                          };
+
                           let modelList: Array<{ id: string; name: string; ctx: string; tier?: string; provider?: string; note?: string }> = [];
 
                           if (agentId === "gemini") {
                             title = "Google Gemini — AI Studio Free Tier";
                             description = "All models below are free via Google AI Studio API key.";
-                            modelList = [
-                              { id: "gemini-2.5-flash-preview-05-20", name: "Gemini 2.5 Flash Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Latest" },
-                              { id: "gemini-2.5-pro-preview-06-05", name: "Gemini 2.5 Pro Preview", ctx: "1M", tier: "free", provider: "gemini", note: "Pro" },
-                              { id: "gemini-2.0-pro-exp-02-05", name: "Gemini 2.0 Pro (Experimental)", ctx: "2M", tier: "free", provider: "gemini" },
-                              { id: "gemini-2.0-flash-thinking-exp-01-21", name: "Gemini 2.0 Flash Thinking (Experimental)", ctx: "1M", tier: "free", provider: "gemini" },
-                              { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", ctx: "1M", tier: "free", provider: "gemini" },
-                              { id: "gemini-2.0-flash-lite", name: "Gemini 2.0 Flash-Lite", ctx: "1M", tier: "free", provider: "gemini", note: "Fastest" },
-                              { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash", ctx: "1M", tier: "free", provider: "gemini" },
-                              { id: "gemini-1.5-flash-8b", name: "Gemini 1.5 Flash-8B", ctx: "1M", tier: "free", provider: "gemini" },
-                              { id: "imagen-3.0-generate-002", name: "Imagen 3 (Image Generation)", ctx: "N/A", tier: "free", provider: "gemini", note: "Images" },
-                              { id: "gemma-3-27b-it", name: "Gemma 3 27B IT", ctx: "131K", tier: "free", provider: "gemini" },
-                              { id: "gemma-3-12b-it", name: "Gemma 3 12B IT", ctx: "131K", tier: "free", provider: "gemini" },
-                              { id: "gemma-3-4b-it", name: "Gemma 3 4B IT", ctx: "131K", tier: "free", provider: "gemini" },
-                              { id: "gemma-3n-e4b-it", name: "Gemma 3n E4B IT", ctx: "8K", tier: "free", provider: "gemini", note: "Edge" }
-                            ];
+                            modelList = buildModelList("gemini");
+                            if (modelList.length === 0) {
+                              modelList = [
+                                { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", ctx: "1M", tier: "free", provider: "gemini", note: "Latest" },
+                                { id: "gemini-2.5-pro", name: "Gemini 2.5 Pro", ctx: "1M", tier: "free", provider: "gemini", note: "Pro" },
+                                { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", ctx: "1M", tier: "free", provider: "gemini" },
+                                { id: "gemini-3.5-pro", name: "Gemini 3.5 Pro", ctx: "1M", tier: "free", provider: "gemini" }
+                              ];
+                            }
                           } else if (agentId === "alibaba") {
                             title = "Alibaba DashScope — Qwen Models";
                             description = "Alibaba's official DashScope API.";
-                            modelList = [
-                              { id: "alibaba/qwen-long", name: "Qwen Long", ctx: "10M", tier: "free", provider: "alibaba", note: "Huge context" },
-                              { id: "alibaba/qwen-plus", name: "Qwen Plus", ctx: "131K", tier: "free", provider: "alibaba" },
-                              { id: "alibaba/qwen-turbo", name: "Qwen Turbo", ctx: "131K", tier: "free", provider: "alibaba" },
-                              { id: "alibaba/qwen-max", name: "Qwen Max", ctx: "32K", tier: "free", provider: "alibaba", note: "Flagship" },
-                              { id: "alibaba/qwen-vl-plus", name: "Qwen VL Plus (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
-                              { id: "alibaba/qwen-vl-max", name: "Qwen VL Max (Vision)", ctx: "8K", tier: "free", provider: "alibaba", note: "Vision" },
-                              { id: "alibaba/wanx-v1", name: "Tongyi Wanx (Image Gen)", ctx: "N/A", tier: "free", provider: "alibaba", note: "Images" }
-                            ];
+                            modelList = buildModelList("alibaba");
+                            if (modelList.length === 0) {
+                              modelList = [
+                                { id: "alibaba/qwen-long", name: "Qwen Long", ctx: "10M", tier: "free", provider: "alibaba", note: "Huge context" },
+                                { id: "alibaba/qwen-plus", name: "Qwen Plus", ctx: "131K", tier: "free", provider: "alibaba" }
+                              ];
+                            }
                           } else if (agentId === "zhipu") {
                             title = "Zhipu BigModel — GLM Models";
                             description = "Zhipu AI GLM platform.";
-                            modelList = [
-                              { id: "zhipu/glm-5.1", name: "GLM 5.1 (Thinking)", ctx: "64K", tier: "free", provider: "zhipu", note: "Reasoning" },
-                              { id: "zhipu/glm-4-flash", name: "GLM-4 Flash", ctx: "128K", tier: "free", provider: "zhipu", note: "Fast & Free" },
-                              { id: "zhipu/glm-4v-flash", name: "GLM-4V Flash (Vision)", ctx: "128K", tier: "free", provider: "zhipu", note: "Vision" },
-                              { id: "zhipu/cogview-3-flash", name: "CogView 3 Flash (Image Gen)", ctx: "N/A", tier: "free", provider: "zhipu", note: "Images" }
-                            ];
+                            modelList = buildModelList("zhipu");
+                            if (modelList.length === 0) {
+                              modelList = [
+                                { id: "zhipu/glm-5.1", name: "GLM 5.1 (Thinking)", ctx: "64K", tier: "free", provider: "zhipu", note: "Reasoning" },
+                                { id: "zhipu/glm-4-flash", name: "GLM-4 Flash", ctx: "128K", tier: "free", provider: "zhipu", note: "Fast & Free" }
+                              ];
+                            }
                           } else if (agentId === "openclaw" || agentId === "opencode" || agentId === "hermes" || agentId === "openrouter") {
                             title = agentId === "openclaw" ? "OpenClaw — Free Models" : agentId === "opencode" ? "OpenCode — Free AI Coder" : agentId === "hermes" ? "Hermes — Nous Research Models" : "OpenRouter Free Models";
                             description = "Discovered free models dynamically fetched and updated.";
-                            
-                            const dynamicFree = discoveredModels
-                              .filter(m => m.provider === "openrouter")
-                              .map(m => {
-                                const staticMeta = [
-                                  { id: "openrouter/owl-alpha", ctx: "1M" },
-                                  { id: "deepseek/deepseek-r1:free", ctx: "128K" },
-                                  { id: "qwen/qwen-2.5-coder-32b-instruct:free", ctx: "128K" },
-                                  { id: "pewdiepie-persona:free", ctx: "32K" },
-                                  { id: "adysseus-ai:free", ctx: "32K" },
-                                  { id: "deepseek/deepseek-v4-flash:free", ctx: "1M" },
-                                  { id: "qwen/qwen3-coder:free", ctx: "1M" },
-                                  { id: "nvidia/nemotron-3-super-120b-a12b:free", ctx: "1M" }
-                                ].find(s => s.id === m.id);
-
-                                let ctxString = "varies";
-                                  if (staticMeta?.ctx) {
-                                    ctxString = staticMeta.ctx;
-                                  } else if (m.context_length) {
-                                    ctxString = m.context_length >= 1024 * 1024 
-                                      ? `${(m.context_length / (1024 * 1024)).toFixed(0)}M` 
-                                      : `${(m.context_length / 1024).toFixed(0)}K`;
-                                  }
-
-                                let displayName = m.name || m.id.split('/').pop() || m.id;
-                                displayName = displayName.replace(':free', '').replace(' (free)', '');
-
-                                return {
-                                  id: m.id,
-                                  name: displayName,
-                                  ctx: ctxString,
-                                  tier: "free",
-                                  provider: "openrouter",
-                                  note: (staticMeta as any)?.note || (m.id.includes('thinking') ? 'Thinking' : undefined)
-                                };
-                              });
-
-                            modelList = dynamicFree.length > 0 ? dynamicFree : [
-                              { id: "nousresearch/hermes-3-llama-3.1-405b:free", name: "Hermes 3 Llama 3.1 405B", ctx: "131K", tier: "free", provider: "openrouter", note: "Flagship" },
-                              { id: "nousresearch/hermes-3-llama-3.1-70b:free", name: "Hermes 3 Llama 3.1 70B", ctx: "131K", tier: "free", provider: "openrouter" },
-                              { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Reasoning" },
-                              { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" }
-                            ];
+                            modelList = buildModelList("openrouter");
+                            if (modelList.length === 0) {
+                              modelList = [
+                                { id: "deepseek/deepseek-r1:free", name: "DeepSeek R1", ctx: "128K", tier: "free", provider: "openrouter", note: "Reasoning" },
+                                { id: "qwen/qwen3-coder:free", name: "Qwen3 Coder 480B", ctx: "1M", tier: "free", provider: "openrouter", note: "Code" }
+                              ];
+                            }
                           }
 
                           return (
