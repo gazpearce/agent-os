@@ -5273,7 +5273,7 @@ export default function App() {
               <button
                 id="header-swarm-mode-btn"
                 onClick={() => handleSwitchThread('collab', activeAgent)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-[18px] py-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
                   chatMode === 'collab'
                     ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                     : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5284,7 +5284,7 @@ export default function App() {
               <button
                 id="header-specialist-mode-btn"
                 onClick={() => handleSwitchThread('single', activeAgent)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-[18px] py-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
                   chatMode === 'single'
                     ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                     : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5602,7 +5602,7 @@ export default function App() {
 
               <div className="h-6 w-[1px] bg-white/10 mr-6 hidden md:block" />
 
-              <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5">
+              <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5 flex-nowrap overflow-x-auto scrollbar-none max-w-full">
               {[
                 { id: "chat", label: "Chat", icon: <Bot size={12} /> },
                 { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
@@ -5617,7 +5617,7 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setCenterTab(tab.id as any)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[10.5px] font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-4 py-1.5 rounded text-[10.5px] font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
                     centerTab === tab.id
                       ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                       : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5653,7 +5653,7 @@ export default function App() {
                   <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5">
                     <button
                       onClick={() => handleSwitchThread('collab', activeAgent)}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-[18px] py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
                         chatMode === 'collab'
                           ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                           : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5663,7 +5663,7 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => handleSwitchThread('single', activeAgent)}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-[18px] py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
                         chatMode === 'single'
                           ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                           : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -6039,10 +6039,10 @@ export default function App() {
                       </button>
                       <button
                         onClick={() => handleSendMessage()}
-                        className="p-2 px-4 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white transition-all cursor-pointer shadow-[0_0_15px_rgba(124,58,237,0.3)] flex items-center gap-1.5 justify-center text-xs font-semibold"
+                        className="px-5 py-2 rounded border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:text-white hover:bg-indigo-500/20 transition-all cursor-pointer flex items-center gap-1.5 justify-center text-xs font-semibold shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                         title="Send Message"
                       >
-                        <Zap size={13} className="fill-white" />
+                        <Zap size={13} />
                         <span>Send</span>
                       </button>
                     </div>
