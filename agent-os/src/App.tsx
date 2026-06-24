@@ -5215,10 +5215,10 @@ export default function App() {
           <div className="relative">
             <button
               onClick={() => setShowVersionHistory(!showVersionHistory)}
-              className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
+              className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-md px-2.5 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              v2.5.1
+              v2.5.2
               <ChevronDown size={10} className={`opacity-80 transition-transform ${showVersionHistory ? "rotate-180" : ""}`} />
             </button>
 
@@ -5236,8 +5236,17 @@ export default function App() {
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                     <div className="border-l-2 border-indigo-500 pl-2 py-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.5.1 (Active)</span>
+                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.5.2 (Active)</span>
                         <span className="text-[8px] text-gray-500">Active</span>
+                      </div>
+                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
+                        Phase 1 Deploy: High-performance key cascades for Cerebras/SambaNova direct routing. Installed cache-busting headers to bypass browser caching, and refined message bubbles and inline backticks to rounded-md rectangular highlights.
+                      </p>
+                    </div>
+                    <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.5.1</span>
+                        <span className="text-[8px] text-gray-500">Previous</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
                         Auto-Evolution: Scanned and integrated models: Cohere: North Mini Code (free) (`cohere/north-mini-code:free`), NVIDIA: Nemotron 3.5 Content Safety (free) (`nvidia/nemotron-3.5-content-safety:free`), NVIDIA: Nemotron 3 Ultra (free) (`nvidia/nemotron-3-ultra-550b-a55b:free`).
@@ -5260,28 +5269,28 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Global Header Mode Switcher */}
-            <div className="flex bg-black/50 border border-white/[0.08] p-1 rounded-xl gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+            <div className="flex bg-black/50 border border-white/[0.08] p-0.5 rounded-lg gap-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
               <button
                 id="header-swarm-mode-btn"
                 onClick={() => handleSwitchThread('collab', activeAgent)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-extrabold transition-all duration-200 cursor-pointer ${
                   chatMode === 'collab'
                     ? "bg-indigo-600 text-white border border-indigo-400/35 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
                     : "text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent"
                 }`}
               >
-                <Users size={11} /> Swarm Mode
+                <Users size={10} /> Swarm Mode
               </button>
               <button
                 id="header-specialist-mode-btn"
                 onClick={() => handleSwitchThread('single', activeAgent)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-extrabold transition-all duration-200 cursor-pointer ${
                   chatMode === 'single'
                     ? "bg-indigo-600 text-white border border-indigo-400/35 shadow-[0_0_10px_rgba(99,102,241,0.4)]"
                     : "text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent"
                 }`}
               >
-                <Bot size={11} /> Specialist Mode
+                <Bot size={10} /> Specialist Mode
               </button>
             </div>
 
@@ -5336,11 +5345,13 @@ export default function App() {
                 )}
               </div>
 
-              <span className="relative flex h-2 w-2 ml-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-              </span>
-              <span className="text-green-400 text-xs font-semibold">Systems Online</span>
+              <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded-md text-[10px] ml-1">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                </span>
+                <span className="text-green-400 font-mono font-bold tracking-wide">SYSTEMS ONLINE</span>
+              </div>
             </div>
           </div>
         </div>
@@ -5591,24 +5602,24 @@ export default function App() {
 
               <div className="h-6 w-[1px] bg-white/10 mr-6 hidden md:block" />
 
-              <div className="flex bg-white/[0.02] border border-white/[0.05] rounded-2xl p-1 gap-1.5">
+              <div className="flex bg-white/[0.02] border border-white/[0.05] rounded-lg p-0.5 gap-1">
               {[
-                { id: "chat", label: "Chat", icon: <Bot size={14} /> },
-                { id: "kanban", label: "Kanban", icon: <Kanban size={14} /> },
-                { id: "swarm", label: "Swarm Hub", icon: <Users size={14} /> },
-                { id: "paperclip", label: "Paperclip", icon: <Puzzle size={14} /> },
-                { id: "studio", label: "Studio", icon: <Image size={14} /> },
-                { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={14} /> },
-                { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={14} /> },
-                { id: "workspace", label: "Workspace", icon: <FolderOpen size={14} /> },
-                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={14} /> }
+                { id: "chat", label: "Chat", icon: <Bot size={12} /> },
+                { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
+                { id: "swarm", label: "Swarm Hub", icon: <Users size={12} /> },
+                { id: "paperclip", label: "Paperclip", icon: <Puzzle size={12} /> },
+                { id: "studio", label: "Studio", icon: <Image size={12} /> },
+                { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={12} /> },
+                { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={12} /> },
+                { id: "workspace", label: "Workspace", icon: <FolderOpen size={12} /> },
+                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setCenterTab(tab.id as any)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[10.5px] font-semibold transition-all duration-200 cursor-pointer ${
                     centerTab === tab.id
-                      ? "bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.35)]"
+                      ? "bg-indigo-600 text-white shadow-[0_0_8px_rgba(79,70,229,0.35)]"
                       : "text-gray-400 hover:text-gray-200"
                   }`}
                 >
@@ -5639,37 +5650,37 @@ export default function App() {
               <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-950/60 bg-[#070715] shadow-lg select-none shrink-0">
                 <div className="flex items-center gap-4">
                   <span className="text-gray-300 text-[10px] font-extrabold uppercase tracking-widest font-mono border-r border-white/10 pr-4">Workspace Mode:</span>
-                  <div className="flex bg-black/40 border border-white/[0.08] p-1 rounded-xl gap-2">
+                  <div className="flex bg-black/40 border border-white/[0.08] p-0.5 rounded-lg gap-1">
                     <button
                       onClick={() => handleSwitchThread('collab', activeAgent)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-extrabold transition-all cursor-pointer ${
                         chatMode === 'collab'
                           ? "bg-indigo-600 text-white border border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]"
                           : "text-gray-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
                       }`}
                     >
-                      <Users size={13} /> Swarm Collab
+                      <Users size={11} /> Swarm Collab
                     </button>
                     <button
                       onClick={() => handleSwitchThread('single', activeAgent)}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-extrabold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-extrabold transition-all cursor-pointer ${
                         chatMode === 'single'
                           ? "bg-indigo-600 text-white border border-indigo-400/50 shadow-[0_0_12px_rgba(99,102,241,0.4)]"
                           : "text-gray-400 hover:text-white hover:bg-white/[0.04] border border-transparent"
                       }`}
                     >
-                      <Bot size={13} /> Specialist Chat
+                      <Bot size={11} /> Specialist Chat
                     </button>
                   </div>
                 </div>
 
                 {chatMode === 'collab' ? (
-                  <div className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-inner">
+                  <div className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
                     <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
                     ⚡ Swarm Active (Delegated Execution)
                   </div>
                 ) : (
-                  <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full font-mono font-bold flex items-center gap-1.5 shadow-inner">
+                  <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Direct: {currentAgent.name}
                   </div>
@@ -6069,7 +6080,7 @@ export default function App() {
                       <button
                         key={tool.label}
                         onClick={() => handleSendMessage(tool.prompt)}
-                        className="flex items-center gap-1 text-[9px] text-gray-400 hover:text-white bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.08] px-2 py-0.5 rounded-full transition-all cursor-pointer whitespace-nowrap"
+                        className="flex items-center gap-1 text-[9px] text-gray-400 hover:text-white bg-white/[0.03] border border-white/[0.05] hover:border-white/[0.08] px-2 py-0.5 rounded-md transition-all cursor-pointer whitespace-nowrap"
                       >
                         {tool.icon} {tool.label}
                       </button>
@@ -7608,7 +7619,7 @@ export default function App() {
                     <div className="p-4 bg-indigo-950/20 border-b border-white/[0.04] px-6 flex items-center justify-between">
                       <span className="text-[10px] font-bold text-indigo-400 font-mono uppercase tracking-wider">Generated Support Articles Swarm</span>
                       {seoArticles.length > 0 && (
-                        <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/25 px-2 py-0.5 rounded-full">
+                        <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/25 px-2 py-0.5 rounded-md">
                           <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                           <span className="text-[8px] font-bold text-green-400 font-mono uppercase tracking-wide">5 Articles Ready</span>
                         </div>
@@ -9026,7 +9037,7 @@ export default function App() {
             <span className="text-[9px] uppercase font-bold tracking-wider">💬 Swarm Chat</span>
           </button>
 
-          <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-full">Antigravity Premium OS Dashboard</span>
+          <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-md">Antigravity Premium OS Dashboard</span>
         </div>
       </footer>
     </div>
