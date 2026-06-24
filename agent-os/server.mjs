@@ -7131,8 +7131,21 @@ app.post('/api/git/backup', async (req, res) => {
 
 // SERVE FRONTEND
 // ═══════════════════════════════════════════════════════════════════════
-app.use(express.static(join(__dirname, 'dist')));
-app.get(/^\/(?!api).*/, (req, res) => { res.sendFile(join(__dirname, 'dist', 'index.html')); });
+app.use(express.static(join(__dirname, 'dist'), {
+  etag: false,
+  maxAge: 0,
+  setHeaders: (res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+app.get(/^\/(?!api).*/, (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(join(__dirname, 'dist', 'index.html'));
+});
 
 // ═══════════════════════════════════════════════════════════════════════
 // START
