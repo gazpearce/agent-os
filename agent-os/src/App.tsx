@@ -8662,7 +8662,7 @@ export default function App() {
 
 
       {isFloatingTerminalOpen && (
-        <div className="fixed bottom-10 right-4 w-[540px] h-[480px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[10.5px] flex flex-col justify-between backdrop-blur-lg animate-in fade-in duration-200">
+        <div className="fixed bottom-10 right-4 w-[540px] h-[480px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[10.5px] flex flex-col justify-between backdrop-blur-lg">
           <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none">
             <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
@@ -8709,7 +8709,7 @@ export default function App() {
             resize: isChatMinimized ? 'none' : 'both',
             overflow: 'hidden'
           }}
-          className="fixed bg-[#060612]/98 border border-white/[0.08] rounded-2xl shadow-2xl z-50 flex flex-col justify-between backdrop-blur-xl animate-in fade-in duration-200 select-none cursor-grab active:cursor-grabbing min-w-[320px] min-h-[300px]"
+          className="fixed bg-[#060612]/98 border border-white/[0.08] rounded-2xl shadow-2xl z-50 flex flex-col justify-between backdrop-blur-xl select-none cursor-grab active:cursor-grabbing min-w-[320px] min-h-[300px]"
         >
           {/* Header */}
           <div className="flex justify-between items-center p-3.5 border-b border-white/[0.05] shrink-0 select-none">
