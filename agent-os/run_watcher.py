@@ -38,8 +38,8 @@ if os.path.exists(SCANS_FILE):
 # Query multiple AI and SEO channels
 channels = {
     "Julian Goldie SEO": "https://www.youtube.com/@JulianGoldieSEO/videos",
-    "Matt Wolfe": "https://www.youtube.com/@MattWolfe/videos",
-    "AI Explained": "https://www.youtube.com/@AIExplained/videos",
+    "Matt Wolfe": "https://www.youtube.com/@mreflow/videos",
+    "AI Explained": "https://www.youtube.com/@aiexplained-official",
     "Wes Roth": "https://www.youtube.com/@WesRoth/videos"
 }
 
@@ -97,7 +97,15 @@ for channel_name, channel_url in channels.items():
                 print(f"[Watcher] Requesting Agent OS LLM evaluation for: {title}")
                 try:
                     payload = {
-                        "query": f"Analyze this new video from {channel_name} to see if there is any new tool, workflow, AI model release, or automation pattern that can help our Agent OS tool grow. If so, write a structured proposal including: Title, Growth Potential, Workflows/Sequence, and Integration Steps. If it does not contain useful integrations, output exactly 'NO OPPORTUNITY'.\n\nVideo Title: {title}\nContent:\n{transcript_content[:8000]}"
+                        "query": (
+                            f"Analyze this new video from {channel_name} to see if there is any new LLM model, AgentOS model, "
+                            f"free AI agent, free video AI generator, free image maker, free agenting AI model, new free model, "
+                            f"free avatar maker, free API model, or local AI model release that has come out. "
+                            f"If so, write a structured proposal including: Title, Growth Potential, Installation/Setup steps, "
+                            f"how it works, and how it will integrate with Agent OS to make it better, self-learning, self-upgrading, "
+                            f"and more autonomous. If it does not contain useful integrations or is basic advice, output exactly 'NO OPPORTUNITY'.\n\n"
+                            f"Video Title: {title}\nContent:\n{transcript_content[:8000]}"
+                        )
                     }
                     res = requests.post("http://localhost:3001/api/chat/evaluate-growth", json=payload, timeout=60)
                     if res.status_code == 200:
@@ -108,6 +116,18 @@ for channel_name, channel_url in channels.items():
                             with open(prop_file, 'w', encoding='utf-8') as pf:
                                 pf.write(f"# Swarm Growth Opportunity: {title}\n\n* **Source Channel:** {channel_name}\n* **Video URL:** {url}\n* **Scanned Date:** {upload_date}\n\n---\n\n{analysis}")
                             print(f"[Watcher] Success! Growth proposal saved to {prop_file}")
+                            
+                            # Also ingest into Semantic Vector Memory (RAG)
+                            try:
+                                ingest_payload = {
+                                    "text": f"Growth Opportunity from {channel_name}: {title}\n\nAnalysis details:\n{analysis}",
+                                    "source_type": "youtube_transcript",
+                                    "source_id": video_id
+                                }
+                                requests.post("http://localhost:3001/api/memories/ingest", json=ingest_payload, timeout=10)
+                                print(f"[Watcher] Successfully ingested opportunity into Semantic Memory DB.")
+                            except Exception as ie:
+                                print(f"[Watcher] Failed to ingest into Semantic Memory DB: {ie}")
                             
                             # Trigger system audio warning/notification
                             requests.post("http://localhost:3001/api/watcher/notify", json={
