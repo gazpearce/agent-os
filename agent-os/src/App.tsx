@@ -443,8 +443,8 @@ function Markdown({ text }: { text: string }) {
           }
 
           return (
-            <div key={i} className="my-2.5 rounded-xl bg-black/45 border border-white/[0.04] overflow-hidden font-mono text-[13px] shadow-inner">
-              <div className="flex items-center justify-between px-3.5 py-2 bg-white/[0.02] border-b border-white/[0.04] text-[9px] text-gray-500 uppercase font-sans select-none">
+            <div key={i} className="my-2 rounded-lg bg-black/45 border border-white/[0.04] overflow-hidden font-mono text-[11.5px] shadow-inner">
+              <div className="flex items-center justify-between px-3 py-1.5 bg-white/[0.02] border-b border-white/[0.04] text-[9px] text-gray-500 uppercase font-sans select-none">
                 <span className="font-semibold text-gray-400">{lang || 'code'}</span>
                 <button 
                   onClick={() => navigator.clipboard.writeText(code)}
@@ -453,7 +453,7 @@ function Markdown({ text }: { text: string }) {
                   Copy
                 </button>
               </div>
-              <pre className="p-3.5 overflow-x-auto leading-relaxed"><code className="text-[#e2e8f0]">{code}</code></pre>
+              <pre className="p-2.5 overflow-x-auto leading-relaxed"><code className="text-[#e2e8f0]">{code}</code></pre>
             </div>
           );
         }
@@ -464,21 +464,21 @@ function Markdown({ text }: { text: string }) {
             {lines.map((line, j) => {
               if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
                 return (
-                  <li key={j} className="ml-4 list-disc pl-1 text-[14.5px] text-[#cbd5e1]">
+                  <li key={j} className="ml-4 list-disc pl-1 text-[12px] text-[#cbd5e1]">
                     {parseInline(line.trim().slice(2))}
                   </li>
                 );
               }
               if (line.trim().startsWith('### ')) {
                 return (
-                  <h3 key={j} className="text-sm font-bold text-white mt-3 mb-1 select-none">
+                  <h3 key={j} className="text-[12.5px] font-bold text-white mt-3 mb-1 select-none">
                     {parseInline(line.trim().slice(4))}
                   </h3>
                 );
               }
               if (line.trim().startsWith('## ')) {
                 return (
-                  <h2 key={j} className="text-base font-bold text-white mt-4 mb-2 border-b border-white/5 pb-1 select-none">
+                  <h2 key={j} className="text-[13.5px] font-bold text-white mt-4 mb-2 border-b border-white/5 pb-1 select-none">
                     {parseInline(line.trim().slice(3))}
                   </h2>
                 );
@@ -486,13 +486,13 @@ function Markdown({ text }: { text: string }) {
               if (line.trim().match(/^\d+\.\s/)) {
                 const match = line.trim().match(/^(\d+)\.\s(.*)/);
                 return (
-                  <li key={j} className="ml-4 list-decimal pl-1 text-[14.5px] text-[#cbd5e1]">
+                  <li key={j} className="ml-4 list-decimal pl-1 text-[12px] text-[#cbd5e1]">
                     {parseInline(match ? match[2] : line)}
                   </li>
                 );
               }
               return (
-                <p key={j} className="text-[14.5px] text-[#cbd5e1] leading-relaxed">
+                <p key={j} className="text-[12px] text-[#cbd5e1] leading-relaxed">
                   {parseInline(line)}
                 </p>
               );
@@ -5810,12 +5810,12 @@ export default function App() {
                                       >
                                         {replyAgentMeta.icon}
                                       </div>
-                                      <div className="flex-1 min-w-0 bg-white/[0.015] hover:bg-white/[0.025] border border-white/[0.03] rounded-xl px-4 py-2.5 transition-all">
+                                      <div className="flex-1 min-w-0 bg-white/[0.015] hover:bg-white/[0.025] border border-white/[0.03] rounded-md px-3 py-2 transition-all">
                                         <div className="flex items-center justify-between mb-1 select-none">
                                           <span className="text-[11px] font-bold text-white font-mono">{replyAgentMeta.name}</span>
                                           <span className="text-[8.5px] text-gray-500 font-mono">{reply.time}</span>
                                         </div>
-                                        <div className="text-[12.5px] text-[#cbd5e1] leading-relaxed">
+                                        <div className="text-[12px] text-[#cbd5e1] leading-relaxed">
                                           <Markdown text={reply.msg} />
                                         </div>
                                       </div>
@@ -5849,64 +5849,51 @@ export default function App() {
                           key={i}
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className={`flex gap-3.5 ${isUser ? "justify-end" : ""}`}
+                          className="flex gap-3.5 py-4 px-6 border-b border-white/[0.03] hover:bg-white/[0.005] transition-all relative"
                         >
-                          {!isUser && !isSystem && (
-                            <div
-                              className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border shadow-lg select-none"
-                              style={{ 
-                                backgroundColor: `${agentMeta?.color || "#a855f7"}15`, 
-                                borderColor: `${agentMeta?.color || "#a855f7"}30`,
-                                color: agentMeta?.color || "#a855f7" 
-                              }}
-                            >
-                              {agentMeta?.icon || <Zap size={16} />}
-                            </div>
-                          )}
-                          {isSystem && (
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border border-yellow-500/20 bg-yellow-500/10 text-yellow-400 select-none">
-                              <Shield size={16} />
-                            </div>
-                          )}
-                          <div 
-                            className={`max-w-[90%] rounded-lg px-3.5 py-2.5 text-[11.5px] leading-relaxed border border-white/[0.04] break-words backdrop-blur-md shadow-md ${
-                              isUser
-                                ? "bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-tr-none border border-indigo-500/30 text-[#f1f5f9] shadow-[0_4px_24px_rgba(99,102,241,0.1)]"
-                                : isSystem
-                                ? "bg-yellow-500/5 border border-yellow-500/15 rounded-lg text-[#cbd5e1]"
-                                : msg.isError
-                                ? "bg-red-500/5 border border-red-500/15 rounded-lg text-[#cbd5e1]"
-                                : "rounded-tl-none text-[#e2e8f0]"
-                            }`}
-                            style={(!isUser && !isSystem && !msg.isError) ? {
-                              backgroundColor: `${agentMeta?.color || "#a855f7"}06`,
-                              borderColor: `${agentMeta?.color || "#a855f7"}1d`
-                            } : undefined}
+                          <div
+                            className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 border select-none text-[12px]"
+                            style={{ 
+                              backgroundColor: isUser ? "rgba(99,102,241,0.1)" : isSystem ? "rgba(234,179,8,0.1)" : `${agentMeta?.color || "#a855f7"}15`, 
+                              borderColor: isUser ? "rgba(99,102,241,0.2)" : isSystem ? "rgba(234,179,8,0.2)" : `${agentMeta?.color || "#a855f7"}30`,
+                              color: isUser ? "#818cf8" : isSystem ? "#eab308" : agentMeta?.color || "#a855f7" 
+                            }}
                           >
-                            {!isUser && !isSystem && !msg.isError && (
-                              <div className="flex items-center justify-between mb-2 select-none border-b border-white/[0.03] pb-1.5">
-                                <span className="text-[11px] font-bold font-mono" style={{ color: agentMeta?.color || '#a855f7' }}>
-                                  {agentMeta?.name || msg.agent}
+                            {isUser ? <span>👤</span> : isSystem ? <Shield size={13} /> : agentMeta?.icon || <Zap size={13} />}
+                          </div>
+
+                          <div className="flex-grow min-w-0">
+                            {/* Message Header */}
+                            <div className="flex items-center justify-between mb-1.5 select-none">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11.5px] font-bold font-mono text-white">
+                                  {isUser ? "USER" : isSystem ? "SYSTEM SECURITY" : agentMeta?.name || msg.agent}
                                 </span>
+                                <span className="text-[9px] text-gray-500 font-mono">{msg.time || "just now"}</span>
+                              </div>
+                              {!isUser && !isSystem && !msg.isError && (
                                 <button
                                   onClick={() => handleOpenSpecialistPanel(msg.agent)}
-                                  className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
+                                  className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
                                   title={`Open 1-on-1 Chat with ${agentMeta?.name || msg.agent}`}
                                 >
-                                  <MessageSquare size={10} />
+                                  <MessageSquare size={9} />
                                   <span>1-on-1</span>
                                 </button>
-                              </div>
-                            )}
+                              )}
+                            </div>
+
+                            {/* Message Body */}
                             {msg.isError && (
-                              <div className="flex items-center gap-1.5 text-red-400 font-bold mb-2 text-xs select-none">
+                              <div className="flex items-center gap-1.5 text-red-400 font-bold mb-1.5 text-xs select-none">
                                 <AlertTriangle size={12} /> Execution Failure
                               </div>
                             )}
-                            
-                            {/* Main Content Area */}
-                            <Markdown text={msg.msg} />
-                            
+
+                            <div className="text-[12.5px] text-[#cbd5e1] leading-relaxed break-words select-text">
+                              <Markdown text={msg.msg} />
+                            </div>
+
                             {/* Collapsible Tool Call Steps */}
                             {msg.tools && msg.tools.length > 0 && (
                               <div className="mt-3 pt-2.5 border-t border-white/[0.04] text-[10px] font-mono text-gray-500 space-y-1">
@@ -5919,20 +5906,16 @@ export default function App() {
                                   {expandedToolsIndex === i ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                                 </button>
                                 {expandedToolsIndex === i && (
-                                  <motion.div 
-                                    initial={{ height: 0, opacity: 0 }} 
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    className="pl-2 border-l border-white/[0.06] space-y-1 mt-2 max-h-40 overflow-y-auto select-text"
-                                  >
+                                  <div className="pl-2 border-l border-white/[0.06] space-y-1 mt-2 max-h-40 overflow-y-auto select-text">
                                     {msg.tools.map((t, idx) => (
                                       <div key={idx} className="text-gray-500">{t}</div>
                                     ))}
-                                  </motion.div>
+                                  </div>
                                 )}
                               </div>
                             )}
 
-                            {/* Clickable Actions (e.g. Open Browser links detected in text/tools) */}
+                            {/* Clickable Actions */}
                             {(() => {
                               const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
                               const urlsInMsg = msg.msg.match(urlRegex) || [];
@@ -5955,7 +5938,7 @@ export default function App() {
                                           href={href}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/25 border border-indigo-500/30 hover:border-indigo-500/50 text-[10px] font-medium text-indigo-300 hover:text-white transition-all cursor-pointer shadow-[0_0_10px_rgba(99,102,241,0.1)] hover:shadow-[0_0_15px_rgba(99,102,241,0.25)] select-none"
+                                          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-indigo-500/10 hover:bg-indigo-500/25 border border-indigo-500/30 hover:border-indigo-500/50 text-[10px] font-medium text-indigo-300 hover:text-white transition-all cursor-pointer select-none"
                                         >
                                           <Globe size={10} />
                                           <span>Open {url.replace(/^https?:\/\//i, '')}</span>
@@ -5967,29 +5950,23 @@ export default function App() {
                               );
                             })()}
 
-                            <div className="text-[9px] text-gray-500 font-mono mt-2.5 text-right select-none">{msg.time}</div>
                           </div>
-                          {isUser && (
-                            <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border border-white/[0.08] bg-white/[0.04] text-indigo-300 shadow-md select-none order-last">
-                              👤
-                            </div>
-                          )}
                         </motion.div>
                       );
                     })}
                     {isCurrentLoading && (
-                      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3.5 select-none">
-                        <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-purple-500/20 text-purple-400 animate-pulse">
-                          <Zap size={16} />
+                      <div className="flex gap-3.5 py-4 px-6 border-b border-white/[0.03] select-none">
+                        <div className="w-7 h-7 rounded-md flex items-center justify-center bg-purple-500/10 text-purple-400 border border-purple-500/20 animate-pulse">
+                          <Zap size={13} />
                         </div>
-                        <div className="glass rounded-2xl rounded-tl-none border-white/[0.04] px-4 py-3 text-xs text-gray-400 flex items-center gap-3">
+                        <div className="flex-1 text-[12px] text-gray-400 flex items-center gap-2">
                           <span className="relative flex h-2 w-2">
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
                           </span>
-                          <span>{loadingMessages[loadingStep]}</span>
+                          <span className="font-mono text-xs">{loadingMessages[loadingStep]}</span>
                         </div>
-                      </motion.div>
+                      </div>
                     )}
                   </AnimatePresence>
                   <div ref={chatBottomRef} />
