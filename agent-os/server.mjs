@@ -285,6 +285,14 @@ function getAionuiDb() {
         response TEXT,
         timestamp INTEGER
       );
+      CREATE TABLE IF NOT EXISTS memories (
+        id TEXT PRIMARY KEY,
+        text TEXT NOT NULL,
+        source_type TEXT NOT NULL,
+        source_id TEXT,
+        embedding TEXT NOT NULL,
+        created_at INTEGER
+      );
     `);
     
     return aionuiDb;
@@ -535,6 +543,28 @@ async function fetchGeminiWithRotation(urlSuffix, bodyData, controllerSignal) {
   }
   throw lastError || new Error('All Gemini keys failed');
 }
+
+async function generateEmbedding(text) {
+  try {
+    const response = await fetchGeminiWithRotation('text-embedding-004:embedContent', {
+      content: { parts: [{ text }] }
+    });
+    if (!response || response.status !== 200) {
+      throw new Error(`Embedding request failed with status: ${response ? response.status : 'no response'}`);
+    }
+    const data = await response.json();
+    if (data.embedding?.values) {
+      return data.embedding.values;
+    }
+    throw new Error('Malformed embedding response structure');
+  } catch (e) {
+    console.error('[Embedding API] Error generating embedding:', e.message);
+    throw e;
+  }
+}
+
+
+
 
 const NOUS_API_KEY = 'sk-nous-CPu13S1xH9dIVCoSfkU0AQqRGd719rSg';
 const ALIBABA_KEY = 'sk-fdbfa55f6d044da99823821d5f2bcb13';
@@ -3265,6 +3295,74 @@ async function runSwarmEvolution() {
 // ═══════════════════════════════════════════════════════════════════════
 // API ENDPOINTS
 // ═══════════════════════════════════════════════════════════════════════
+
+// Semantic Memory API Endpoints
+app.post('/api/memories/ingest', async (req, res) => {
+  try {
+    const { text, source_type, source_id } = req.body;
+    if (!text || !source_type) {
+      return res.status(400).json({ error: 'Missing required fields text or source_type' });
+    }
+    const embedding = await generateEmbedding(text);
+    const id = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+    aionuiDb.prepare(`
+      INSERT INTO memories (id, text, source_type, source_id, embedding, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(id, text, source_type, source_id || null, JSON.stringify(embedding), Date.now());
+    res.json({ success: true, id });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/memories/search', async (req, res) => {
+  try {
+    const { q, limit = 5 } = req.query;
+    if (!q) {
+      return res.status(400).json({ error: 'Missing query parameter q' });
+    }
+    const queryEmbedding = await generateEmbedding(q);
+    const rows = aionuiDb.prepare("SELECT id, text, source_type, source_id, embedding, created_at FROM memories").all();
+    const results = rows.map(row => {
+      let rowEmbedding;
+      try {
+        rowEmbedding = JSON.parse(row.embedding);
+      } catch {
+        return null;
+      }
+      const score = cosineSimilarity(queryEmbedding, rowEmbedding);
+      // Remove large embedding field before sending
+      const { embedding, ...rest } = row;
+      return { ...rest, score };
+    })
+    .filter(item => item !== null && item.score > 0.35)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, parseInt(limit));
+
+    res.json(results);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/memories', (req, res) => {
+  try {
+    const rows = aionuiDb.prepare("SELECT id, text, source_type, source_id, created_at FROM memories ORDER BY created_at DESC").all();
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/memories/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    aionuiDb.prepare("DELETE FROM memories WHERE id = ?").run(id);
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // Dashboard status
 app.get('/api/status', (req, res) => {

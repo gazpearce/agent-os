@@ -2383,6 +2383,301 @@ function VaultPanel() {
   );
 }
 
+/* ─────────── SEMANTIC VECTOR MEMORY PANEL ─────────── */
+function VectorMemoryPanel() {
+  const [q, setQ] = useState("");
+  const [limit, setLimit] = useState(5);
+  const [results, setResults] = useState<any[]>([]);
+  const [allMemories, setAllMemories] = useState<any[]>([]);
+  const [loadingSearch, setLoadingSearch] = useState(false);
+  const [loadingIngest, setLoadingIngest] = useState(false);
+  const [newText, setNewText] = useState("");
+  const [newSourceType, setNewSourceType] = useState("manual");
+  const [newSourceId, setNewSourceId] = useState("");
+
+  const fetchAllMemories = async () => {
+    try {
+      const r = await fetch('/api/memories');
+      if (r.ok) {
+        const d = await r.json();
+        setAllMemories(d);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchAllMemories();
+  }, []);
+
+  const handleSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!q.trim()) return;
+    setLoadingSearch(true);
+    try {
+      const r = await fetch(`/api/memories/search?q=${encodeURIComponent(q)}&limit=${limit}`);
+      if (r.ok) {
+        const d = await r.json();
+        setResults(d);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingSearch(false);
+    }
+  };
+
+  const handleIngest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newText.trim()) return;
+    setLoadingIngest(true);
+    try {
+      const r = await fetch('/api/memories/ingest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newText, source_type: newSourceType, source_id: newSourceId })
+      });
+      if (r.ok) {
+        setNewText("");
+        setNewSourceId("");
+        fetchAllMemories();
+        alert("Knowledge ingested and embedded successfully!");
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert("Failed to ingest memory: " + e.message);
+    } finally {
+      setLoadingIngest(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this memory?")) return;
+    try {
+      const r = await fetch(`/api/memories/${id}`, { method: 'DELETE' });
+      if (r.ok) {
+        fetchAllMemories();
+        setResults(prev => prev.filter(item => item.id !== id));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden bg-[#070713]/40">
+      <div className="p-4 border-b border-white/[0.05] flex justify-between items-center bg-[#070713]/55">
+        <div>
+          <h3 className="text-xs font-bold text-white tracking-wide font-mono flex items-center gap-2">
+            <Database size={14} className="text-indigo-400 animate-pulse" />
+            SEMANTIC VECTOR MEMORY (LOCAL RAG)
+          </h3>
+          <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-1">
+            Store knowledge chunks as vector embeddings and run similarity queries
+          </span>
+        </div>
+      </div>
+
+      <div className="flex-grow overflow-y-auto p-6 space-y-6 max-w-7xl mx-auto w-full">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Col: Ingest Form */}
+          <div className="bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            <h4 className="text-xs font-bold text-indigo-300 font-mono tracking-wide uppercase mb-4 flex items-center gap-1.5">
+              <Plus size={12} /> Ingest New Knowledge
+            </h4>
+            <form onSubmit={handleIngest} className="space-y-4 relative z-10">
+              <div>
+                <label className="text-[9.5px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Knowledge Text</label>
+                <textarea
+                  value={newText}
+                  onChange={(e) => setNewText(e.target.value)}
+                  placeholder="Paste rules, documentation, competitor info, or other knowledge blocks here..."
+                  className="w-full h-44 bg-black/40 border border-white/10 rounded-md p-3 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50"
+                  required
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-[9.5px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Source Type</label>
+                  <select
+                    value={newSourceType}
+                    onChange={(e) => setNewSourceType(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-1.5 text-xs text-white focus:outline-none"
+                  >
+                    <option value="manual">Manual Entry</option>
+                    <option value="youtube_transcript">YouTube Transcript</option>
+                    <option value="n8n_workflow">N8N Schema</option>
+                    <option value="blog_post">Blog Content</option>
+                    <option value="system_logs">System Logs</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[9.5px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Source ID (Optional)</label>
+                  <input
+                    type="text"
+                    value={newSourceId}
+                    onChange={(e) => setNewSourceId(e.target.value)}
+                    placeholder="e.g. videoId or post_url"
+                    className="w-full bg-black/40 border border-white/10 rounded-md px-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={loadingIngest || !newText.trim()}
+                className="w-full px-4 py-2 rounded border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:text-white hover:bg-indigo-500/20 text-xs font-bold transition-all cursor-pointer shadow-[0_0_12px_rgba(99,102,241,0.12)] flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {loadingIngest ? "Embedding..." : "Generate Embedding & Ingest"}
+              </button>
+            </form>
+          </div>
+
+          {/* Right Col: Query Form & Search Results */}
+          <div className="bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md flex flex-col h-full">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+            <h4 className="text-xs font-bold text-indigo-300 font-mono tracking-wide uppercase mb-4 flex items-center gap-1.5">
+              <Search size={12} /> Semantic Memory Search
+            </h4>
+            <form onSubmit={handleSearch} className="space-y-4 relative z-10 mb-4">
+              <div className="flex gap-2">
+                <div className="flex-grow relative">
+                  <input
+                    type="text"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Ask anything (e.g. 'how does SambaNova cascade work?')..."
+                    className="w-full bg-black/40 border border-white/10 rounded-md pl-8 pr-3 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/50"
+                    required
+                  />
+                  <Search size={12} className="absolute left-2.5 top-2.5 text-gray-500" />
+                </div>
+                <div className="w-20">
+                  <input
+                    type="number"
+                    value={limit}
+                    onChange={(e) => setLimit(parseInt(e.target.value) || 5)}
+                    min={1}
+                    max={20}
+                    className="w-full bg-black/40 border border-white/10 rounded-md px-2 py-1.5 text-xs text-white text-center focus:outline-none"
+                    title="Max results"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loadingSearch || !q.trim()}
+                  className="px-4 py-1.5 rounded border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:text-white hover:bg-indigo-500/20 text-xs font-bold transition-all cursor-pointer shadow-[0_0_12px_rgba(99,102,241,0.12)] flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {loadingSearch ? "Searching..." : "Search"}
+                </button>
+              </div>
+            </form>
+
+            {/* Results Container */}
+            <div className="flex-grow overflow-y-auto space-y-3 max-h-96 pr-1 relative z-10">
+              {results.length === 0 && !loadingSearch && (
+                <div className="text-center py-12 border border-dashed border-white/5 rounded-xl bg-black/10">
+                  <p className="text-xs text-gray-600 font-mono">No similarity matches yet. Run a search to retrieve memories.</p>
+                </div>
+              )}
+              {results.map((res, idx) => (
+                <div key={idx} className="border border-white/[0.04] bg-white/[0.01] hover:bg-white/[0.02] p-3 rounded-lg flex flex-col gap-2 relative transition-all group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[8px] uppercase font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        {res.source_type}
+                      </span>
+                      {res.source_id && (
+                        <span className="text-[8px] font-mono text-gray-500">ID: {res.source_id}</span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-green-400 bg-green-500/10 border border-green-500/20 rounded px-1.5 py-0.5">
+                        {(res.score * 100).toFixed(1)}% Similarity
+                      </span>
+                      <button
+                        onClick={() => handleDelete(res.id)}
+                        className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/5 rounded transition-all cursor-pointer"
+                        title="Delete memory"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-300 leading-relaxed font-mono whitespace-pre-wrap select-text bg-black/20 p-2 rounded border border-white/5">
+                    {res.text}
+                  </p>
+                  <div className="flex justify-between items-center text-[8px] text-gray-500 font-mono">
+                    <span>Memory ID: {res.id}</span>
+                    <span className="flex items-center gap-1"><Clock size={8} /> {new Date(res.created_at).toLocaleString()}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Panel: Memories Inventory */}
+        <div className="bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
+          <h4 className="text-xs font-bold text-indigo-300 font-mono tracking-wide uppercase mb-4 flex items-center gap-1.5 relative z-10">
+            <Database size={12} /> Memories Inventory ({allMemories.length} total)
+          </h4>
+          <div className="relative z-10 overflow-x-auto max-h-80 scrollbar-none pr-1">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-white/10 text-gray-500 text-[10px] uppercase font-mono tracking-wider font-bold">
+                  <th className="py-2 px-3">Source</th>
+                  <th className="py-2 px-3">Snippet</th>
+                  <th className="py-2 px-3">Ingested At</th>
+                  <th className="py-2 px-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/[0.03]">
+                {allMemories.map((mem) => (
+                  <tr key={mem.id} className="hover:bg-white/[0.01] transition-all">
+                    <td className="py-2 px-3 whitespace-nowrap">
+                      <span className="text-[9px] uppercase font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                        {mem.source_type}
+                      </span>
+                      {mem.source_id && (
+                        <div className="text-[8px] text-gray-500 mt-0.5 font-mono">ID: {mem.source_id}</div>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 font-mono text-[11px] text-gray-300 max-w-md truncate">
+                      {mem.text}
+                    </td>
+                    <td className="py-2 px-3 text-gray-500 text-[10px] font-mono whitespace-nowrap">
+                      {new Date(mem.created_at).toLocaleString()}
+                    </td>
+                    <td className="py-2 px-3 text-right">
+                      <button
+                        onClick={() => handleDelete(mem.id)}
+                        className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/5 rounded transition-all cursor-pointer inline-flex"
+                        title="Delete memory"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {allMemories.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="text-center py-6 text-gray-600 font-mono text-xs">
+                      No memories stored yet. Paste content above to build the agent's semantic brain.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─────────── PAPERCLIP AGENT SWARM PANEL ─────────── */
 function PaperclipPanel() {
   const [keyword, setKeyword] = useState('UK CCTV Compliance');
@@ -2881,7 +3176,7 @@ export default function App() {
       localStorage.setItem("agent_os_active_agent", activeAgent);
     } catch (e) {}
   }, [activeAgent]);
-  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm" | "paperclip">("chat");
+  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm" | "paperclip" | "memory">("chat");
   const [workspaceLeftOpen, setWorkspaceLeftOpen] = useState(false);
   const [workspaceRightOpen, setWorkspaceRightOpen] = useState(false);
   const [workspaceEditorOpen, setWorkspaceEditorOpen] = useState(false);
@@ -5612,7 +5907,8 @@ export default function App() {
                 { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={12} /> },
                 { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={12} /> },
                 { id: "workspace", label: "Workspace", icon: <FolderOpen size={12} /> },
-                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> }
+                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> },
+                { id: "memory", label: "Memory", icon: <Database size={12} /> }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -7341,6 +7637,10 @@ export default function App() {
           )}
 
 
+
+          {centerTab === "memory" && (
+            <VectorMemoryPanel />
+          )}
 
           {/* ─── TAB 4: SWARM TELEMETRY & SYSTEM LOAD ─── */}
           
