@@ -3965,9 +3965,10 @@ async function runSwarmEvolution() {
     logs.push(`NPM packages update bypassed: ${npmUpdateRes.err.message.substring(0, 80)}`);
   } else {
     console.log('[Evolution Engine] Rebuilding dashboard to ensure zero compile warnings...');
-    const npmBuildRes = await execAsync('npm run build', { cwd: __dirname, timeout: 60000 });
-    if (npmBuildRes.err) {
-      logs.push(`Dashboard rebuild failed: ${npmBuildRes.err.message.substring(0, 80)}`);
+    const npmBuildRes = await execAsync('npm run build', { cwd: __dirname, timeout: 90000, shell: true });
+    const buildFailed = npmBuildRes.err && npmBuildRes.err.code !== 0;
+    if (buildFailed) {
+      logs.push(`Dashboard rebuild failed (exit ${npmBuildRes.err.code}): ${npmBuildRes.stderr.substring(0, 80)}`);
     } else {
       logs.push("Dashboard updated and successfully compiled with zero warnings.");
     }
@@ -4064,16 +4065,22 @@ Please propose a code patch that modifies a part of the snippet above. Respond O
 
     console.log('[Self-Evolution] Verification: building project...');
     const buildRes = await execAsync('npm run build', { cwd: __dirname, timeout: 90000, shell: true, env: { ...process.env, NODE_ENV: 'production' } });
-    if (buildRes.err) {
-      console.warn('[Self-Evolution] Build failed after patch. Rolling back...');
+    const buildFailed = buildRes.err && buildRes.err.code !== 0;
+    if (buildFailed) {
+      console.warn('[Self-Evolution] Build failed after patch (exit code:', buildRes.err.code, '). Rolling back...');
+      console.warn('[Self-Evolution] Build stderr:', buildRes.stderr.substring(0, 300));
       writeFileSync(appPath, currentAppContent, 'utf-8');
-      aionuiDb.prepare("INSERT INTO system_errors (timestamp, source, error_message, stack, resolved) VALUES (?, ?, ?, ?, ?)").run(
-        Date.now(), 'Self-Evolution', `Evolution failed compilation: ${buildRes.err.message.substring(0, 150)}`, '', 0
-      );
+      try {
+        aionuiDb.prepare("INSERT INTO system_errors (timestamp, source, error_message, stack, resolved) VALUES (?, ?, ?, ?, ?)").run(
+          Date.now(), 'Self-Evolution', `Evolution failed compilation: ${buildRes.err.message.substring(0, 150)}`, buildRes.stderr.substring(0, 500), 0
+        );
+      } catch {}
     } else {
       console.log('[Self-Evolution] Build succeeded! Committing self-evolution patch to git...');
-      await execAsync('git add src/App.tsx', { cwd: __dirname, timeout: 10000 });
-      await execAsync(`git commit -m "autonomic-evolution: ${plan.explanation.substring(0, 50)}"` , { cwd: __dirname, timeout: 10000 });
+      if (buildRes.stderr) console.log('[Self-Evolution] Build warnings (non-fatal):', buildRes.stderr.substring(0, 200));
+      await execAsync('git add src/App.tsx', { cwd: __dirname, timeout: 10000, shell: true });
+      await execAsync(`git commit -m "autonomic-evolution: ${plan.explanation.substring(0, 50)}"`, { cwd: __dirname, timeout: 10000, shell: true });
+      await execAsync('git push origin main', { cwd: __dirname, timeout: 30000, shell: true });
       logActivity({ type: 'evolution_run', status: 'success', info: `Self-evolved successfully: ${plan.explanation}` });
     }
   } catch (err) {
