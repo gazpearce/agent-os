@@ -217,7 +217,7 @@ function parseInline(text: string): React.ReactNode[] {
       return <strong key={i} className="font-bold text-white">{part.slice(2, -2)}</strong>;
     }
     if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} className="px-1.5 py-0.5 rounded bg-white/[0.06] border border-white/[0.05] font-mono text-xs text-indigo-300">{part.slice(1, -1)}</code>;
+      return <code key={i} className="px-2 py-0.5 mx-0.5 rounded-md bg-white/[0.06] border border-white/[0.05] font-mono text-xs text-indigo-300">{part.slice(1, -1)}</code>;
     }
     return part;
   });
