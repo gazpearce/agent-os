@@ -5185,7 +5185,7 @@ export default function App() {
             <h1 className="text-sm font-bold tracking-wider uppercase text-white flex items-center gap-1.5">
               Agent OS <span className="text-[10px] text-indigo-400 font-mono font-normal">Mission Control</span>
             </h1>
-            <div className="text-[9px] font-mono text-gray-500">v2.5.1 • Stateful CLI & Swarms</div>
+            <div className="text-[9px] font-mono text-gray-500">v2.5.2 • Stateful CLI & Swarms</div>
           </div>
         </div>
 
@@ -5269,11 +5269,11 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Global Header Mode Switcher */}
-            <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-[12px] p-1 gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+            <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
               <button
                 id="header-swarm-mode-btn"
                 onClick={() => handleSwitchThread('collab', activeAgent)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
                   chatMode === 'collab'
                     ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                     : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5284,7 +5284,7 @@ export default function App() {
               <button
                 id="header-specialist-mode-btn"
                 onClick={() => handleSwitchThread('single', activeAgent)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer ${
                   chatMode === 'single'
                     ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                     : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5602,7 +5602,7 @@ export default function App() {
 
               <div className="h-6 w-[1px] bg-white/10 mr-6 hidden md:block" />
 
-              <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-[12px] p-1 gap-1.5">
+              <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5">
               {[
                 { id: "chat", label: "Chat", icon: <Bot size={12} /> },
                 { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
@@ -5617,7 +5617,7 @@ export default function App() {
                 <button
                   key={tab.id}
                   onClick={() => setCenterTab(tab.id as any)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[10px] text-[10.5px] font-semibold transition-all duration-200 cursor-pointer ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[10.5px] font-semibold transition-all duration-200 cursor-pointer ${
                     centerTab === tab.id
                       ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                       : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5650,10 +5650,10 @@ export default function App() {
               <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-950/60 bg-[#070715] shadow-lg select-none shrink-0">
                 <div className="flex items-center gap-4">
                   <span className="text-gray-300 text-[10px] font-extrabold uppercase tracking-widest font-mono border-r border-white/10 pr-4">Workspace Mode:</span>
-                  <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-[12px] p-1 gap-1.5">
+                  <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5">
                     <button
                       onClick={() => handleSwitchThread('collab', activeAgent)}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-[10px] font-extrabold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
                         chatMode === 'collab'
                           ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                           : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
@@ -5663,7 +5663,7 @@ export default function App() {
                     </button>
                     <button
                       onClick={() => handleSwitchThread('single', activeAgent)}
-                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-[10px] text-[10px] font-extrabold transition-all cursor-pointer ${
+                      className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
                         chatMode === 'single'
                           ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
                           : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
