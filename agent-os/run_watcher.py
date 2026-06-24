@@ -35,87 +35,95 @@ if os.path.exists(SCANS_FILE):
     except:
         pass
 
-# Query channel
-channel_url = 'https://www.youtube.com/@JulianGoldieSEO/videos'
+# Query multiple AI and SEO channels
+channels = {
+    "Julian Goldie SEO": "https://www.youtube.com/@JulianGoldieSEO/videos",
+    "Matt Wolfe": "https://www.youtube.com/@MattWolfe/videos",
+    "AI Explained": "https://www.youtube.com/@AIExplained/videos",
+    "Wes Roth": "https://www.youtube.com/@WesRoth/videos"
+}
+
 ydl_opts = {
     'quiet': True,
     'skip_download': True,
-    'playlistend': 40, # check latest 40 videos to ensure we catch all missed ones
+    'playlistend': 10, # Check the latest 10 videos per channel to ensure we run solid scans without rate limits
 }
 
-print(f"[Watcher] Querying latest videos from {channel_url}...")
 new_discoveries = 0
 
-with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-    try:
-        result = ydl.extract_info(channel_url, download=False)
-        entries = result.get('entries', [])
-        for entry in entries:
-            title = entry.get('title')
-            video_id = entry.get('id')
-            url = f"https://www.youtube.com/watch?v={video_id}"
-            upload_date = entry.get('upload_date', 'unknown')
-            description = entry.get('description', '')
+for channel_name, channel_url in channels.items():
+    print(f"[Watcher] Querying latest videos from {channel_name} ({channel_url})...")
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        try:
+            result = ydl.extract_info(channel_url, download=False)
+            entries = result.get('entries', [])
+            for entry in entries:
+                title = entry.get('title')
+                video_id = entry.get('id')
+                url = f"https://www.youtube.com/watch?v={video_id}"
+                upload_date = entry.get('upload_date', 'unknown')
+                description = entry.get('description', '')
 
-            if video_id in scanned_videos:
-                continue
+                if video_id in scanned_videos:
+                    continue
 
-            print(f"[Watcher] New video detected: {title} ({video_id}) - Uploaded on: {upload_date}")
-            scanned_videos[video_id] = {
-                "title": title,
-                "date": upload_date,
-                "url": url,
-                "processed": False
-            }
-            new_discoveries += 1
-
-            # Download transcript
-            transcript_content = ""
-            try:
-                r = requests.get(f"https://youtubetranscript.com/?v={video_id}", headers={
-                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-                }, timeout=10)
-                if r.status_code == 200 and "processVideo2" not in r.text:
-                    from bs4 import BeautifulSoup
-                    soup = BeautifulSoup(r.text, 'html.parser')
-                    transcript_content = soup.get_text()
-            except:
-                pass
-
-            if len(transcript_content.strip()) < 100:
-                transcript_content = f"Title: {title}\nDescription:\n{description}"
-
-            # Evaluate with local LLM server
-            print(f"[Watcher] Requesting Agent OS LLM evaluation for: {title}")
-            try:
-                payload = {
-                    "query": f"Analyze this new Julian Goldie video to see if there is any new tool, workflow, or AI feature that can help our Agent OS tool grow. If so, write a structured proposal including: Title, Growth Potential, Workflows/Sequence, and Integration Steps. If it does not contain useful integrations, output exactly 'NO OPPORTUNITY'.\n\nVideo Title: {title}\nContent:\n{transcript_content[:8000]}"
+                print(f"[Watcher] New video detected on {channel_name}: {title} ({video_id})")
+                scanned_videos[video_id] = {
+                    "channel": channel_name,
+                    "title": title,
+                    "date": upload_date,
+                    "url": url,
+                    "processed": False
                 }
-                res = requests.post("http://localhost:3001/api/chat/evaluate-growth", json=payload, timeout=60)
-                if res.status_code == 200:
-                    analysis = res.json().get("analysis", "")
-                    if "NO OPPORTUNITY" not in analysis:
-                        # Write proposal file
-                        prop_file = os.path.join(PROPOSALS_DIR, f"{video_id}_growth_opportunity.md")
-                        with open(prop_file, 'w', encoding='utf-8') as pf:
-                            pf.write(f"# Swarm Growth Opportunity: {title}\n\n* **Video URL:** {url}\n* **Scanned Date:** {upload_date}\n\n---\n\n{analysis}")
-                        print(f"[Watcher] Success! Growth proposal saved to {prop_file}")
-                        
-                        # Trigger system audio warning/notification
-                        requests.post("http://localhost:3001/api/watcher/notify", json={
-                            "message": f"New Growth Opportunity Found: {title}"
-                        })
+                new_discoveries += 1
+
+                # Download transcript
+                transcript_content = ""
+                try:
+                    r = requests.get(f"https://youtubetranscript.com/?v={video_id}", headers={
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                    }, timeout=10)
+                    if r.status_code == 200 and "processVideo2" not in r.text:
+                        from bs4 import BeautifulSoup
+                        soup = BeautifulSoup(r.text, 'html.parser')
+                        transcript_content = soup.get_text()
+                except:
+                    pass
+
+                if len(transcript_content.strip()) < 100:
+                    transcript_content = f"Title: {title}\nDescription:\n{description}"
+
+                # Evaluate with local LLM server
+                print(f"[Watcher] Requesting Agent OS LLM evaluation for: {title}")
+                try:
+                    payload = {
+                        "query": f"Analyze this new video from {channel_name} to see if there is any new tool, workflow, AI model release, or automation pattern that can help our Agent OS tool grow. If so, write a structured proposal including: Title, Growth Potential, Workflows/Sequence, and Integration Steps. If it does not contain useful integrations, output exactly 'NO OPPORTUNITY'.\n\nVideo Title: {title}\nContent:\n{transcript_content[:8000]}"
+                    }
+                    res = requests.post("http://localhost:3001/api/chat/evaluate-growth", json=payload, timeout=60)
+                    if res.status_code == 200:
+                        analysis = res.json().get("analysis", "")
+                        if "NO OPPORTUNITY" not in analysis:
+                            # Write proposal file
+                            prop_file = os.path.join(PROPOSALS_DIR, f"{video_id}_growth_opportunity.md")
+                            with open(prop_file, 'w', encoding='utf-8') as pf:
+                                pf.write(f"# Swarm Growth Opportunity: {title}\n\n* **Source Channel:** {channel_name}\n* **Video URL:** {url}\n* **Scanned Date:** {upload_date}\n\n---\n\n{analysis}")
+                            print(f"[Watcher] Success! Growth proposal saved to {prop_file}")
+                            
+                            # Trigger system audio warning/notification
+                            requests.post("http://localhost:3001/api/watcher/notify", json={
+                                "message": f"New Growth Opportunity Found on {channel_name}: {title}"
+                            })
+                        else:
+                            print(f"[Watcher] Evaluated: No useful growth opportunity found for this video.")
                     else:
-                        print(f"[Watcher] Evaluated: No useful growth opportunity found for this video.")
-                else:
-                    print(f"[Watcher] LLM Server returned error {res.status_code}")
-            except Exception as le:
-                print(f"[Watcher] Failed to evaluate: {le}")
+                        print(f"[Watcher] LLM Server returned error {res.status_code}")
+                except Exception as le:
+                    print(f"[Watcher] Failed to evaluate: {le}")
 
-            scanned_videos[video_id]["processed"] = True
+                scanned_videos[video_id]["processed"] = True
 
-    except Exception as e:
-        print(f"[Watcher] Failed to fetch channel list: {e}")
+        except Exception as e:
+            print(f"[Watcher] Failed to fetch channel list for {channel_name}: {e}")
 
 # Save recent scans
 with open(SCANS_FILE, 'w', encoding='utf-8') as f:
