@@ -440,6 +440,15 @@ let OR_KEYS_INTERVAL = setInterval(() => {
 
 let CEREBRAS_KEY = '';
 let SAMBANOVA_KEY = '';
+let AGNES_KEY = '';
+let MISTRAL_KEY = '';
+let HUGGINGFACE_KEYS = [];
+let currentHuggingFaceKeyIndex = 0;
+let GITHUB_KEYS = [];
+let currentGithubKeyIndex = 0;
+let NVIDIA_KEY = '';
+let CLOUDFLARE_AI_TOKEN = '';
+let CLOUDFLARE_AI_ACCOUNT = '';
 
 function loadOtherKeys() {
   try {
@@ -448,12 +457,55 @@ function loadOtherKeys() {
       const config = JSON.parse(readFileSync(apiConfigPath, 'utf-8'));
       if (config.cerebras?.api_key) CEREBRAS_KEY = config.cerebras.api_key;
       if (config.sambanova?.api_key) SAMBANOVA_KEY = config.sambanova.api_key;
+      if (config.agnes?.keys?.[0]) {
+        AGNES_KEY = config.agnes.keys[0];
+      } else if (config.agnes?.api_key) {
+        AGNES_KEY = config.agnes.api_key;
+      }
+      if (config.mistral?.keys?.[0]) {
+        MISTRAL_KEY = config.mistral.keys[0];
+      } else if (config.mistral?.api_key) {
+        MISTRAL_KEY = config.mistral.api_key;
+      }
+      if (config.huggingface?.keys) {
+        HUGGINGFACE_KEYS = config.huggingface.keys;
+      }
+      if (config.github?.keys) {
+        GITHUB_KEYS = config.github.keys;
+      }
+      if (config.nvidia?.api_key) NVIDIA_KEY = config.nvidia.api_key;
+      if (config.cloudflare?.api_token) {
+        CLOUDFLARE_AI_TOKEN = config.cloudflare.api_token;
+        CLOUDFLARE_AI_ACCOUNT = config.cloudflare.account_id || '';
+      }
     }
   } catch (e) {
     console.error('[Config] Failed to load keys from api-config.json:', e.message);
   }
 }
 loadOtherKeys();
+
+function getAgnesKey() {
+  if (!AGNES_KEY) loadOtherKeys();
+  return AGNES_KEY;
+}
+
+function getMistralKey() {
+  if (!MISTRAL_KEY) loadOtherKeys();
+  return MISTRAL_KEY;
+}
+
+function getGithubKey() {
+  if (!GITHUB_KEYS || GITHUB_KEYS.length === 0) return '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';
+  return GITHUB_KEYS[currentGithubKeyIndex % GITHUB_KEYS.length];
+}
+
+function rotateGithubKey() {
+  if (GITHUB_KEYS && GITHUB_KEYS.length > 0) {
+    currentGithubKeyIndex = (currentGithubKeyIndex + 1) % GITHUB_KEYS.length;
+    console.log(`[GitHub Models] Rotating API key to index ${currentGithubKeyIndex}...`);
+  }
+}
 
 function getLlmCache(model, messages) {
   try {
@@ -834,7 +886,7 @@ function readCrons() {
     { id: "3", name: "Free Model Scanner", interval: "6 hours", status: "idle", next: "" },
     { id: "4", name: "AionUI Health Monitor", interval: "5 min", status: "running", next: "" },
     { id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" },
-    { id: "6", name: "Swarm Auto-Evolution Engine", interval: "30 min", status: "running", next: "" },
+    { id: "6", name: "Swarm Auto-Evolution Engine", interval: "24 hour", status: "running", next: "" },
     { id: "7", name: "OS Maintenance System", interval: "15 min", status: "running", next: "" }
   ];
 }
@@ -909,8 +961,14 @@ function setupCrons() {
     modified = true;
   }
   if (!evolverExists) {
-    crons.push({ id: "6", name: "Swarm Auto-Evolution Engine", interval: "30 min", status: "running", next: "" });
+    crons.push({ id: "6", name: "Swarm Auto-Evolution Engine", interval: "24 hour", status: "running", next: "" });
     modified = true;
+  } else {
+    const job = crons.find(j => j.name === 'Swarm Auto-Evolution Engine');
+    if (job && job.interval === '30 min') {
+      job.interval = '24 hour';
+      modified = true;
+    }
   }
   if (!maintenanceExists) {
     crons.push({ id: "7", name: "OS Maintenance System", interval: "15 min", status: "running", next: "" });
@@ -1047,15 +1105,11 @@ You must write a repair patch. Respond ONLY with a valid JSON object in this for
 }`;
 
   try {
-    const response = await fetchGeminiWithRotation('gemini-2.0-flash:generateContent', {
-      contents: [{ parts: [{ text: prompt }] }]
-    });
-    if (!response || response.status !== 200) {
-      throw new Error(`AI model returned status ${response ? response.status : 'offline'}`);
+    const responseText = await _chatCompletionInternal(prompt, "You are the Agent OS Autonomic Self-Healing System.", 2048, "google/gemini-2.0-flash-001");
+    if (!responseText || responseText.startsWith('Error:')) {
+      throw new Error(`AI completion failed: ${responseText}`);
     }
-    const d = await response.json();
-    let text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    let text = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
     const repairPlan = JSON.parse(text);
 
     const filePath = repairPlan.filePath;
@@ -1742,6 +1796,80 @@ async function _executeToolCallRaw(toolCallText, onProgress = null, fromAgent = 
     } catch (e) {
       return `<longcat_tool_response>\nError communicating with agent ${to}: ${e.message}\n</longcat_tool_response>`;
     }
+  } else if (toolLower === 'list_directory' || toolLower === 'list_dir') {
+    const dirPath = normalizedArgs.filePath || WORKSPACE;
+    if (onProgress) onProgress(`📂 Listing directory: \`${dirPath}\``);
+    try {
+      if (!existsSync(dirPath)) {
+        return `<longcat_tool_response>\nError: Directory ${dirPath} does not exist\n</longcat_tool_response>`;
+      }
+      const files = readdirSync(dirPath);
+      let output = `Directory contents for ${dirPath}:\n`;
+      files.forEach(f => {
+        const fullPath = join(dirPath, f);
+        try {
+          const stat = statSync(fullPath);
+          const type = stat.isDirectory() ? 'DIR' : 'FILE';
+          const size = stat.isFile() ? ` (${stat.size} bytes)` : '';
+          output += `- [${type}] ${f}${size}\n`;
+        } catch {
+          output += `- [UNKNOWN] ${f}\n`;
+        }
+      });
+      return `<longcat_tool_response>\n${output.trim()}\n</longcat_tool_response>`;
+    } catch (e) {
+      return `<longcat_tool_response>\nError listing directory: ${e.message}\n</longcat_tool_response>`;
+    }
+  } else if (toolLower === 'web_browser' || toolLower === 'browser_scrape') {
+    const url = args.url || args.TargetUrl || normalizedArgs.filePath || '';
+    const takeScreenshot = args.screenshot === 'true' || args.screenshot === true;
+    if (!url) return '<longcat_tool_response>\nError: url arg missing\n</longcat_tool_response>';
+    if (onProgress) onProgress(`🌐 Launching browser to scrape: \`${url}\``);
+    try {
+      const puppeteerMod = await import('puppeteer');
+      const puppeteer = puppeteerMod.default;
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox', 
+          '--disable-setuid-sandbox',
+          '--disable-blink-features=AutomationControlled'
+        ]
+      });
+      const page = await browser.newPage();
+      await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+      await page.setViewport({ width: 1280, height: 720 });
+      
+      // Evasions to hide automation signatures
+      await page.evaluateOnNewDocument(() => {
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        window.chrome = { runtime: {} };
+        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+      });
+      
+      if (onProgress) onProgress(`🌐 Navigating to ${url}...`);
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+      
+      const title = await page.title();
+      const textContent = await page.evaluate(() => document.body.innerText || '');
+      
+      let screenshotMsg = '';
+      if (takeScreenshot) {
+        if (onProgress) onProgress(`📸 Taking screenshot...`);
+        const mediaDir = join(WORKSPACE, 'media');
+        if (!existsSync(mediaDir)) mkdirSync(mediaDir, { recursive: true });
+        const screenshotPath = join(mediaDir, `screenshot_${Date.now()}.png`);
+        await page.screenshot({ path: screenshotPath });
+        screenshotMsg = `\nScreenshot saved to: ${screenshotPath}`;
+      }
+      
+      await browser.close();
+      const cleanText = textContent.replace(/\s+/g, ' ').substring(0, 5000);
+      return `<longcat_tool_response>\nPage Title: ${title}\nURL: ${url}\nContent (truncated):\n${cleanText}${screenshotMsg}\n</longcat_tool_response>`;
+    } catch (e) {
+      return `<longcat_tool_response>\nError scraping webpage: ${e.message}\n</longcat_tool_response>`;
+    }
   }
 
   // CHECK FOR DYNAMIC MCP TOOL ROUTING
@@ -1851,9 +1979,164 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
 }
 
 async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, model = 'google/gemini-2.0-flash-001') {
-  const uniqueModels = [...new Set([model, 'zhipu/glm-4-flash', 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
+  const uniqueModels = [...new Set([model, 'agnes/agnes-2.0-flash', 'mistral/mistral-large-latest', 'huggingface/meta-llama/Llama-3.2-3B-Instruct', 'zhipu/glm-4-flash', 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
 
   for (const currentModel of uniqueModels) {
+    // Try Gemini direct if model starts with google/ or gemini
+    if (currentModel.startsWith('google/') || currentModel.startsWith('gemini')) {
+      try {
+        const modelId = currentModel.replace(/^google\//, '') || 'gemini-2.0-flash';
+        console.log(`[Gemini Direct] Trying model ${modelId} via Google API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const flattenedText = messages.map(m => `${m.role === 'system' ? 'System Instructions' : m.role === 'assistant' ? 'Assistant' : 'User'}: ${m.content}`).join('\n\n');
+        const r = await fetchGeminiWithRotation(`${modelId}:generateContent`, {
+          contents: [{ parts: [{ text: flattenedText }] }]
+        }, controller.signal);
+        clearTimeout(timeoutId);
+        if (r.status === 200) {
+          const d = await r.json();
+          if (d.candidates?.[0]?.content?.parts?.[0]?.text) {
+            console.log(`[Gemini Direct] Success with model ${currentModel}`);
+            return d.candidates[0].content.parts[0].text;
+          }
+        }
+      } catch (err) {
+        console.log(`[Gemini Direct] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try HuggingFace direct if model starts with huggingface/ or matches Llama-3.2-3B-Instruct
+    if (currentModel.startsWith('huggingface/') || currentModel.includes('huggingface') || currentModel.includes('hf-')) {
+      try {
+        const modelId = currentModel.replace(/^huggingface\//, '') || 'meta-llama/Llama-3.2-3B-Instruct';
+        const availableKeys = HUGGINGFACE_KEYS;
+        if (availableKeys && availableKeys.length > 0) {
+          for (let k = 0; k < availableKeys.length; k++) {
+            const keyIndex = (currentHuggingFaceKeyIndex + k) % availableKeys.length;
+            const hfKey = availableKeys[keyIndex];
+            console.log(`[HuggingFace] Trying model ${modelId} with key index ${keyIndex}...`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000);
+            
+            // Standard HuggingFace Chat Template payload
+            const promptText = messages.map(m => `<|${m.role}|>\n${m.content}`).join('\n') + '\n<|assistant|>\n';
+            const r = await fetch(`https://api-inference.huggingface.co/models/${modelId}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${hfKey}`
+              },
+              body: JSON.stringify({
+                inputs: promptText,
+                parameters: { max_new_tokens: maxTokens, return_full_text: false }
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (r.status === 200) {
+              const d = await r.json();
+              let generatedText = '';
+              if (Array.isArray(d) && d[0]?.generated_text) {
+                generatedText = d[0].generated_text;
+              } else if (d.generated_text) {
+                generatedText = d.generated_text;
+              }
+              if (generatedText) {
+                console.log(`[HuggingFace] Success with model ${modelId}`);
+                currentHuggingFaceKeyIndex = keyIndex; // Lock this key
+                return generatedText;
+              }
+            } else {
+              console.log(`[HuggingFace] Key index ${keyIndex} returned status ${r.status}. Rotating...`);
+            }
+          }
+        }
+      } catch (err) {
+        console.log(`[HuggingFace] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try Mistral AI if model starts with mistral/ or matches mistral-large-latest
+    if (currentModel.startsWith('mistral/') || currentModel === 'mistral-large-latest' || currentModel.includes('mistral-')) {
+      try {
+        console.log(`[Mistral AI] Trying model ${currentModel} via Mistral API...`);
+        const mistralKey = getMistralKey();
+        if (mistralKey) {
+          const modelId = currentModel.replace(/^mistral\//, '');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${mistralKey}`
+            },
+            body: JSON.stringify({
+              model: modelId || 'mistral-large-latest',
+              messages: messages.map(m => ({ role: m.role, content: m.content })),
+              max_tokens: maxTokens
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (r.status === 200) {
+            const d = await r.json();
+            if (d.choices?.[0]?.message?.content) {
+              console.log(`[Mistral AI] Success with model ${currentModel}`);
+              return d.choices[0].message.content;
+            }
+          } else {
+            console.log(`[Mistral AI] API returned status ${r.status}`);
+          }
+        }
+      } catch (err) {
+        console.log(`[Mistral AI] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try Agnes AI if model starts with agnes/ or matches agnes-2.0-flash
+    if (currentModel.startsWith('agnes/') || currentModel === 'agnes-2.0-flash' || currentModel.includes('agnes-')) {
+      try {
+        console.log(`[Agnes AI] Trying model ${currentModel} via Agnes API...`);
+        const agnesKey = getAgnesKey();
+        if (agnesKey) {
+          const modelId = currentModel.replace(/^agnes\//, '');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const r = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${agnesKey}`
+            },
+            body: JSON.stringify({
+              model: modelId || 'agnes-2.0-flash',
+              messages: messages.map(m => ({ role: m.role, content: m.content })),
+              max_tokens: maxTokens
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (r.status === 200) {
+            const d = await r.json();
+            if (d.choices?.[0]?.message?.content) {
+              console.log(`[Agnes AI] Success with model ${currentModel}`);
+              return d.choices[0].message.content;
+            }
+          } else {
+            console.log(`[Agnes AI] API returned status ${r.status}`);
+          }
+        }
+      } catch (err) {
+        console.log(`[Agnes AI] Error:`, err.message);
+      }
+      continue;
+    }
+
     // Try Groq direct if model starts with groq/ or is llama-3.3-70b-versatile
     if (currentModel.startsWith('groq/') || currentModel.includes('llama-3.3-70b-versatile')) {
       try {
@@ -2143,7 +2426,7 @@ async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, mo
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': `Bearer ${getGithubKey()}`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -2159,9 +2442,13 @@ async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, mo
         console.log('[OR Chat] Success with GitHub Models fallback');
         return d.choices[0].message.content;
       }
+    } else {
+      console.log(`[OR Chat] GitHub Models fallback failed: ${r.status}. Rotating key...`);
+      rotateGithubKey();
     }
   } catch (err) {
     console.log('[OR Chat] GitHub Models fallback failed:', err.message);
+    rotateGithubKey();
   }
 
   // Fallback to Groq (Llama 3.3 70B)
@@ -2853,7 +3140,14 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
 
   const modelFallbacks = [
     mappedModel,
+    'agnes/agnes-2.0-flash',
+    'nvidia/meta/llama-3.3-70b-instruct',
+    'mistral/mistral-large-latest',
+    'huggingface/meta-llama/Llama-3.2-3B-Instruct',
+    'sambanova/Meta-Llama-3.1-70B-Instruct',
+    'cerebras/llama3.1-70b',
     'zhipu/glm-4-flash',
+    'cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
     'openrouter/free',
     'google/gemma-2-9b-it:free'
   ];
@@ -2861,6 +3155,159 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
+    // Try Gemini direct if model starts with google/ or gemini
+    if (currentModel.startsWith('google/') || currentModel.startsWith('gemini')) {
+      try {
+        const modelId = currentModel.replace(/^google\//, '') || 'gemini-2.0-flash';
+        console.log(`[Gemini Direct] Trying model ${modelId} via Google API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetchGeminiWithRotation(`${modelId}:generateContent`, {
+          contents: [{ parts: [{ text: `${systemPrompt}\n\nUser Query: ${query}` }] }]
+        }, controller.signal);
+        clearTimeout(timeoutId);
+        if (r.status === 200) {
+          const d = await r.json();
+          if (d.candidates?.[0]?.content?.parts?.[0]?.text) {
+            console.log(`[Gemini Direct] Success with model ${currentModel}`);
+            return d.candidates[0].content.parts[0].text;
+          }
+        }
+      } catch (err) {
+        console.log(`[Gemini Direct] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try HuggingFace direct if model starts with huggingface/ or matches Llama-3.2-3B-Instruct
+    if (currentModel.startsWith('huggingface/') || currentModel.includes('huggingface') || currentModel.includes('hf-')) {
+      try {
+        const modelId = currentModel.replace(/^huggingface\//, '') || 'meta-llama/Llama-3.2-3B-Instruct';
+        const availableKeys = HUGGINGFACE_KEYS;
+        if (availableKeys && availableKeys.length > 0) {
+          for (let k = 0; k < availableKeys.length; k++) {
+            const keyIndex = (currentHuggingFaceKeyIndex + k) % availableKeys.length;
+            const hfKey = availableKeys[keyIndex];
+            console.log(`[HuggingFace] Trying model ${modelId} with key index ${keyIndex}...`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 20000);
+            
+            const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }];
+            const promptText = messages.map(m => `<|${m.role}|>\n${m.content}`).join('\n') + '\n<|assistant|>\n';
+            const r = await fetch(`https://api-inference.huggingface.co/models/${modelId}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${hfKey}`
+              },
+              body: JSON.stringify({
+                inputs: promptText,
+                parameters: { max_new_tokens: maxTokens, return_full_text: false }
+              }),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            if (r.status === 200) {
+              const d = await r.json();
+              let generatedText = '';
+              if (Array.isArray(d) && d[0]?.generated_text) {
+                generatedText = d[0].generated_text;
+              } else if (d.generated_text) {
+                generatedText = d.generated_text;
+              }
+              if (generatedText) {
+                console.log(`[HuggingFace] Success with model ${modelId}`);
+                currentHuggingFaceKeyIndex = keyIndex; // Lock this key
+                return generatedText;
+              }
+            } else {
+              console.log(`[HuggingFace] Key index ${keyIndex} returned status ${r.status}. Rotating...`);
+            }
+          }
+        }
+      } catch (err) {
+        console.log(`[HuggingFace] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try Mistral AI if model starts with mistral/ or matches mistral-large-latest
+    if (currentModel.startsWith('mistral/') || currentModel === 'mistral-large-latest' || currentModel.includes('mistral-')) {
+      try {
+        console.log(`[Mistral AI] Trying model ${currentModel} via Mistral API...`);
+        const mistralKey = getMistralKey();
+        if (mistralKey) {
+          const modelId = currentModel.replace(/^mistral\//, '');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const r = await fetch('https://api.mistral.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${mistralKey}`
+            },
+            body: JSON.stringify({
+              model: modelId || 'mistral-large-latest',
+              messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+              max_tokens: maxTokens
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (r.status === 200) {
+            const d = await r.json();
+            if (d.choices?.[0]?.message?.content) {
+              console.log(`[Mistral AI] Success with model ${currentModel}`);
+              return d.choices[0].message.content;
+            }
+          } else {
+            console.log(`[Mistral AI] API returned status ${r.status}`);
+          }
+        }
+      } catch (err) {
+        console.log(`[Mistral AI] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try Agnes AI if model starts with agnes/ or matches agnes-2.0-flash
+    if (currentModel.startsWith('agnes/') || currentModel === 'agnes-2.0-flash' || currentModel.includes('agnes-')) {
+      try {
+        console.log(`[Agnes AI] Trying model ${currentModel} via Agnes API...`);
+        const agnesKey = getAgnesKey();
+        if (agnesKey) {
+          const modelId = currentModel.replace(/^agnes\//, '');
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 15000);
+          const r = await fetch('https://apihub.agnes-ai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${agnesKey}`
+            },
+            body: JSON.stringify({
+              model: modelId || 'agnes-2.0-flash',
+              messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+              max_tokens: maxTokens
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (r.status === 200) {
+            const d = await r.json();
+            if (d.choices?.[0]?.message?.content) {
+              console.log(`[Agnes AI] Success with model ${currentModel}`);
+              return d.choices[0].message.content;
+            }
+          } else {
+            console.log(`[Agnes AI] API returned status ${r.status}`);
+          }
+        }
+      } catch (err) {
+        console.log(`[Agnes AI] Error:`, err.message);
+      }
+      continue;
+    }
     // Try Pollinations direct
     if (currentModel === 'pollinations/any' || currentModel.startsWith('pollinations/')) {
       try {
@@ -3053,6 +3500,78 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
       }
     }
 
+    // Try NVIDIA NIM API (OpenAI-compatible, free tier available)
+    if ((currentModel.startsWith('nvidia/') || currentModel.startsWith('nim/')) && NVIDIA_KEY) {
+      try {
+        const modelId = currentModel.replace(/^(nvidia\/|nim\/)/, '');
+        console.log(`[NVIDIA NIM] Trying model ${modelId} with NVIDIA API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${NVIDIA_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelId || 'meta/llama-3.3-70b-instruct',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[NVIDIA NIM] Success with model ${modelId}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[NVIDIA NIM] Failed: ${r.status} ${errText.substring(0, 100)}`);
+        }
+      } catch (err) {
+        console.log(`[NVIDIA NIM] Error:`, err.message);
+      }
+    }
+
+    // Try Cloudflare Workers AI (free tier)
+    if (currentModel.startsWith('cloudflare/') && CLOUDFLARE_AI_TOKEN && CLOUDFLARE_AI_ACCOUNT) {
+      try {
+        const modelId = currentModel.replace(/^cloudflare\//, '');
+        console.log(`[Cloudflare AI] Trying model ${modelId}...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_AI_ACCOUNT}/ai/run/${modelId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CLOUDFLARE_AI_TOKEN}`
+          },
+          body: JSON.stringify({
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          const text = d.result?.response || d.choices?.[0]?.message?.content;
+          if (text) {
+            console.log(`[Cloudflare AI] Success with model ${modelId}`);
+            return text;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[Cloudflare AI] Failed: ${r.status} ${errText.substring(0, 100)}`);
+        }
+      } catch (err) {
+        console.log(`[Cloudflare AI] Error:`, err.message);
+      }
+    }
+
     // Try Alibaba DashScope direct
     if (currentModel.startsWith('alibaba/') || currentModel.startsWith('dashscope/') || currentModel.startsWith('qwen-')) {
       try {
@@ -3154,7 +3673,7 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': `Bearer ${getGithubKey()}`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
@@ -3170,9 +3689,13 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
         console.log('[OR ChatCompletion] Success with GitHub Models fallback');
         return d.choices[0].message.content;
       }
+    } else {
+      console.log(`[OR ChatCompletion] GitHub Models fallback failed: ${r.status}. Rotating key...`);
+      rotateGithubKey();
     }
   } catch (err) {
     console.log('[OR ChatCompletion] GitHub Models fallback failed:', err.message);
+    rotateGithubKey();
   }
 
   // Fallback to Groq (Llama 3.3 70B)
@@ -3260,7 +3783,33 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
     console.log('[OR ChatCompletion] Local Ollama fallback failed:', err.message);
   }
 
-  return 'All providers (OpenRouter, GitHub, Groq, Gemini, and Local Ollama) failed.';
+  // Local LM Studio fallback (OpenAI-compatible local server)
+  try {
+    console.log('[OR ChatCompletion] Falling back to local LM Studio (port 1234)...');
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const r = await fetch('http://localhost:1234/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+        temperature: 0.3
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    if (r.status === 200) {
+      const d = await r.json();
+      if (d.choices?.[0]?.message?.content) {
+        console.log('[OR ChatCompletion] Success with local LM Studio fallback');
+        return d.choices[0].message.content;
+      }
+    }
+  } catch (err) {
+    console.log('[OR ChatCompletion] Local LM Studio fallback failed:', err.message);
+  }
+
+  return 'All providers (OpenRouter, GitHub, Groq, Gemini, NVIDIA, Cloudflare, and Local Ollama) failed.';
 }
 
 function execAsync(cmd, options = {}) {
@@ -3426,6 +3975,110 @@ async function runSwarmEvolution() {
 
   logActivity({ type: 'evolution_run', status: 'success', info: logs.join(' | ') });
   console.log('[Evolution Engine] Auto-Evolution complete.');
+  try {
+    await runCodeSelfEvolution();
+  } catch (e) {
+    console.error('[Evolution Engine] runCodeSelfEvolution failed:', e.message);
+  }
+}
+
+async function runCodeSelfEvolution() {
+  console.log('[Self-Evolution] Starting code self-evolution engine...');
+  const appPath = join(__dirname, 'src', 'App.tsx');
+  if (!existsSync(appPath)) {
+    console.error('[Self-Evolution] Target App.tsx not found.');
+    return;
+  }
+  
+  let currentAppContent = '';
+  try {
+    currentAppContent = readFileSync(appPath, 'utf-8');
+  } catch (err) {
+    console.error('[Self-Evolution] Failed to read App.tsx:', err.message);
+    return;
+  }
+
+  let errorLogSummary = 'None';
+  try {
+    const db = getAionuiDb();
+    if (db) {
+      const errors = db.prepare("SELECT error_message, source FROM system_errors ORDER BY timestamp DESC LIMIT 5").all();
+      if (errors.length > 0) {
+        errorLogSummary = errors.map(e => `[${e.source}] ${e.error_message}`).join('\n');
+      }
+    }
+  } catch {}
+
+  const appLines = currentAppContent.split('\n');
+  const appSnippet = appLines.slice(-350).join('\n');
+
+  const prompt = `You are the Agent OS Core Self-Evolution Subsystem.
+Your objective is to propose a low-risk, useful enhancement to the frontend file: src/App.tsx.
+This enhancement should improve the user interface or add a small helpful utility (such as extra diagnostics, a warning message, or improved margins).
+
+RECENT ERRORS DETECTED:
+${errorLogSummary}
+
+Here is a snippet of App.tsx (the last 350 lines containing layout/footer/widgets) to analyze:
+\`\`\`tsx
+${appSnippet}
+\`\`\`
+
+Please propose a code patch that modifies a part of the snippet above. Respond ONLY with a valid JSON object in this format (no markdown blocks, no prefix, just pure raw JSON):
+{
+  "explanation": "What enhancement you are adding and why",
+  "targetContent": "the exact string/code snippet in src/App.tsx that you wish to modify",
+  "replacementContent": "the complete replacement string/code snippet to swap in"
+}`;
+
+  try {
+    const responseText = await _chatCompletionInternal(prompt, "You are the Agent OS Core Self-Evolution Subsystem.", 2048, "google/gemini-2.0-flash-001");
+    if (!responseText || responseText.startsWith('Error:')) {
+      throw new Error(`AI completion failed: ${responseText}`);
+    }
+    let text = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const plan = JSON.parse(text);
+
+    const targetContent = plan.targetContent;
+    const replacementContent = plan.replacementContent;
+
+    if (!targetContent || !replacementContent) {
+      throw new Error('Invalid patch format returned by model');
+    }
+
+    // Normalize line endings for Windows support
+    const normAppContent = currentAppContent.replace(/\r\n/g, '\n');
+    const normTarget = targetContent.replace(/\r\n/g, '\n');
+    const normReplacement = replacementContent.replace(/\r\n/g, '\n');
+
+    if (!normAppContent.includes(normTarget)) {
+      throw new Error('Target content to replace was not found in App.tsx');
+    }
+
+    const patchedNormContent = normAppContent.replace(normTarget, normReplacement);
+    const finalContent = currentAppContent.includes('\r\n')
+      ? patchedNormContent.replace(/\n/g, '\r\n')
+      : patchedNormContent;
+
+    writeFileSync(appPath, finalContent, 'utf-8');
+
+    console.log('[Self-Evolution] Verification: building project...');
+    const buildRes = await execAsync('npm run build', { cwd: __dirname, timeout: 90000, shell: true, env: { ...process.env, NODE_ENV: 'production' } });
+    if (buildRes.err) {
+      console.warn('[Self-Evolution] Build failed after patch. Rolling back...');
+      writeFileSync(appPath, currentAppContent, 'utf-8');
+      aionuiDb.prepare("INSERT INTO system_errors (timestamp, source, error_message, stack, resolved) VALUES (?, ?, ?, ?, ?)").run(
+        Date.now(), 'Self-Evolution', `Evolution failed compilation: ${buildRes.err.message.substring(0, 150)}`, '', 0
+      );
+    } else {
+      console.log('[Self-Evolution] Build succeeded! Committing self-evolution patch to git...');
+      await execAsync('git add src/App.tsx', { cwd: __dirname, timeout: 10000 });
+      await execAsync(`git commit -m "autonomic-evolution: ${plan.explanation.substring(0, 50)}"` , { cwd: __dirname, timeout: 10000 });
+      logActivity({ type: 'evolution_run', status: 'success', info: `Self-evolved successfully: ${plan.explanation}` });
+    }
+  } catch (err) {
+    console.error('[Self-Evolution] Evolution run failed:', err.message);
+  }
 }
 
 
@@ -3653,8 +4306,36 @@ app.post('/api/shared/write', (req, res) => {
 
 // Alias /api/website routes to /api/shared for dashboard editor
 app.get('/api/website/files', (req, res) => {
-  try { res.json({ files: readdirSync(SHARED), path: SHARED }); }
-  catch { res.json({ files: [] }); }
+  try {
+    function getFiles(dir) {
+      let results = [];
+      const list = readdirSync(dir);
+      list.forEach((file) => {
+        const fullPath = join(dir, file);
+        const stat = statSync(fullPath);
+        const relativePath = fullPath.substring(SHARED.length + 1).replace(/\\/g, '/');
+        if (stat.isDirectory()) {
+          results.push({
+            path: relativePath,
+            name: file,
+            type: 'directory'
+          });
+          results = results.concat(getFiles(fullPath));
+        } else {
+          results.push({
+            path: relativePath,
+            name: file,
+            type: 'file',
+            size: stat.size
+          });
+        }
+      });
+      return results;
+    }
+    res.json({ files: getFiles(SHARED), path: SHARED });
+  } catch (e) {
+    res.json({ files: [] });
+  }
 });
 app.get('/api/website/read', (req, res) => {
   try { res.json({ content: readFileSync(`${SHARED}\\${req.query.f}`, 'utf-8') }); }
@@ -3667,16 +4348,28 @@ app.post('/api/website/write', (req, res) => {
   }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.post('/api/website/delete', (req, res) => {
+app.post('/api/website/delete', async (req, res) => {
   try {
-    const filePath = join(SHARED, basename(req.body.name));
+    const relativeName = req.body.name.replace(/\\/g, '/');
+    if (relativeName.includes('..')) {
+      return res.status(400).json({ error: 'Invalid path' });
+    }
+    const filePath = join(SHARED, relativeName);
     if (existsSync(filePath)) {
-      unlinkSync(filePath);
+      const stat = statSync(filePath);
+      if (stat.isDirectory()) {
+        const { rmSync } = await import('fs');
+        rmSync(filePath, { recursive: true, force: true });
+      } else {
+        unlinkSync(filePath);
+      }
       res.json({ ok: true });
     } else {
       res.status(404).json({ error: 'File not found' });
     }
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 app.post('/api/website/deploy', async (req, res) => {
   const { provider, host, port, user, password, remoteDir, netlifyAuth, netlifySiteId, cfToken, cfAccountId, cfProjectName } = req.body;
@@ -3735,19 +4428,30 @@ app.post('/api/website/deploy', async (req, res) => {
   }
 
   if (provider === 'cloudflare') {
-    if (!cfToken || !cfAccountId || !cfProjectName) {
+    let token = cfToken;
+    let accountId = cfAccountId;
+    let projectName = cfProjectName;
+    if (!token || !accountId || !projectName) {
+      try {
+        const apiConfig = JSON.parse(readFileSync(join(process.cwd(), 'api-config.json'), 'utf-8'));
+        if (!token) token = apiConfig.cloudflare?.api_token || apiConfig.cloudflare?.api_key;
+        if (!accountId) accountId = apiConfig.cloudflare?.account_id;
+        if (!projectName) projectName = apiConfig.cloudflare?.project_name;
+      } catch {}
+    }
+    if (!token || !accountId || !projectName) {
       log("Error: Cloudflare parameters (API Token, Account ID, Project Name) missing.");
       return res.status(400).json({ error: "Cloudflare configuration missing.", logs });
     }
 
     log(`Deploying ${SHARED}/website to Cloudflare Pages...`);
-    const cmd = `npx wrangler pages deploy "${SHARED}/website" --project-name="${cfProjectName}"`;
+    const cmd = `npx wrangler pages deploy "${SHARED}/website" --project-name="${projectName}"`;
 
     exec(cmd, {
       env: {
         ...process.env,
-        CLOUDFLARE_API_TOKEN: cfToken,
-        CLOUDFLARE_ACCOUNT_ID: cfAccountId
+        CLOUDFLARE_API_TOKEN: token,
+        CLOUDFLARE_ACCOUNT_ID: accountId
       }
     }, (err, stdout, stderr) => {
       const out = stdout + "\n" + stderr;
@@ -4138,32 +4842,217 @@ app.post('/api/contact', (req, res) => {
   res.status(200).json({ message: 'Thank you! Your quote request has been received. Gary Pearce or a specialist will contact you shortly.' });
 });
 
-app.post('/api/chat', async (req, res) => {
-  const { query, agent: agentId, activeSessionId, parentId } = req.body;
-  if (!query) return res.status(400).json({ error: 'Query required' });
-  
-  // Dynamically reload agents to capture any left-sidebar updates instantly
-  AGENTS = loadAgentsFromFrontend();
+let pendingApprovals = new Map(); // sessionId -> { resolve, approvalId }
 
-  const sessionId = getOrCreateConversation(activeSessionId, query);
-  saveChatMessage(sessionId, 'right', query, 'user', parentId);
-  
-  // Compute memory context
-  const queryWithMemory = injectRecalledMemory(query);
-  
-  // Set event stream headers for SSE immediately
+app.post('/api/chat/rewind', (req, res) => {
+  const { sessionId, messageId } = req.body;
+  if (!sessionId || !messageId) {
+    return res.status(400).json({ error: 'sessionId and messageId required' });
+  }
+  try {
+    const db = getAionuiDb();
+    if (db) {
+      const msg = db.prepare("SELECT created_at FROM messages WHERE conversation_id = ? AND (msg_id = ? OR id = ?)").get(sessionId, messageId, messageId);
+      if (msg && msg.created_at) {
+        db.prepare("DELETE FROM messages WHERE conversation_id = ? AND created_at > ?").run(sessionId, msg.created_at);
+        broadcastSseMessage(sessionId, { rewind: true, targetMessageId: messageId });
+        return res.json({ success: true });
+      }
+    }
+    res.status(404).json({ error: 'Message not found' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/chat/approve', (req, res) => {
+  const { sessionId, approvalId } = req.body;
+  try {
+    const db = getAionuiDb();
+    if (db) {
+      const msg = db.prepare("SELECT content FROM messages WHERE conversation_id = ? AND msg_id = ?").get(sessionId, approvalId);
+      if (msg) {
+        const parsed = JSON.parse(msg.content);
+        parsed.status = 'approved';
+        db.prepare("UPDATE messages SET content = ? WHERE conversation_id = ? AND msg_id = ?").run(JSON.stringify(parsed), sessionId, approvalId);
+      }
+    }
+  } catch (e) {
+    console.error('[Sessions DB] Failed to update approval status to approved:', e.message);
+  }
+  const pending = pendingApprovals.get(sessionId);
+  if (pending && pending.approvalId === approvalId) {
+    pending.resolve({ status: 'approved' });
+    pendingApprovals.delete(sessionId);
+    return res.json({ success: true });
+  }
+  res.status(404).json({ error: 'No pending approval found for this session' });
+});
+
+app.post('/api/chat/reject', (req, res) => {
+  const { sessionId, approvalId, feedback } = req.body;
+  try {
+    const db = getAionuiDb();
+    if (db) {
+      const msg = db.prepare("SELECT content FROM messages WHERE conversation_id = ? AND msg_id = ?").get(sessionId, approvalId);
+      if (msg) {
+        const parsed = JSON.parse(msg.content);
+        parsed.status = 'rejected';
+        parsed.feedback = feedback;
+        db.prepare("UPDATE messages SET content = ? WHERE conversation_id = ? AND msg_id = ?").run(JSON.stringify(parsed), sessionId, approvalId);
+      }
+    }
+  } catch (e) {
+    console.error('[Sessions DB] Failed to update approval status to rejected:', e.message);
+  }
+  const pending = pendingApprovals.get(sessionId);
+  if (pending && pending.approvalId === approvalId) {
+    pending.resolve({ status: 'rejected', feedback });
+    pendingApprovals.delete(sessionId);
+    return res.json({ success: true });
+  }
+  res.status(404).json({ error: 'No pending approval found for this session' });
+});
+
+app.post('/api/evolution/revert', async (req, res) => {
+  console.log('[Self-Evolution] User triggered roll-back to set system back on track...');
+  try {
+    const resetRes = await execAsync('git reset --hard HEAD~1', { cwd: __dirname, timeout: 20000 });
+    if (resetRes.err) {
+      throw new Error(`Git reset failed: ${resetRes.err.message}`);
+    }
+    console.log('[Self-Evolution] Rebuilding project after roll-back...');
+    const buildRes = await execAsync('npm run build', { cwd: __dirname, timeout: 60000 });
+    if (buildRes.err) {
+      throw new Error(`Build failed during roll-back: ${buildRes.err.message}`);
+    }
+    res.json({ success: true, message: 'System successfully reverted and rebuilt.' });
+  } catch (e) {
+    console.error('[Self-Evolution] Rollback failed:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/evolution/status', (req, res) => {
+  try {
+    const log = existsSync(AGENT_LOG) ? JSON.parse(readFileSync(AGENT_LOG, 'utf-8') || '[]') : [];
+    const runs = log.filter(e => e.type === 'evolution_run');
+    const lastRun = runs.length > 0 ? runs[runs.length - 1] : null;
+    res.json({ lastRun });
+  } catch (e) {
+    res.json({ lastRun: null });
+  }
+});
+
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { query, agent: agentId, activeSessionId, parentId } = req.body;
+    if (!query) return res.status(400).json({ error: 'Query required' });
+    
+    // Dynamically reload agents to capture any left-sidebar updates instantly
+    AGENTS = loadAgentsFromFrontend();
+
+    const sessionId = getOrCreateConversation(activeSessionId, query);
+    saveChatMessage(sessionId, 'right', query, 'user', parentId);
+
+    // Trigger async execution in the background
+    executeSwarmInBackground(sessionId, query, agentId, parentId).catch(err => {
+      console.error("[Swarm Kernel] Error in background execution:", err);
+    });
+
+    res.json({ success: true, sessionId });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// SSE Event Stream for Chat Progress
+app.get('/api/chat/stream', (req, res) => {
+  const { sessionId } = req.query;
+  if (!sessionId) return res.status(400).json({ error: 'sessionId required' });
+
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
 
   const sseQueue = new SseQueue(res);
-  activeSseClients.set(sessionId, sseQueue);
+  if (!activeSseClients.has(sessionId)) {
+    activeSseClients.set(sessionId, new Set());
+  }
+  activeSseClients.get(sessionId).add(sseQueue);
+
   req.on('close', () => {
-    activeSseClients.delete(sessionId);
+    const clients = activeSseClients.get(sessionId);
+    if (clients) {
+      clients.delete(sseQueue);
+      if (clients.size === 0) {
+        activeSseClients.delete(sessionId);
+      }
+    }
   });
 
   sseQueue.write({ sessionId });
 
+  // Sync historical messages
+  try {
+    const db = getAionuiDb();
+    if (db) {
+      const rows = db.prepare("SELECT id, msg_id, position, content, type, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC").all(sessionId);
+      rows.forEach(r => {
+        if (r.type === 'text' || r.type === 'thinking') {
+          let text = r.content;
+          let agent = undefined;
+          let parentId = undefined;
+          let status = undefined;
+          let feedback = undefined;
+          try {
+            const parsed = JSON.parse(r.content);
+            if (parsed && typeof parsed === 'object') {
+              text = parsed.content || parsed.text || r.content;
+              agent = parsed.agent;
+              parentId = parsed.parentId;
+              status = parsed.status;
+              feedback = parsed.feedback;
+            }
+          } catch {}
+          sseQueue.write({
+            sync: true,
+            newMsgId: r.msg_id || r.id,
+            agent: agent || (r.position === 'right' ? 'user' : 'hermes'),
+            content: text,
+            parentId,
+            status,
+            feedback
+          });
+        }
+      });
+    }
+  } catch (e) {
+    console.error("[SSE Stream] Failed to sync messages:", e.message);
+  }
+});
+
+function broadcastSseMessage(sessionId, data) {
+  const clients = activeSseClients.get(sessionId);
+  if (clients) {
+    for (const client of clients) {
+      try {
+        if (typeof data === 'string') {
+          client.writeRaw(data);
+        } else {
+          client.write(data);
+        }
+      } catch (err) {
+        // client disconnected
+      }
+    }
+  }
+}
+
+// Background Swarm Kernel Execution
+async function executeSwarmInBackground(sessionId, query, agentId, parentId) {
+  const queryWithMemory = injectRecalledMemory(query);
+  
   if (agentId === 'orchestrator' || parentId === 'orchestrator') {
     const lowerQuery = query.trim().toLowerCase();
     const isSimpleQuery = lowerQuery.length < 30 || (
@@ -4174,20 +5063,19 @@ app.post('/api/chat', async (req, res) => {
       try {
         console.log(`[Orchestrator] Simple query detected: "${query}". Responding directly...`);
         const replyMsgId = 'msg_reply_' + Date.now();
-        sseQueue.write({ newMsgId: replyMsgId, agent: 'orchestrator', content: '' });
+        broadcastSseMessage(sessionId, { newMsgId: replyMsgId, agent: 'orchestrator', content: '' });
         
         const responseText = await chatCompletion(
           queryWithMemory,
           "You are the Gemini Orchestrator of Agent OS. Gary has asked a simple question or sent a greeting. Respond to him directly, warmly, and briefly in 1-2 sentences. Do not spin up any swarm or agent plans."
         );
         
-        sseQueue.write({ newMsgId: replyMsgId, agent: 'orchestrator', content: responseText + '\n' });
+        broadcastSseMessage(sessionId, { newMsgId: replyMsgId, agent: 'orchestrator', content: responseText + '\n' });
         saveChatMessage(sessionId, 'left', responseText, 'orchestrator', parentId);
       } catch (err) {
-        sseQueue.write({ newMsgId: 'msg_error_' + Date.now(), agent: 'orchestrator', content: `❌ **Orchestrator Error**: ${err.message}\n` });
+        broadcastSseMessage(sessionId, { newMsgId: 'msg_error_' + Date.now(), agent: 'orchestrator', content: '❌ **Orchestrator Error**: ' + err.message + '\n' });
       }
-      sseQueue.writeRaw('data: [DONE]\n\n');
-      res.end();
+      broadcastSseMessage(sessionId, 'data: [DONE]\n\n');
       return;
     }
 
@@ -4196,52 +5084,51 @@ app.post('/api/chat', async (req, res) => {
       
       // 1. INSTANT CEO REPLY FROM ANTIGRAVITY (AGY)
       const agyInitMsgId = 'msg_agy_init_' + Date.now();
-      sseQueue.write({ newMsgId: agyInitMsgId, agent: 'agy', content: `Gary, I've got your request: "${query}". I am immediately spinning up the Swarm team and instructing the Gemini Orchestrator to handle planning and decomposition. Stand by, I will keep you posted and chat with you here as the team builds!\n\n` });
-      await new Promise(r => setTimeout(r, 1000)); // Brief pause to feel natural
+      broadcastSseMessage(sessionId, { newMsgId: agyInitMsgId, agent: 'agy', content: 'Gary, I\'ve got your request: "' + query + '". I am immediately spinning up the Swarm team and instructing the Gemini Orchestrator to handle planning and decomposition. Stand by, I will keep you posted and chat with you here as the team builds!\n\n' });
+      await new Promise(r => setTimeout(r, 1000));
 
       // 2. BACKGROUND PLANNING BY GEMINI ORCHESTRATOR
       const planMsgId = 'msg_plan_' + Date.now();
-      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `🧠 **Gemini Orchestrator**: Beginning goal decomposition and RAG memory lookup...\n`, parentId: parentId });
+      broadcastSseMessage(sessionId, { newMsgId: planMsgId, agent: 'orchestrator', content: '🧠 **Gemini Orchestrator**: Beginning goal decomposition and RAG memory lookup...\n', parentId: parentId });
       const plan = await getOrchestratorPlan(queryWithMemory);
       
       // Save plan to shared workspace
       try {
-        writeFileSync(`${SHARED}/goal_plan.json`, JSON.stringify(plan, null, 2), 'utf-8');
+        writeFileSync(SHARED + '/goal_plan.json', JSON.stringify(plan, null, 2), 'utf-8');
       } catch {}
 
       // Stream the plan
-      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `📋 **Swarm Swarming Plan Generated:**\n`, parentId: parentId });
+      broadcastSseMessage(sessionId, { newMsgId: planMsgId, agent: 'orchestrator', content: '📋 **Swarm Swarming Plan Generated:**\n', parentId: parentId });
       plan.forEach((step, idx) => {
-        sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `${idx + 1}. **${AGENTS[step.agent]?.emoji || '🤖'} ${AGENTS[step.agent]?.name || step.agent}**: ${step.task} *(${step.reason})*\n`, parentId: parentId });
+        const agName = AGENTS[step.agent]?.name || step.agent;
+        const agEmoji = AGENTS[step.agent]?.emoji || '🤖';
+        broadcastSseMessage(sessionId, { newMsgId: planMsgId, agent: 'orchestrator', content: (idx + 1) + '. **' + agEmoji + ' ' + agName + '**: ' + step.task + ' *(' + step.reason + ')*\n', parentId: parentId });
       });
-      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `\n---\n\n`, parentId: parentId });
+      broadcastSseMessage(sessionId, { newMsgId: planMsgId, agent: 'orchestrator', content: '\n---\n\n', parentId: parentId });
 
       // Brainstorming session dialogue (AGY leads, Gemini organizes, others execute)
       const brainstormMsgId = 'msg_brainstorm_' + Date.now();
-      sseQueue.write({ newMsgId: brainstormMsgId, agent: 'orchestrator', content: `💬 **Initiating Swarm Brainstorming Room...**\n\n` });
+      broadcastSseMessage(sessionId, { newMsgId: brainstormMsgId, agent: 'orchestrator', content: '💬 **Initiating Swarm Brainstorming Room...**\n\n' });
       try {
-        const brainstormPrompt = `You are simulating a collaborative chat discussion between specialized AI agents about to work on a task.
-Gary's goal: "${query}"
-Plan steps:
-${plan.map((s, idx) => `${idx + 1}. [${s.agent}]: ${s.task}`).join('\n')}
-
-Simulate a realistic and lively conversational discussion (5-8 turns) between the following team members:
-- 🧠 **Antigravity (AGY)** (User-facing L1 CEO, manager of the discussion)
-- 🧠 **Gemini Orchestrator** (the brain organizing the task decomposition)
-- 🔀 **OpenClaw** (Competitor & SEO analyst, browser specialist)
-- ⚡ **Hermes** (Lead executor, codebase installer)
-- 🤖 **Claude** (Expert Developer, code reviewer)
-
-Dialogue instructions:
-- Start with AGY instructing Gemini to get on with the task.
-- Gemini details the plan and delegates tasks.
-- OpenClaw, Claude, and Hermes discuss design and key SEO guidelines.
-- AGY wraps up the brainstorming, tells Gary they are ready, and tells Gemini to kick off the execution.
-
-Format the output EXACTLY like a chat feed. Each line must start with the agent's name and emoji, followed by their input. E.g.:
-🧠 **Antigravity (AGY)**: Orchestrator, Gary wants this built. Let's make it happen.
-🧠 **Gemini Orchestrator**: Decomposing plan. Hermes will build, Claude will review.
-Do not include markdown code block formatting around the dialogue. Output ONLY the lines of dialogue.`;
+        const brainstormPrompt = 'You are simulating a collaborative chat discussion between specialized AI agents about to work on a task.\n' +
+'Gary\'s goal: "' + query + '"\n' +
+'Plan steps:\n' +
+plan.map((s, idx) => (idx + 1) + '. [' + s.agent + ']: ' + s.task).join('\n') + '\n\n' +
+'Simulate a realistic and lively conversational discussion (5-8 turns) between the following team members:\n' +
+'- 🧠 **Antigravity (AGY)** (User-facing L1 CEO, manager of the discussion)\n' +
+'- 🧠 **Gemini Orchestrator** (the brain organizing the task decomposition)\n' +
+'- 🔀 **OpenClaw** (Competitor & SEO analyst, browser specialist)\n' +
+'- ⚡ **Hermes** (Lead executor, codebase installer)\n' +
+'- 🤖 **Claude** (Expert Developer, code reviewer)\n\n' +
+'Dialogue instructions:\n' +
+'- Start with AGY instructing Gemini to get on with the task.\n' +
+'- Gemini details the plan and delegates tasks.\n' +
+'- OpenClaw, Claude, and Hermes discuss design and key SEO guidelines.\n' +
+'- AGY wraps up the brainstorming, tells Gary they are ready, and tells Gemini to kick off the execution.\n\n' +
+'Format the output EXACTLY like a chat feed. Each line must start with the agent\'s name and emoji, followed by their input. E.g.:\n' +
+'🧠 **Antigravity (AGY)**: Orchestrator, Gary wants this built. Let\'s make it happen.\n' +
+'🧠 **Gemini Orchestrator**: Decomposing plan. Hermes will build, Claude will review.\n' +
+'Do not include markdown code block formatting around the dialogue. Output ONLY the lines of dialogue.';
 
         const brainstormChat = await chatCompletion(brainstormPrompt, "You are a professional swarm simulator.");
         if (brainstormChat && !brainstormChat.includes('All providers failed')) {
@@ -4255,12 +5142,12 @@ Do not include markdown code block formatting around the dialogue. Output ONLY t
             else if (line.includes('Hermes')) { agentId = 'hermes'; cleanLine = line.replace(/.*Hermes:/, '').trim(); }
             else if (line.includes('Claude')) { agentId = 'claude'; cleanLine = line.replace(/.*Claude:/, '').trim(); }
             
-            const lineMsgId = `msg_brainstorm_${agentId}_${Math.random().toString(36).substring(2, 7)}`;
-            sseQueue.write({ newMsgId: lineMsgId, agent: agentId, content: cleanLine + '\n\n' });
-            await new Promise(r => setTimeout(r, 600)); // Simulate typing
+            const lineMsgId = 'msg_brainstorm_' + agentId + '_' + Math.random().toString(36).substring(2, 7);
+            broadcastSseMessage(sessionId, { newMsgId: lineMsgId, agent: agentId, content: cleanLine + '\n\n' });
+            await new Promise(r => setTimeout(r, 600));
           }
           const endBrainMsgId = 'msg_brainstorm_end_' + Date.now();
-          sseQueue.write({ newMsgId: endBrainMsgId, agent: 'orchestrator', content: `\n---\n\n` });
+          broadcastSseMessage(sessionId, { newMsgId: endBrainMsgId, agent: 'orchestrator', content: '\n---\n\n' });
         }
       } catch (e) {
         console.error('Brainstorm simulation failed:', e.message);
@@ -4276,10 +5163,10 @@ Do not include markdown code block formatting around the dialogue. Output ONLY t
       while (!passed && loopCount < MAX_LOOPS) {
         loopCount++;
         if (loopCount > 1) {
-          sseQueue.write({ 
-            newMsgId: `msg_loop_start_${loopCount}_${Date.now()}`, 
+          broadcastSseMessage(sessionId, { 
+            newMsgId: 'msg_loop_start_' + loopCount + '_' + Date.now(), 
             agent: 'orchestrator', 
-            content: `🔄 **Swarm Revision Loop [${loopCount}/${MAX_LOOPS}]**: Initiating corrective execution plan...\n\n`,
+            content: '🔄 **Swarm Revision Loop [' + loopCount + '/' + MAX_LOOPS + ']**: Initiating corrective execution plan...\n\n',
             parentId: parentId 
           });
         }
@@ -4291,26 +5178,25 @@ Do not include markdown code block formatting around the dialogue. Output ONLY t
           let interventionContext = '';
           if (userInterventions.length > 0) {
             const rawIntervention = userInterventions.map(ui => ui.content).join(', ');
-            interventionContext = `\n\n### Gary Pearce (User) Joined The Conversation:\n- Gary: "${rawIntervention}"\n\nTake Gary's comments into consideration when executing this task and respond to Gary directly.`;
+            interventionContext = '\n\n### Gary Pearce (User) Joined The Conversation:\n- Gary: "' + rawIntervention + '"\n\nTake Gary\'s comments into consideration when executing this task and respond to Gary directly.';
             
             const interMsgId = 'msg_intervention_notice_' + Date.now();
-            sseQueue.write({ newMsgId: interMsgId, agent: 'agy', content: `Gary, I see you commented: "${rawIntervention}". I'm updating the swarm team immediately so they adapt the execution to your feedback!\n\n` });
-            userInterventions = []; // Clear consumed interventions
+            broadcastSseMessage(sessionId, { newMsgId: interMsgId, agent: 'agy', content: 'Gary, I see you commented: "' + rawIntervention + '". I\'m updating the swarm team immediately so they adapt the execution to your feedback!\n\n' });
+            userInterventions = [];
           }
 
-          const stepMsgId = `msg_step_${loopCount}_${i}_${Date.now()}`;
-          sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `🚀 **Step ${i + 1}/${activePlan.length}**: Dispatching to **${AGENTS[step.agent]?.name || step.agent}**...\n\nTask: *${step.task}*\n\n` });
+          const stepMsgId = 'msg_step_' + loopCount + '_' + i + '_' + Date.now();
+          const targetAgName = AGENTS[step.agent]?.name || step.agent;
+          broadcastSseMessage(sessionId, { newMsgId: stepMsgId, agent: step.agent, content: '🚀 **Step ' + (i + 1) + '/' + activePlan.length + '**: Dispatching to **' + targetAgName + '**...\n\nTask: *' + step.task + '*\n\n' });
 
-          // Build accumulated message context
           let messageToSend = step.task;
           if (accumulatedContext) {
-            messageToSend = `${step.task}\n\nHere is the accumulated output and progress from the previous swarm steps:\n${accumulatedContext}`;
+            messageToSend = step.task + '\n\nHere is the accumulated output and progress from the previous swarm steps:\n' + accumulatedContext;
           }
           if (interventionContext) {
             messageToSend += interventionContext;
           }
 
-          // Send task to target agent with real-time background chatter from other agents
           let stepResolved = false;
           const chatters = [
             { name: 'Antigravity (AGY)', emoji: '🧠' },
@@ -4333,17 +5219,98 @@ Do not include markdown code block formatting around the dialogue. Output ONLY t
             if (stepResolved) return;
             const randomChatter = chatters[Math.floor(Math.random() * chatters.length)];
             const randomMsg = chatterMessages[Math.floor(Math.random() * chatterMessages.length)];
-            const chatMsgId = `msg_chatter_${randomChatter.name.replace(/\s+/g, '')}_${Date.now()}`;
+            const chatMsgId = 'msg_chatter_' + randomChatter.name.replace(/\s+/g, '') + '_' + Date.now();
             let agentId = 'orchestrator';
             if (randomChatter.name.includes('AGY')) agentId = 'agy';
             else if (randomChatter.name.includes('Claude')) agentId = 'claude';
             else if (randomChatter.name.includes('OpenClaw')) agentId = 'openclaw';
             
-            sseQueue.write({ newMsgId: chatMsgId, agent: agentId, content: `${randomMsg}\n\n` });
-          }, 5000); // Send an update every 5 seconds
+            broadcastSseMessage(sessionId, { newMsgId: chatMsgId, agent: agentId, content: randomMsg + '\n\n' });
+          }, 5000);
+
+          // Gatekeeper approval request
+          const approvalId = 'approval_' + Date.now() + '_' + Math.random().toString(36).substring(2, 5);
+          const approvalContent = `⚠️ **Security Gatekeeper**: Agent **${step.agent}** wants to execute step: *"${step.task}"*. Please approve, edit, or reject this step before it runs.`;
+          
+          try {
+            const db = getAionuiDb();
+            if (db) {
+              const now = Date.now();
+              const contentObj = JSON.stringify({ 
+                content: approvalContent,
+                agent: 'orchestrator',
+                parentId: parentId || undefined,
+                status: 'pending_approval'
+              });
+              db.prepare(`
+                INSERT INTO messages (id, conversation_id, msg_id, type, content, position, hidden, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+              `).run(approvalId, sessionId, approvalId, 'text', contentObj, 'left', 0, now);
+            }
+          } catch (e) {
+            console.error('[Sessions DB] Failed to save pending approval message:', e.message);
+          }
+
+          broadcastSseMessage(sessionId, {
+            newMsgId: approvalId,
+            agent: 'orchestrator',
+            status: 'pending_approval',
+            content: approvalContent
+          });
+
+          // Wait for user confirmation
+          const approvalResult = await new Promise((resolve) => {
+            pendingApprovals.set(sessionId, { resolve, approvalId });
+          });
+
+          if (approvalResult.status === 'rejected') {
+            const feedbackText = `❌ **Security Gatekeeper**: Step rejected by user. Feedback: "${approvalResult.feedback || 'None'}"\n\n`;
+            try {
+              const db = getAionuiDb();
+              if (db) {
+                const contentObj = JSON.stringify({ 
+                  content: feedbackText,
+                  agent: 'orchestrator',
+                  parentId: parentId || undefined,
+                  status: 'rejected',
+                  feedback: approvalResult.feedback
+                });
+                db.prepare("UPDATE messages SET content = ? WHERE conversation_id = ? AND msg_id = ?").run(contentObj, sessionId, approvalId);
+              }
+            } catch (e) {
+              console.error('[Sessions DB] Failed to update message content to rejected:', e.message);
+            }
+            broadcastSseMessage(sessionId, {
+              newMsgId: approvalId,
+              agent: 'orchestrator',
+              content: feedbackText
+            });
+            throw new Error(`Step rejected by user: ${approvalResult.feedback}`);
+          }
+
+          const approvedText = `✅ **Security Gatekeeper**: Step approved by user. Proceeding...\n\n`;
+          try {
+            const db = getAionuiDb();
+            if (db) {
+              const contentObj = JSON.stringify({ 
+                content: approvedText,
+                agent: 'orchestrator',
+                parentId: parentId || undefined,
+                status: 'approved'
+              });
+              db.prepare("UPDATE messages SET content = ? WHERE conversation_id = ? AND msg_id = ?").run(contentObj, sessionId, approvalId);
+            }
+          } catch (e) {
+            console.error('[Sessions DB] Failed to update message content to approved:', e.message);
+          }
+          broadcastSseMessage(sessionId, {
+            newMsgId: approvalId,
+            agent: 'orchestrator',
+            content: approvedText
+          });
 
           const stepPromise = sendMessage(step.agent, messageToSend, 'orchestrator', (update) => {
-            sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: update + '\n' });
+            broadcastSseMessage(sessionId, { newMsgId: stepMsgId, agent: step.agent, content: update + '\n' });
           });
 
           const result = await stepPromise.finally(() => {
@@ -4351,41 +5318,37 @@ Do not include markdown code block formatting around the dialogue. Output ONLY t
             clearInterval(chatterInterval);
           });
           
-          // Append full result response to accumulated context
-          accumulatedContext += `\n### Step ${i + 1} (${AGENTS[step.agent]?.name || step.agent} output):\n${result.response || ''}\n`;
+          const completedAgName = AGENTS[step.agent]?.name || step.agent;
+          accumulatedContext += '\n### Step ' + (i + 1) + ' (' + completedAgName + ' output):\n' + (result.response || '') + '\n';
           extractAndSaveCodeBlocks(result.response || '');
 
           let formattedResponse = result.response || result.error || 'Done';
           
-          // Write the step response into the tool execution logs
-          sseQueue.write({ tool: `Response from ${AGENTS[step.agent]?.name || step.agent}:\n${formattedResponse}` });
-          sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `✅ **${AGENTS[step.agent]?.name || step.agent}** completed step successfully.\n\n` });
+          broadcastSseMessage(sessionId, { tool: 'Response from ' + completedAgName + ':\n' + formattedResponse });
+          broadcastSseMessage(sessionId, { newMsgId: stepMsgId, agent: step.agent, content: '✅ **' + completedAgName + '** completed step successfully.\n\n' });
 
-          // Critique and feedback dialogue
-          const critiqueHeaderMsgId = `msg_critique_header_${loopCount}_${i}_${Date.now()}`;
-          sseQueue.write({ newMsgId: critiqueHeaderMsgId, agent: 'orchestrator', content: `🔍 **Initiating Code & SEO Review/Critique Loop...**\n\n` });
+          // Critique loop
+          const critiqueHeaderMsgId = 'msg_critique_header_' + loopCount + '_' + i + '_' + Date.now();
+          broadcastSseMessage(sessionId, { newMsgId: critiqueHeaderMsgId, agent: 'orchestrator', content: '🔍 **Initiating Code & SEO Review/Critique Loop...**\n\n' });
           try {
-            // Check if user commented during execution
             let critiqueIntervention = '';
             if (userInterventions.length > 0) {
-              critiqueIntervention = `Gary Pearce (User) commented during execution: ` + 
-                userInterventions.map(ui => `"${ui.content}"`).join(', ');
-              userInterventions = []; // Consume
+              critiqueIntervention = 'Gary Pearce (User) commented during execution: ' + 
+                userInterventions.map(ui => '"' + ui.content + '"').join(', ');
+              userInterventions = [];
             }
 
-            const critiquePrompt = `You are simulating a collaborative code and SEO critique session between AI agents on the team.
-The agent [${step.agent}] just completed their task: "${step.task}"
-Here is the summary of what they did:
-${formattedResponse.substring(0, 1000)}
-${critiqueIntervention ? `\n${critiqueIntervention}\nNote: Gary Pearce joined the chat and provided the feedback above. Ensure the agents acknowledge Gary's feedback and explain how they will apply it.` : ''}
-
-Generate a brief 3-4 turn dialogue between:
-- 🧠 **Antigravity (AGY)** (CEO): comments on step alignment and user feedback.
-- 🤖 **Claude** (Expert Developer): critiques the HTML/CSS code quality, responsiveness, or logic.
-- 🔀 **OpenClaw** (SEO Specialist): reviews heading structure, keyword mapping (e.g. 'CCTV installation'), meta tags, or visual layout.
-- ⚡ **Hermes** (Executor): acknowledges feedback and promises to refine or confirms it's set.
-
-Format the output EXACTLY like a chat feed. Do not write code blocks. Output ONLY the lines of dialogue.`;
+            const critiquePrompt = 'You are simulating a collaborative code and SEO critique session between AI agents on the team.\n' +
+'The agent [' + step.agent + '] just completed their task: "' + step.task + '"\n' +
+'Here is the summary of what they did:\n' +
+formattedResponse.substring(0, 1000) + '\n' +
+(critiqueIntervention ? '\n' + critiqueIntervention + '\nNote: Gary Pearce joined the chat and provided the feedback above. Ensure the agents acknowledge Gary\'s feedback and explain how they will apply it.' : '') + '\n\n' +
+'Generate a brief 3-4 turn dialogue between:\n' +
+'- 🧠 **Antigravity (AGY)** (CEO): comments on step alignment and user feedback.\n' +
+'- 🤖 **Claude** (Expert Developer): critiques the HTML/CSS code quality, responsiveness, or logic.\n' +
+'- 🔀 **OpenClaw** (SEO Specialist): reviews heading structure, keyword mapping (e.g. \'CCTV installation\'), meta tags, or visual layout.\n' +
+'- ⚡ **Hermes** (Executor): acknowledges feedback and promises to refine or confirms it\'s set.\n\n' +
+'Format the output EXACTLY like a chat feed. Do not write code blocks. Output ONLY the lines of dialogue.';
 
             const critiqueChat = await chatCompletion(critiquePrompt, "You are a code reviewer simulator.");
             if (critiqueChat && !critiqueChat.includes('All providers failed')) {
@@ -4398,52 +5361,51 @@ Format the output EXACTLY like a chat feed. Do not write code blocks. Output ONL
                 else if (line.includes('OpenClaw')) { agentId = 'openclaw'; cleanLine = line.replace(/.*OpenClaw:/, '').trim(); }
                 else if (line.includes('Hermes')) { agentId = 'hermes'; cleanLine = line.replace(/.*Hermes:/, '').trim(); }
                 
-                const critiqueLineMsgId = `msg_critique_${agentId}_${Math.random().toString(36).substring(2, 7)}`;
-                sseQueue.write({ newMsgId: critiqueLineMsgId, agent: agentId, content: cleanLine + '\n\n' });
+                const critiqueLineMsgId = 'msg_critique_' + agentId + '_' + Math.random().toString(36).substring(2, 7);
+                broadcastSseMessage(sessionId, { newMsgId: critiqueLineMsgId, agent: agentId, content: cleanLine + '\n\n' });
                 await new Promise(r => setTimeout(r, 600));
               }
-              const endCritiqueMsgId = `msg_critique_end_${loopCount}_${i}_${Date.now()}`;
-              sseQueue.write({ newMsgId: endCritiqueMsgId, agent: 'orchestrator', content: `\n---\n\n` });
+              const endCritiqueMsgId = 'msg_critique_end_' + loopCount + '_' + i + '_' + Date.now();
+              broadcastSseMessage(sessionId, { newMsgId: endCritiqueMsgId, agent: 'orchestrator', content: '\n---\n\n' });
             }
           } catch (e) {
             console.error('Critique simulation failed:', e.message);
           }
         }
 
-        // 4. JUDGE STAGE - Quality and Goal Validation
-        sseQueue.write({ 
-          newMsgId: `msg_judge_start_${loopCount}_${Date.now()}`, 
+        // 4. JUDGE STAGE
+        broadcastSseMessage(sessionId, { 
+          newMsgId: 'msg_judge_start_' + loopCount + '_' + Date.now(), 
           agent: 'orchestrator', 
-          content: `⚖️ **Orchestrator-Judge Evaluation**: Reviewing quality, requirements, and checking for faults...\n`, 
+          content: '⚖️ **Orchestrator-Judge Evaluation**: Reviewing quality, requirements, and checking for faults...\n', 
           parentId: parentId 
         });
 
         const contentRules = getContentEngineRules();
         const contentRulesPrompt = (contentRules && /post|blog|write|article|content|seo/i.test(query))
-          ? `\n\n### MANDATORY CONTENT AUDIT RULES (GARY PEARCE CONTENT ENGINE V2):\nThe content produced MUST strictly comply with the following content engine requirements. Please inspect the generated files or text context to ensure ALL checks are passed. If any requirement fails, set passed to false and list corrective steps.\n\n${contentRules}`
+          ? '\n\n### MANDATORY CONTENT AUDIT RULES (GARY PEARCE CONTENT ENGINE V2):\nThe content produced MUST strictly comply with the following content engine requirements. Please inspect the generated files or text context to ensure ALL checks are passed. If any requirement fails, set passed to false and list corrective steps.\n\n' + contentRules
           : '';
 
-        const judgePrompt = `You are the Swarm Quality Judge and Content Checker of Agent OS.
-User's original goal: "${query}"
-Accumulated output and context from the executing agents:
-${accumulatedContext.substring(0, 4000)}
-${contentRulesPrompt}
-
-Please evaluate the work done. Check if all tasks have been fully completed, code is clean, and user requirements are met.
-Your response MUST be a single JSON object. Output ONLY the JSON block, no conversational text before or after.
-Format:
-{
-  "passed": true,
-  "reason": "Clear explanation of why it passed or what specific details are missing/failed.",
-  "corrective_steps": [
-    {
-      "agent": "agy",
-      "task": "Specific corrective instruction for this agent",
-      "reason": "Why this correction is necessary"
-    }
-  ]
-}
-Note: If passed is true, corrective_steps must be an empty array. The agent field must be one of: "agy", "claude", "openclaw", "hermes", "obsidian".`;
+        const judgePrompt = 'You are the Swarm Quality Judge and Content Checker of Agent OS.\n' +
+'User\'s original goal: "' + query + '"\n' +
+'Accumulated output and context from the executing agents:\n' +
+accumulatedContext.substring(0, 4000) + '\n' +
+contentRulesPrompt + '\n\n' +
+'Please evaluate the work done. Check if all tasks have been fully completed, code is clean, and user requirements are met.\n' +
+'Your response MUST be a single JSON object. Output ONLY the JSON block, no conversational text before or after.\n' +
+'Format:\n' +
+'{\n' +
+'  "passed": true,\n' +
+'  "reason": "Clear explanation of why it passed or what specific details are missing/failed.",\n' +
+'  "corrective_steps": [\n' +
+'    {\n' +
+'      "agent": "agy",\n' +
+'      "task": "Specific corrective instruction for this agent",\n' +
+'      "reason": "Why this correction is necessary"\n' +
+'    }\n' +
+'  ]\n' +
+'}\n' +
+'Note: If passed is true, corrective_steps must be an empty array. The agent field must be one of: "agy", "claude", "openclaw", "hermes", "obsidian".';
 
         let judgeResult = { passed: true, reason: 'Task completed successfully.', corrective_steps: [] };
         try {
@@ -4459,10 +5421,10 @@ Note: If passed is true, corrective_steps must be an empty array. The agent fiel
           console.error('[Orchestrator Judge] Analysis failed, assuming pass:', e.message);
         }
 
-        sseQueue.write({ 
-          newMsgId: `msg_judge_res_${loopCount}_${Date.now()}`, 
+        broadcastSseMessage(sessionId, { 
+          newMsgId: 'msg_judge_res_' + loopCount + '_' + Date.now(), 
           agent: 'orchestrator', 
-          content: `⚖️ **Judge Status**: **${judgeResult.passed ? 'PASSED ✅' : 'FAILED ❌'}**\n\nReason: *${judgeResult.reason}*\n\n`, 
+          content: '⚖️ **Judge Status**: **' + (judgeResult.passed ? 'PASSED ✅' : 'FAILED ❌') + '**\n\nReason: *' + judgeResult.reason + '*\n\n', 
           parentId: parentId 
         });
 
@@ -4472,43 +5434,42 @@ Note: If passed is true, corrective_steps must be an empty array. The agent fiel
           if (loopCount < MAX_LOOPS) {
             activePlan = judgeResult.corrective_steps || [];
             if (activePlan.length === 0) {
-              activePlan = [{ agent: 'agy', task: `Address the following feedback: ${judgeResult.reason}`, reason: 'General corrective feedback' }];
+              activePlan = [{ agent: 'agy', task: 'Address the following feedback: ' + judgeResult.reason, reason: 'General corrective feedback' }];
             }
           }
         }
       }
 
-      // Summarize the outcome of the completed goal using LLM
+      // Summarize
       let outcome = accumulatedContext.substring(0, 1000);
       try {
-        const summaryPrompt = `You are a swarm manager summarizing the execution of a goal.
-Goal: "${query}"
-Plan steps: ${JSON.stringify(plan)}
-Accumulated execution output from agents:
-${accumulatedContext.substring(0, 4000)}
-
-Provide a concise, 2-3 sentence executive summary of what was accomplished and verified. Output only the summary.`;
+        const summaryPrompt = 'You are a swarm manager summarizing the execution of a goal.\n' +
+'Goal: "' + query + '"\n' +
+'Plan steps: ' + JSON.stringify(plan) + '\n' +
+'Accumulated execution output from agents:\n' +
+accumulatedContext.substring(0, 4000) + '\n\n' +
+'Provide a concise, 2-3 sentence executive summary of what was accomplished and verified. Output only the summary.';
         const summary = await chatCompletion(summaryPrompt, "You are a concise executive summary compiler.");
         if (summary && !summary.includes('All providers failed')) {
           outcome = summary;
         }
       } catch {}
 
-      // Archive the goal
+      // Archive
       const archiveMsgId = 'msg_archive_' + Date.now();
-      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `📁 **Archiving swarm goal & outcome index...**\n`, parentId: parentId });
+      broadcastSseMessage(sessionId, { newMsgId: archiveMsgId, agent: 'orchestrator', content: '📁 **Archiving swarm goal & outcome index...**\n', parentId: parentId });
       await archiveGoal(query, plan, outcome);
 
-      // 3. Self-Learning Loop execution
-      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `🔄 **Triggering swarm self-learning compiler...**\n`, parentId: parentId });
+      // Memory learning loop
+      broadcastSseMessage(sessionId, { newMsgId: archiveMsgId, agent: 'orchestrator', content: '🔄 **Triggering swarm self-learning compiler...**\n', parentId: parentId });
       await new Promise((resolve) => {
-        exec(`node "${SHARED}/learning_loop.js"`, (err, stdout, stderr) => {
-          sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `✅ **Swarm Memory Compiled**: System prompt updated with new rules.\n\n`, parentId: parentId });
+        exec('node "' + SHARED + '/learning_loop.js"', (err, stdout, stderr) => {
+          broadcastSseMessage(sessionId, { newMsgId: archiveMsgId, agent: 'orchestrator', content: '✅ **Swarm Memory Compiled**: System prompt updated with new rules.\n\n', parentId: parentId });
           resolve();
         });
       });
 
-      // Find website files under SHARED to open
+      // Find websites
       let openUrl = 'http://localhost:3001/api/media/';
       try {
         const files = readdirSync(SHARED);
@@ -4520,7 +5481,7 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
             if (statSync(fullPath).isDirectory()) {
               const subFiles = readdirSync(fullPath);
               if (subFiles.includes('index.html')) {
-                openUrl += `${f}/index.html`;
+                openUrl += f + '/index.html';
                 break;
               }
             }
@@ -4529,44 +5490,41 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
       } catch {}
 
       const doneMsgId = 'msg_done_' + Date.now();
-      sseQueue.write({ newMsgId: doneMsgId, agent: 'orchestrator', content: `🏆 **Goal Completed Successfully!** All agents collaborated on the workspace.\n\n🌐 View the live result here: ${openUrl}\n`, parentId: parentId });
-      saveChatMessage(sessionId, 'left', outcome || `Goal completed successfully. Web Preview URL: ${openUrl}`, 'orchestrator', parentId);
+      broadcastSseMessage(sessionId, { newMsgId: doneMsgId, agent: 'orchestrator', content: '🏆 **Goal Completed Successfully!** All agents collaborated on the workspace.\n\n🌐 View the live result here: ' + openUrl + '\n', parentId: parentId });
+      saveChatMessage(sessionId, 'left', outcome || 'Goal completed successfully. Web Preview URL: ' + openUrl, 'orchestrator', parentId);
     } catch (err) {
       const errMsgId = 'msg_error_' + Date.now();
-      sseQueue.write({ newMsgId: errMsgId, agent: 'orchestrator', content: `❌ **Orchestrator Error**: ${err.message}\n`, parentId: parentId });
-      saveChatMessage(sessionId, 'left', `Orchestrator Error: ${err.message}`, 'orchestrator', parentId);
+      broadcastSseMessage(sessionId, { newMsgId: errMsgId, agent: 'orchestrator', content: '❌ **Orchestrator Error**: ' + err.message + '\n', parentId: parentId });
+      saveChatMessage(sessionId, 'left', 'Orchestrator Error: ' + err.message, 'orchestrator', parentId);
     }
     
-    sseQueue.writeRaw('data: [DONE]\n\n');
-    res.end();
+    broadcastSseMessage(sessionId, 'data: [DONE]\n\n');
     return;
   }
-  // DEFAULT CHAT ROUTE
-  // "Model provider" UI agents (nousresearch, gemini, openrouter, github, etc.) are not
-  // executable server agents — they are just UI-side model catalog views. If the agentId
-  // doesn't exist in the AGENTS map, fall back to Hermes with the active model.
+
+  // DEFAULT SINGLE AGENT CHAT ROUTE
   const executableAgents = Object.keys(AGENTS);
   const targetAgent = parentId || agentId;
   let response;
+
   if (targetAgent && targetAgent !== 'hermes' && executableAgents.includes(targetAgent.toLowerCase())) {
-    // Route to specific executable agent (agy, openclaw, claude, aider, obsidian, ollama, lmstudio, orchestrator)
     const result = await sendMessage(targetAgent, queryWithMemory, 'user', (update) => {
-      res.write(`data: ${JSON.stringify({ content: `${update}\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
+      broadcastSseMessage(sessionId, { content: update + '\n', parentId: targetAgent, agent: targetAgent });
     }, sessionId);
     response = result.response || result.error || 'No response';
     
-    // Auto-delegate from AGY L1 CEO to Background Swarm
+    // CEO Delegation Fail-Safe
     if (targetAgent.toLowerCase() === 'agy' && response.includes('[DELEGATE_SWARM]:')) {
       const match = response.match(/\[DELEGATE_SWARM\]:\s*(.*)/i);
       if (match && match[1]) {
         const swarmGoal = match[1].trim();
         console.log(`[Delegation Engine] L1 CEO (AGY) delegated goal to Swarm: "${swarmGoal}"`);
-        res.write(`data: ${JSON.stringify({ content: `\n\n⚙️ **[OS Delegation Engine]**: L1 CEO (Antigravity) delegated this task to the background swarm.\n🤖 **Swarm Campaign Initialized**: "${swarmGoal}"...\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
+        broadcastSseMessage(sessionId, { content: '\n\n⚙️ **[OS Delegation Engine]**: L1 CEO (Antigravity) delegated this task to the background swarm.\n🤖 **Swarm Campaign Initialized**: "' + swarmGoal + '"...\n', parentId: targetAgent, agent: targetAgent });
         
         try {
           const scratchDir = join(__dirname, 'scratch');
           if (!existsSync(scratchDir)) mkdirSync(scratchDir, { recursive: true });
-          const tempScriptPath = join(scratchDir, `run_delegated_${Date.now()}.js`);
+          const tempScriptPath = join(scratchDir, 'run_delegated_' + Date.now() + '.js');
           const scriptContent = `
 import { writeFileSync } from 'fs';
 async function run() {
@@ -4596,21 +5554,20 @@ run().catch(console.error);
       }
     }
   } else {
-    // Default: Hermes/OpenRouter handles chat (also covers nousresearch, gemini, openrouter UI agents)
     const result = await sendMessage('hermes', queryWithMemory, 'user', (update) => {
-      res.write(`data: ${JSON.stringify({ content: `${update}\n`, parentId: targetAgent || 'hermes', agent: targetAgent || 'hermes' })}\n\n`);
+      broadcastSseMessage(sessionId, { content: update + '\n', parentId: targetAgent || 'hermes', agent: targetAgent || 'hermes' });
     }, sessionId);
     response = result.response || result.error || 'No response';
   }
 
-  // Swarm Self-Healing Fail-Safe for Blog Posting Requests
+  // Syndication Fail-Safe
   const lowerQuery = query.toLowerCase();
   const isBlogRequest = lowerQuery.includes('blogger') || lowerQuery.includes('blog post') || lowerQuery.includes('publish') || lowerQuery.includes('syndicat') || lowerQuery.includes('post to');
   const hasPostContent = response.includes('title:') || response.includes('Title:') || response.includes('<h1>') || response.length > 500;
   
   if (isBlogRequest && hasPostContent && !response.includes('Syndication process completed')) {
     console.log('[Fail-Safe] Detected un-syndicated blog posting content in LLM response. Intercepting and publishing...');
-    res.write(`data: ${JSON.stringify({ content: `\n\n⚙️ **[OS Fail-Safe]** Detected un-syndicated blog post. Automatically saving and triggering the Blogger Syndication Tool...\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
+    broadcastSseMessage(sessionId, { content: '\n\n⚙️ **[OS Fail-Safe]** Detected un-syndicated blog post. Automatically saving and triggering the Blogger Syndication Tool...\n', parentId: targetAgent, agent: targetAgent });
     
     try {
       const draftDir = join(__dirname, '..', 'shared', 'blog_posts');
@@ -4618,43 +5575,38 @@ run().catch(console.error);
       
       const draftPath = join(draftDir, 'auto_fail_safe_post.md');
       
-      // Enforce Gary Pearce authorship byline, title and meta frontmatter
       let cleanContent = response;
       if (!cleanContent.includes('author:') && !cleanContent.includes('author: "Gary Pearce"')) {
-        cleanContent = `---\ntitle: "Professional CCTV Installation Services Across the UK"\nauthor: "Gary Pearce"\ndate: 2026-06-06\n---\n\n` + cleanContent;
+        cleanContent = '---\ntitle: "Professional CCTV Installation Services Across the UK"\nauthor: "Gary Pearce"\ndate: 2026-06-06\n---\n\n' + cleanContent;
       }
       
       writeFileSync(draftPath, cleanContent, 'utf-8');
       
-      // Run syndicator script
       const execResult = await new Promise((resolve) => {
-        exec(`python "${__dirname}/../shared/swarm_syndicator.py" "${draftPath}" --tier 1`, (err, stdout, stderr) => {
+        exec('python "' + __dirname + '/../shared/swarm_syndicator.py" "' + draftPath + '" --tier 1', (err, stdout, stderr) => {
           resolve(stdout || stderr || 'Syndication complete.');
         });
       });
       
       console.log('[Fail-Safe] Syndication execution output:', execResult);
-      res.write(`data: ${JSON.stringify({ content: `\n\n✅ **[OS Fail-Safe]** Syndication output:\n\`\`\`\n${execResult}\n\`\`\`\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
-      response += `\n\n[OS Auto-Syndicated]:\n${execResult}`;
+      broadcastSseMessage(sessionId, { content: '\n\n✅ **[OS Fail-Safe]** Syndication output:\n\`\`\`\n' + execResult + '\n\`\`\`\n', parentId: targetAgent, agent: targetAgent });
+      response += '\n\n[OS Auto-Syndicated]:\n' + execResult;
     } catch (fsErr) {
       console.error('[Fail-Safe] Error running auto-syndication:', fsErr);
     }
   }
 
-  // Stream simulated chunks of words
+  // Stream simulated chunks
   const words = response.split(' ');
   for (let i = 0; i < words.length; i++) {
     const chunk = (i === 0 ? '' : ' ') + words[i];
-    res.write(`data: ${JSON.stringify({ content: chunk, parentId: targetAgent, agent: targetAgent })}\n\n`);
+    broadcastSseMessage(sessionId, { content: chunk, parentId: targetAgent, agent: targetAgent });
     await new Promise(resolve => setTimeout(resolve, 20));
   }
 
   saveChatMessage(sessionId, 'left', response, targetAgent, parentId);
-
-  res.write('data: [DONE]\n\n');
-  res.end();
-});
-
+  broadcastSseMessage(sessionId, 'data: [DONE]\n\n');
+}
 // 24H AUTONOMOUS CONTROL
 let isAutonomousLoopActive = false;
 let autonomousTimer = null;
@@ -6088,12 +7040,16 @@ app.get('/api/session-detail', (req, res) => {
         let text = r.content;
         let agent = undefined;
         let parentId = undefined;
+        let status = undefined;
+        let feedback = undefined;
         try {
           const parsed = JSON.parse(r.content);
           if (parsed && typeof parsed === 'object') {
             text = parsed.content || parsed.text || r.content;
             agent = parsed.agent;
             parentId = parsed.parentId;
+            status = parsed.status;
+            feedback = parsed.feedback;
           }
         } catch {}
         return {
@@ -6102,7 +7058,9 @@ app.get('/api/session-detail', (req, res) => {
           agent: agent || (r.position === 'right' ? 'user' : 'hermes'),
           parentId: parentId || undefined,
           content: text,
-          created_at: r.created_at
+          created_at: r.created_at,
+          status,
+          feedback
         };
       });
 
