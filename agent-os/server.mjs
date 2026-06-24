@@ -23,6 +23,7 @@ import pty from 'node-pty';
 import { fileURLToPath } from 'url';
 import { dirname, join, basename } from 'path';
 import { createRequire } from 'module';
+import { createHash } from 'crypto';
 
 const require = createRequire(import.meta.url);
 import { initializeWhatsApp } from './whatsapp.mjs';
@@ -278,6 +279,12 @@ function getAionuiDb() {
         stack TEXT,
         resolved INTEGER DEFAULT 0
       );
+      CREATE TABLE IF NOT EXISTS llm_cache (
+        key TEXT PRIMARY KEY,
+        model TEXT,
+        response TEXT,
+        timestamp INTEGER
+      );
     `);
     
     return aionuiDb;
@@ -422,6 +429,55 @@ function rotateGroqKey() {
 let OR_KEYS_INTERVAL = setInterval(() => {
   OR_KEYS = loadOpenRouterKeys();
 }, 60000);
+
+let CEREBRAS_KEY = '';
+let SAMBANOVA_KEY = '';
+
+function loadOtherKeys() {
+  try {
+    const apiConfigPath = join(process.cwd(), 'api-config.json');
+    if (existsSync(apiConfigPath)) {
+      const config = JSON.parse(readFileSync(apiConfigPath, 'utf-8'));
+      if (config.cerebras?.api_key) CEREBRAS_KEY = config.cerebras.api_key;
+      if (config.sambanova?.api_key) SAMBANOVA_KEY = config.sambanova.api_key;
+    }
+  } catch (e) {
+    console.error('[Config] Failed to load keys from api-config.json:', e.message);
+  }
+}
+loadOtherKeys();
+
+function getLlmCache(model, messages) {
+  try {
+    const db = getAionuiDb();
+    if (!db) return null;
+    const payload = JSON.stringify({ model, messages });
+    const hash = createHash('sha256').update(payload).digest('hex');
+    const row = db.prepare('SELECT response FROM llm_cache WHERE key = ?').get(hash);
+    if (row && row.response) {
+      console.log(`[LLM Cache] Hit for model ${model}`);
+      return row.response;
+    }
+  } catch (e) {
+    console.error('[LLM Cache] Error reading cache:', e.message);
+  }
+  return null;
+}
+
+function setLlmCache(model, messages, response) {
+  try {
+    const db = getAionuiDb();
+    if (!db) return;
+    const payload = JSON.stringify({ model, messages });
+    const hash = createHash('sha256').update(payload).digest('hex');
+    db.prepare('INSERT OR REPLACE INTO llm_cache (key, model, response, timestamp) VALUES (?, ?, ?, ?)')
+      .run(hash, model, response, Date.now());
+    console.log(`[LLM Cache] Saved entry for model ${model}`);
+  } catch (e) {
+    console.error('[LLM Cache] Error writing cache:', e.message);
+  }
+}
+
 const GEMINI_KEYS_PATH = `${HOME}\\AppData\\Local\\hermes\\gemini-keys.json`;
 let geminiKeys = ['AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo'];
 let geminiKeyIndex = 0;
@@ -839,6 +895,10 @@ function setupCrons() {
     crons.push({ id: "10", name: "External Ingestion Engine", interval: "6 hour", status: "running", next: "" });
     modified = true;
   }
+  if (!scannerExists) {
+    crons.push({ id: "11", name: "Model Catalog & Evolution Scanner", interval: "24 hour", status: "running", next: "" });
+    modified = true;
+  }
   
   if (modified) {
     writeCrons(crons);
@@ -868,7 +928,14 @@ function speakNotification(text) {
   exec(`powershell -Command "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).Speak('${escaped}')"`, { timeout: 5000 });
 }
 
-function runJulianGoldieWatcher() {
+function runJulianGoldieWatcher(force = false) {
+  if (!force) {
+    const hour = new Date().getHours();
+    if (hour < 1 || hour >= 6) {
+      console.log('[Watcher] Skipping scheduled cron run: outside 1 AM - 6 AM learning window.');
+      return;
+    }
+  }
   console.log('[Watcher] Starting Julian Goldie Watcher cron run...');
   exec('python run_watcher.py', (err, stdout, stderr) => {
     if (err) {
@@ -881,7 +948,14 @@ function runJulianGoldieWatcher() {
   });
 }
 
-function runModelScanner() {
+function runModelScanner(force = false) {
+  if (!force) {
+    const hour = new Date().getHours();
+    if (hour < 1 || hour >= 6) {
+      console.log('[Scanner] Skipping scheduled cron run: outside 1 AM - 6 AM learning window.');
+      return;
+    }
+  }
   console.log('[Scanner] Starting Model Catalog & Evolution Scanner...');
   exec('python run_model_scanner.py', (err, stdout, stderr) => {
     if (err) {
@@ -946,7 +1020,14 @@ Determine if it contains valuable SEO strategies, AI agent architectures, tool p
   }
 }
 
-async function runExternalIngestion() {
+async function runExternalIngestion(force = false) {
+  if (!force) {
+    const hour = new Date().getHours();
+    if (hour < 1 || hour >= 6) {
+      console.log('[Ingest] Skipping scheduled cron run: outside 1 AM - 6 AM learning window.');
+      return;
+    }
+  }
   console.log('[Ingest] Running external content ingestion...');
   try {
     const { runIngestion } = await import('../shared/ingest_external.js');
@@ -1512,7 +1593,17 @@ async function _executeToolCallRaw(toolCallText, onProgress = null, fromAgent = 
   return `<longcat_tool_response>\nTool type "${toolType}" not supported by swarm executor. Use Bash command to perform operations.\n</longcat_tool_response>`;
 }
 
-// Chat with fallback (supporting conversation history messages array)
+// Provider cooldown tracking
+const providerCooldowns = {};
+function isProviderCool(provider) {
+  const now = Date.now();
+  return !providerCooldowns[provider] || now > providerCooldowns[provider];
+}
+function coolDownProvider(provider, durationMs = 60000) {
+  console.log(`[Cooldown] Cooling down provider ${provider} for ${durationMs}ms`);
+  providerCooldowns[provider] = Date.now() + durationMs;
+}
+
 // Key rotation helpers
 const keyLimitedUntil = {}; // { key: timestamp }
 function getAvailableKeys() {
@@ -1580,7 +1671,20 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
     if (m && m[1]) model = m[1];
   } catch {}
 
-  const uniqueModels = [...new Set(['zhipu/glm-4-flash', model, 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
+  const cachedResponse = getLlmCache(model, messages);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const response = await _chatCompletionWithHistoryInternal(messages, maxTokens, model);
+  if (response && !response.startsWith('Error:')) {
+    setLlmCache(model, messages, response);
+  }
+  return response;
+}
+
+async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, model = 'google/gemini-2.0-flash-001') {
+  const uniqueModels = [...new Set([model, 'zhipu/glm-4-flash', 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
 
   for (const currentModel of uniqueModels) {
     // Try Groq direct if model starts with groq/ or is llama-3.3-70b-versatile
@@ -1672,6 +1776,84 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
           console.log(`[BigModel] Zhipu failed: ${r.status} ${errText}`);
         }
       } catch (err) { console.log(`[BigModel] Zhipu error:`, err.message); }
+    }
+
+    // Try SambaNova direct
+    if (currentModel.startsWith('sambanova/') && SAMBANOVA_KEY && isProviderCool('sambanova')) {
+      try {
+        const modelId = currentModel.replace(/^sambanova\//, '');
+        console.log(`[SambaNova Direct] Trying model ${modelId} with SambaNova API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const r = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SAMBANOVA_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelId || 'Meta-Llama-3.1-70B-Instruct',
+            messages: messages,
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[SambaNova Direct] Success with SambaNova for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[SambaNova Direct] SambaNova failed: ${r.status} ${errText}`);
+          if (r.status === 429 || errText.includes('rate_limit') || errText.includes('Quota')) {
+            coolDownProvider('sambanova');
+          }
+        }
+      } catch (err) {
+        console.log(`[SambaNova Direct] SambaNova error:`, err.message);
+      }
+    }
+
+    // Try Cerebras direct
+    if (currentModel.startsWith('cerebras/') && CEREBRAS_KEY && isProviderCool('cerebras')) {
+      try {
+        const modelId = currentModel.replace(/^cerebras\//, '');
+        console.log(`[Cerebras Direct] Trying model ${modelId} with Cerebras API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CEREBRAS_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelId || 'llama3.1-70b',
+            messages: messages,
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Cerebras Direct] Success with Cerebras for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[Cerebras Direct] Cerebras failed: ${r.status} ${errText}`);
+          if (r.status === 429 || errText.includes('rate_limit') || errText.includes('Quota')) {
+            coolDownProvider('cerebras');
+          }
+        }
+      } catch (err) {
+        console.log(`[Cerebras Direct] Cerebras error:`, err.message);
+      }
     }
 
     // Try Alibaba DashScope direct
@@ -2468,10 +2650,44 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
     } catch {}
   }
 
+  const messages = [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }];
+  const cachedResponse = getLlmCache(mappedModel, messages);
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const response = await _chatCompletionInternal(query, overrideSystemPrompt, maxTokens, mappedModel);
+  if (response && !response.startsWith('Error:')) {
+    setLlmCache(mappedModel, messages, response);
+  }
+  return response;
+}
+
+async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTokens = 2048, mappedModel = 'google/gemini-2.0-flash-001') {
+  let systemPrompt = overrideSystemPrompt;
+  if (!systemPrompt) {
+    systemPrompt = 'You are Hermes, part of the Agent OS team. Be concise and helpful.';
+    const customPromptPath = `${SHARED}\\hermes_system_prompt.txt`;
+    if (existsSync(customPromptPath)) {
+      try {
+        systemPrompt = readFileSync(customPromptPath, 'utf-8');
+      } catch {}
+    }
+  }
+
+  // Inject Gary Pearce's UK Authority and SEO Tier Profile
+  const profileMdPath = `${SHARED}\\gary_pearce_authority_profile.md`;
+  if (existsSync(profileMdPath)) {
+    try {
+      const profileContent = readFileSync(profileMdPath, 'utf-8');
+      systemPrompt += `\n\n=== USER AUTHORITY PROFILE & SEO NETWORKS ===\n${profileContent}\n=== END PROFILE ===`;
+    } catch {}
+  }
+
   const modelFallbacks = [
+    mappedModel,
     'zhipu/glm-4-flash',
     'openrouter/free',
-    mappedModel,
     'google/gemma-2-9b-it:free'
   ];
 
@@ -2596,6 +2812,78 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
           console.log(`[BigModel] Zhipu failed: ${r.status} ${errText}`);
         }
       } catch (err) { console.log(`[BigModel] Zhipu error:`, err.message); }
+    }
+
+    // Try SambaNova direct
+    if (currentModel.startsWith('sambanova/') && SAMBANOVA_KEY) {
+      try {
+        const modelId = currentModel.replace(/^sambanova\//, '');
+        console.log(`[SambaNova Direct] Trying model ${modelId} with SambaNova API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const r = await fetch('https://api.sambanova.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${SAMBANOVA_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelId || 'Meta-Llama-3.1-70B-Instruct',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[SambaNova Direct] Success with SambaNova for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[SambaNova Direct] SambaNova failed: ${r.status} ${errText}`);
+        }
+      } catch (err) {
+        console.log(`[SambaNova Direct] SambaNova error:`, err.message);
+      }
+    }
+
+    // Try Cerebras direct
+    if (currentModel.startsWith('cerebras/') && CEREBRAS_KEY) {
+      try {
+        const modelId = currentModel.replace(/^cerebras\//, '');
+        console.log(`[Cerebras Direct] Trying model ${modelId} with Cerebras API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+        const r = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CEREBRAS_KEY}`
+          },
+          body: JSON.stringify({
+            model: modelId || 'llama3.1-70b',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Cerebras Direct] Success with Cerebras for ${currentModel}`);
+            return d.choices[0].message.content;
+          }
+        } else {
+          const errText = await r.text();
+          console.log(`[Cerebras Direct] Cerebras failed: ${r.status} ${errText}`);
+        }
+      } catch (err) {
+        console.log(`[Cerebras Direct] Cerebras error:`, err.message);
+      }
     }
 
     // Try Alibaba DashScope direct
@@ -3477,7 +3765,7 @@ app.post('/api/chat/evaluate-growth', async (req, res) => {
   if (!query) return res.status(400).json({ error: 'Query required' });
   try {
     const messages = [
-      { role: 'system', content: 'You are an elite product manager and AI engineer. Your task is to evaluate Julian Goldie\'s new video transcripts or descriptions to see if there is any new tool, workflow, or AI capability that can help our Agent OS tool grow. Analyze carefully. If there is a genuine growth opportunity (like a new N8N template, Lovable integration, Hyperframes avatar workflow, etc.), output a structured integration proposal. If there is no valuable technical integration or it is just basic advice, output NO OPPORTUNITY.' },
+      { role: 'system', content: 'You are an elite product manager and AI engineer. Your task is to evaluate new video transcripts, descriptions, or releases to discover: new LLM models, agentOS models, free AI agents, free video AI generators, free image makers, free agenting AI models, new free models, free avatar makers, free API models, or local AI models. Analyze carefully. If there is a genuine discovery or capability release, output a detailed, structured integration proposal including: Title, Discovered Technology, Growth Potential, Step-by-Step Installation/Setup steps, How it works, and how it should integrate into Agent OS to make it self-learning, self-upgrading, and self-aware. If there is no valuable technical integration or it is just generic commentary, output exactly NO OPPORTUNITY.' },
       { role: 'user', content: query }
     ];
     const analysis = await chatCompletionWithHistory(messages);
@@ -4712,6 +5000,26 @@ app.post('/api/crons', (req, res) => {
   res.json({ success: true });
 });
 
+app.post('/api/crons/run', (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ error: 'Job name required' });
+  const crons = readCrons();
+  const job = crons.find(j => j.name === name);
+  if (!job) return res.status(404).json({ error: 'Job not found' });
+  
+  console.log(`[Cron Manual Trigger] Forcing run for: ${name}`);
+  if (name === 'Julian Goldie Watcher') {
+    runJulianGoldieWatcher(true);
+  } else if (name === 'Model Catalog & Evolution Scanner') {
+    runModelScanner(true);
+  } else if (name === 'External Ingestion Engine') {
+    runExternalIngestion(true);
+  } else {
+    executeCronTask(job);
+  }
+  res.json({ success: true, message: `Forced execution of ${name}` });
+});
+
 // STATEFUL PLAYWRIGHT BROWSER
 let playwrightBrowser = null;
 let playwrightContext = null;
@@ -4823,6 +5131,36 @@ app.get('/api/evolution/status', (req, res) => {
       res.json({ content });
     } else {
       res.json({ content: "# System Evolution Update Brief\nNo evolution brief has been generated yet. The background scanner runs every 24 hours at 3 AM." });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/evolution/apply-upgrade', (req, res) => {
+  console.log('[Self Evolution] Running apply_self_evolution.py script...');
+  exec('python apply_self_evolution.py', (err, stdout, stderr) => {
+    if (err) {
+      console.error('[Self Evolution] Auto-evolution script failed:', err.message);
+      res.status(500).json({ error: err.message, stderr });
+    } else {
+      console.log('[Self Evolution] Auto-evolution upgrade completed successfully.');
+      res.json({ success: true, message: 'System auto-upgrade executed successfully.', stdout });
+    }
+  });
+});
+
+app.get('/api/evolution/latest-upgrade', (req, res) => {
+  const upgradePath = join(SHARED, 'latest_upgrade.json');
+  try {
+    if (existsSync(upgradePath)) {
+      const content = readFileSync(upgradePath, 'utf-8');
+      const data = JSON.parse(content);
+      // Delete the file so it only triggers the notification once
+      unlinkSync(upgradePath);
+      res.json({ upgrade: data });
+    } else {
+      res.json({ upgrade: null });
     }
   } catch (e) {
     res.status(500).json({ error: e.message });

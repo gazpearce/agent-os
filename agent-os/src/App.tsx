@@ -5252,6 +5252,7 @@ export default function App() {
                         Stateful persistent terminal console, native Claude Code and OpenClaw CLI integration, multi-model failover retry routing, and real-time SSE progress stream.
                       </p>
                     </div>
+                  </div>
                 </div>
               </>
             )}
@@ -5676,8 +5677,8 @@ export default function App() {
               </div>
 
               {/* Centered Scrollable Conversation */}
-              <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-6 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <div className="space-y-6" style={{ maxWidth: '1280px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
+              <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-3 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <div className="space-y-3" style={{ maxWidth: '1280px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
                   <AnimatePresence>
                     {chatMessages.length === 0 && !isCurrentLoading && (
                       <motion.div
@@ -5721,7 +5722,7 @@ export default function App() {
                             key={msg.id || i}
                             initial={{ opacity: 0, y: 12 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="bg-[#0b0b18]/70 border border-[#1f2347]/50 shadow-xl p-5 rounded-2xl space-y-4"
+                            className="bg-[#070712]/90 border border-[#1f2347]/30 shadow-md p-3.5 rounded-lg space-y-3"
                           >
                             <div className="flex gap-3 items-start">
                               <div
@@ -5749,7 +5750,7 @@ export default function App() {
                                     <span className="text-[9px] text-gray-500 font-mono">{msg.time}</span>
                                   </div>
                                 </div>
-                                <div className="text-[13.5px] text-[#cbd5e1] leading-relaxed">
+                                <div className="text-[11.5px] text-[#cbd5e1] leading-relaxed">
                                   <Markdown text={msg.msg} />
                                 </div>
                               </div>
@@ -5857,13 +5858,13 @@ export default function App() {
                             </div>
                           )}
                           <div 
-                            className={`max-w-[88%] rounded-2xl px-5 py-4 break-words backdrop-blur-md shadow-lg ${
+                            className={`max-w-[90%] rounded-lg px-3.5 py-2.5 text-[11.5px] leading-relaxed border border-white/[0.04] break-words backdrop-blur-md shadow-md ${
                               isUser
                                 ? "bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-tr-none border border-indigo-500/30 text-[#f1f5f9] shadow-[0_4px_24px_rgba(99,102,241,0.1)]"
                                 : isSystem
-                                ? "bg-yellow-500/5 border border-yellow-500/15 rounded-2xl text-[#cbd5e1]"
+                                ? "bg-yellow-500/5 border border-yellow-500/15 rounded-lg text-[#cbd5e1]"
                                 : msg.isError
-                                ? "bg-red-500/5 border border-red-500/15 rounded-2xl text-[#cbd5e1]"
+                                ? "bg-red-500/5 border border-red-500/15 rounded-lg text-[#cbd5e1]"
                                 : "rounded-tl-none text-[#e2e8f0]"
                             }`}
                             style={(!isUser && !isSystem && !msg.isError) ? {
@@ -5988,8 +5989,8 @@ export default function App() {
               <div className="p-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none flex justify-center w-full">
                 <div className="chat-container-centered">
                   <div className="w-full flex flex-col gap-2">
-                    <div className="w-full flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-2xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all">
-                      <span className="text-gray-500 font-mono pl-4 pr-1 select-none text-[15px]">&gt;</span>
+                    <div className="w-full flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-lg shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all">
+                      <span className="text-gray-500 font-mono pl-4 pr-1 select-none text-xs">&gt;</span>
                       <input
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
@@ -6003,7 +6004,7 @@ export default function App() {
                           }
                         }}
                         placeholder={isCurrentLoading ? "Type to chat with AGY / send feedback to active swarm..." : `Type your command or ask ${currentAgent.name}...`}
-                        className="w-full bg-transparent pl-2 pr-4 py-4 text-[14.5px] text-white placeholder-gray-500 focus:outline-none"
+                        className="w-full bg-transparent pl-2 pr-4 py-2.5 text-[12px] text-white placeholder-gray-500 focus:outline-none"
                       />
                     </div>
                     
@@ -8827,7 +8828,7 @@ export default function App() {
 
           {/* Messages list (only visible if not minimized) */}
           {!isChatMinimized && (
-            <div ref={floatingChatContainerRef} className="flex-grow overflow-y-auto p-4 space-y-3 select-text cursor-default custom-scrollbar bg-[#020207]/30">
+            <div ref={floatingChatContainerRef} className="flex-grow overflow-y-auto p-2.5 space-y-2 select-text cursor-default custom-scrollbar bg-[#020207]/30">
               {chatMessages.length === 0 ? (
                 <div className="text-gray-600 text-center py-10 text-xs font-mono">No messages in active session.</div>
               ) : (
@@ -8842,11 +8843,11 @@ export default function App() {
                       <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold mb-1 px-1">
                         {isUser ? 'You' : msg.agent}
                       </div>
-                      <div className={`p-3 rounded-2xl text-[11.5px] leading-relaxed border ${
+                      <div className={`p-2 px-2.5 rounded-lg text-[11px] leading-relaxed border ${
                         isUser 
-                          ? 'bg-indigo-600/10 border-indigo-500/25 text-indigo-100 rounded-tr-none shadow-md' 
+                          ? 'bg-indigo-600/10 border-indigo-500/25 text-indigo-100 rounded-tr-none shadow-sm' 
                           : isSystem 
-                            ? 'bg-yellow-500/5 border-yellow-500/15 text-yellow-200/90 rounded-tl-none font-mono text-[10px]' 
+                            ? 'bg-yellow-500/5 border-yellow-500/15 text-yellow-200/90 rounded-tl-none font-mono text-[9.5px]' 
                             : 'bg-white/[0.02] border-white/[0.06] text-gray-200 rounded-tl-none'
                       }`}>
                         {msg.msg}
