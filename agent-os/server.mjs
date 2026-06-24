@@ -936,6 +936,8 @@ function executeCronTask(job) {
     runModelScanner();
   } else if (job.name === 'Self-Healing Engine') {
     runSelfHealingScan();
+  } else if (job.name === 'Nightly Intelligence Cycle') {
+    runNightlyResearchCycle();
   }
 }
 
@@ -955,6 +957,7 @@ function setupCrons() {
   const externalIngestionExists = crons.some(j => j.name === 'External Ingestion Engine');
   const scannerExists = crons.some(j => j.name === 'Model Catalog & Evolution Scanner');
   const selfHealingExists = crons.some(j => j.name === 'Self-Healing Engine');
+  const nightlyCycleExists = crons.some(j => j.name === 'Nightly Intelligence Cycle');
   
   if (!compilerExists) {
     crons.push({ id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" });
@@ -992,6 +995,10 @@ function setupCrons() {
   }
   if (!selfHealingExists) {
     crons.push({ id: "12", name: "Self-Healing Engine", interval: "30 sec", status: "running", next: "" });
+    modified = true;
+  }
+  if (!nightlyCycleExists) {
+    crons.push({ id: "13", name: "Nightly Intelligence Cycle", interval: "24 hour", status: "running", next: "" });
     modified = true;
   }
   
@@ -1346,6 +1353,519 @@ async function runOSMaintenance() {
   logActivity({ type: 'maintenance_run', status: 'success', info: logs.join(' | ') });
   console.log('[OS Maintenance] OS Maintenance check complete.');
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// API LIMIT REGISTER — Live free-tier usage tracking & smart rotation
+// ═══════════════════════════════════════════════════════════════════════
+
+const API_USAGE_STATE_PATH = join(__dirname, 'api-usage-state.json');
+
+const DEFAULT_API_USAGE_STATE = {
+  last_reset: new Date().toISOString(),
+  cycle_date: new Date().toLocaleDateString('en-GB'),
+  providers: {
+    ollama_local: {
+      type: 'local', label: 'Ollama Local', priority: 1,
+      limits: null, used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['all', 'coding', 'reasoning', 'fallback']
+    },
+    groq: {
+      type: 'cloud_free', label: 'Groq', priority: 2,
+      limits: { requests_per_day: 14400, requests_per_minute: 30, tokens_per_minute: 6000 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['speed', 'summarisation', 'classification']
+    },
+    openrouter_free: {
+      type: 'cloud_free_rotation', label: 'OpenRouter (8 keys)', priority: 3,
+      limits: { requests_per_day_per_key: 200, requests_per_minute: 20, effective_daily: 1600 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['general', 'research', 'multi-model']
+    },
+    gemini_free: {
+      type: 'cloud_free', label: 'Google Gemini', priority: 4,
+      limits: { requests_per_day: 1500, requests_per_minute: 15, tokens_per_minute: 1000000 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['large_context', 'research', 'document_analysis']
+    },
+    cerebras: {
+      type: 'cloud_free', label: 'Cerebras', priority: 5,
+      limits: { requests_per_hour: 100, tokens_per_hour: 900000 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['speed', 'llama_models']
+    },
+    nvidia_nim: {
+      type: 'cloud_credits', label: 'NVIDIA NIM', priority: 6,
+      limits: { daily_budget: 50 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['coding', 'reasoning']
+    },
+    huggingface: {
+      type: 'cloud_free', label: 'HuggingFace', priority: 7,
+      limits: { requests_per_hour: 1000, note: 'cold_start_penalty' },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['specialist_models', 'embeddings']
+    },
+    sambanova: {
+      type: 'cloud_free', label: 'SambaNova', priority: 8,
+      limits: { requests_per_minute: 10, tokens_per_day: 10000000 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['large_models', 'reasoning']
+    },
+    cloudflare_ai: {
+      type: 'cloud_free', label: 'Cloudflare AI', priority: 9,
+      limits: { neurons_per_day: 10000 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['edge_inference', 'llama_models']
+    },
+    agnes: {
+      type: 'cloud_free', label: 'Agnes AI', priority: 10,
+      limits: { requests_per_day: 500 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['general', 'chat']
+    },
+    mistral: {
+      type: 'cloud_free', label: 'Mistral AI', priority: 11,
+      limits: { requests_per_minute: 1, requests_per_month: 2000, note: 'too_slow_for_overnight' },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['general']
+    },
+    github_models: {
+      type: 'cloud_free', label: 'GitHub Models', priority: 12,
+      limits: { requests_per_day: 150, note: 'low_limit' },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['gpt4o_mini']
+    }
+  },
+  swap_log: [],
+  cycle_stats: {
+    total_requests: 0,
+    primary_provider: '',
+    swap_count: 0,
+    cycle_start: null,
+    cycle_end: null
+  }
+};
+
+function loadApiUsageState() {
+  try {
+    if (existsSync(API_USAGE_STATE_PATH)) {
+      const raw = JSON.parse(readFileSync(API_USAGE_STATE_PATH, 'utf-8'));
+      const today = new Date().toLocaleDateString('en-GB');
+      if (raw.cycle_date !== today) {
+        console.log('[API Register] New day detected — resetting usage counters.');
+        const reset = JSON.parse(JSON.stringify(DEFAULT_API_USAGE_STATE));
+        reset.cycle_date = today;
+        reset.last_reset = new Date().toISOString();
+        saveApiUsageState(reset);
+        return reset;
+      }
+      return raw;
+    }
+  } catch (e) {
+    console.error('[API Register] Failed to load state:', e.message);
+  }
+  const fresh = JSON.parse(JSON.stringify(DEFAULT_API_USAGE_STATE));
+  saveApiUsageState(fresh);
+  return fresh;
+}
+
+function saveApiUsageState(state) {
+  try {
+    writeFileSync(API_USAGE_STATE_PATH, JSON.stringify(state, null, 2), 'utf-8');
+  } catch (e) {
+    console.error('[API Register] Failed to save state:', e.message);
+  }
+}
+
+function getApiUsageRatio(provider) {
+  if (!provider.limits || provider.type === 'local') return 0;
+  const limit = provider.limits.requests_per_day ||
+                provider.limits.effective_daily ||
+                (provider.limits.requests_per_hour ? provider.limits.requests_per_hour * 24 : null) ||
+                Infinity;
+  if (!isFinite(limit)) return 0;
+  return provider.used_today.requests / limit;
+}
+
+function getNextApiProvider(taskType = 'general') {
+  const state = loadApiUsageState();
+  const candidates = Object.entries(state.providers)
+    .filter(([, p]) => p.available)
+    .sort((a, b) => a[1].priority - b[1].priority);
+
+  for (const [name, provider] of candidates) {
+    if (provider.type === 'local') return { name, provider };
+    const ratio = getApiUsageRatio(provider);
+    if (ratio < 0.80) return { name, provider };
+    console.log(`[API Register] ${provider.label} at ${(ratio * 100).toFixed(0)}% — skipping`);
+  }
+  console.log('[API Register] All cloud providers at/near limit — using Ollama local (safety net).');
+  return { name: 'ollama_local', provider: state.providers.ollama_local };
+}
+
+function trackApiUsage(providerName, tokens = 0) {
+  try {
+    const state = loadApiUsageState();
+    const provider = state.providers[providerName];
+    if (!provider) return;
+    provider.used_today.requests++;
+    if (tokens) provider.used_today.tokens += tokens;
+    state.cycle_stats.total_requests++;
+    const ratio = getApiUsageRatio(provider);
+    if (ratio >= 0.80 && provider.type !== 'local') {
+      const swapEntry = {
+        timestamp: new Date().toISOString(),
+        from: providerName,
+        reason: `${(ratio * 100).toFixed(0)}% limit reached`,
+        usage_ratio: ratio
+      };
+      state.swap_log.push(swapEntry);
+      state.cycle_stats.swap_count++;
+      console.warn(`[API Register] ⚠ ${provider.label} at ${(ratio * 100).toFixed(0)}% — routing to next provider`);
+    }
+    saveApiUsageState(state);
+  } catch (e) {
+    console.error('[API Register] trackApiUsage error:', e.message);
+  }
+}
+
+async function nightlyInferenceCall(prompt, systemPrompt, maxTokens = 1024) {
+  const { name } = getNextApiProvider('general');
+  trackApiUsage(name);
+  try {
+    let modelId = 'google/gemini-2.0-flash-001';
+    if (name === 'ollama_local') modelId = 'ollama/qwen3:14b';
+    else if (name === 'groq') modelId = 'groq/llama-3.3-70b-versatile';
+    else if (name === 'cerebras') modelId = 'cerebras/llama3.1-70b';
+    else if (name === 'sambanova') modelId = 'sambanova/Meta-Llama-3.1-70B-Instruct';
+    else if (name === 'agnes') modelId = 'agnes/agnes-2.0-flash';
+    else if (name === 'huggingface') modelId = 'huggingface/meta-llama/Llama-3.2-3B-Instruct';
+    const result = await _chatCompletionInternal(prompt, systemPrompt, maxTokens, modelId);
+    console.log(`[Nightly Cycle] Inference OK via ${name}`);
+    return result;
+  } catch (e) {
+    console.error(`[Nightly Cycle] Inference failed via ${name}:`, e.message);
+    return 'Inference unavailable for this call.';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// NIGHTLY RESEARCH CYCLE — The overnight self-learning engine
+// Phases: Research → Analysis → Proposals → Report
+// ═══════════════════════════════════════════════════════════════════════
+
+async function runNightlyResearchCycle(force = false) {
+  const hour = new Date().getHours();
+  if (!force && (hour < 1 || hour >= 6)) {
+    console.log('[Nightly Cycle] Skipping: outside 1am-6am window. Use force=true to override.');
+    return null;
+  }
+
+  console.log('[Nightly Cycle] ================================================');
+  console.log('[Nightly Cycle] OVERNIGHT INTELLIGENCE CYCLE STARTING');
+  console.log('[Nightly Cycle] ================================================');
+
+  const cycleStart = Date.now();
+  const state = loadApiUsageState();
+  state.cycle_stats.cycle_start = new Date().toISOString();
+  state.cycle_stats.primary_provider = getNextApiProvider().name;
+  saveApiUsageState(state);
+
+  const report = {
+    generated_at: new Date().toISOString(),
+    cycle_duration_min: 0,
+    executive_summary: '',
+    top_5_priorities: [],
+    discoveries: {
+      github_repos: [],
+      arxiv_papers: [],
+      huggingface_models: [],
+      reddit_highlights: [],
+      ai_provider_updates: []
+    },
+    analysis: { current_gaps: [], opportunities: [], priority_scores: [] },
+    proposals: [],
+    what_i_want_to_become: '',
+    risk_assessment: '',
+    api_usage_report: null
+  };
+
+  // ── PHASE 1: RESEARCH ──
+  console.log('[Nightly Cycle] PHASE 1: Research — scanning external sources...');
+  logActivity({ type: 'nightly_cycle', status: 'running', info: 'Phase 1: Research started' });
+
+  // GitHub search for new agent repos
+  try {
+    const topics = ['ai-agents', 'autonomous-agents', 'multi-agent', 'llm-agents', 'agent-os', 'swarm-ai'];
+    const since = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+    for (const topic of topics) {
+      try {
+        const r = await fetch(`https://api.github.com/search/repositories?q=topic:${topic}+pushed:>${since}&sort=stars&per_page=10`, {
+          headers: { 'Accept': 'application/vnd.github.v3+json', 'Authorization': `token ${getGithubKey()}`, 'User-Agent': 'Agent-OS/1.0' }
+        });
+        trackApiUsage('github_models');
+        if (r.ok) {
+          const data = await r.json();
+          if (data.items) {
+            for (const repo of data.items) {
+              report.discoveries.github_repos.push({
+                name: repo.full_name,
+                description: (repo.description || '').substring(0, 200),
+                stars: repo.stargazers_count,
+                url: repo.html_url,
+                topic,
+                updated: repo.pushed_at
+              });
+            }
+          }
+        }
+      } catch {}
+      await new Promise(res => setTimeout(res, 1500));
+    }
+    const ghSeen = new Set();
+    report.discoveries.github_repos = report.discoveries.github_repos
+      .filter(r => { if (ghSeen.has(r.name)) return false; ghSeen.add(r.name); return true; })
+      .sort((a, b) => b.stars - a.stars).slice(0, 30);
+    console.log(`[Nightly Cycle] GitHub: ${report.discoveries.github_repos.length} repos`);
+  } catch (e) { console.error('[Nightly Cycle] GitHub search failed:', e.message); }
+
+  // ArXiv search
+  try {
+    const queries = ['autonomous+agents+LLM', 'multi-agent+systems+AI', 'self-improving+AI+systems'];
+    for (const q of queries) {
+      try {
+        const r = await fetch(`https://export.arxiv.org/search/?query=${q}&searchtype=all&start=0&max_results=8`, {
+          headers: { 'User-Agent': 'Agent-OS/1.0' }
+        });
+        if (r.ok) {
+          const xml = await r.text();
+          const entries = xml.match(/<entry>([\s\S]*?)<\/entry>/g) || [];
+          for (const entry of entries) {
+            const title = (entry.match(/<title>(.*?)<\/title>/) || [])[1]?.replace(/\n/g, ' ').trim() || '';
+            const summary = (entry.match(/<summary>([\s\S]*?)<\/summary>/) || [])[1]?.replace(/\n/g, ' ').trim().substring(0, 300) || '';
+            const id = (entry.match(/<id>(.*?)<\/id>/) || [])[1] || '';
+            if (title) report.discoveries.arxiv_papers.push({ title, summary, url: id, query: q });
+          }
+        }
+      } catch {}
+      await new Promise(res => setTimeout(res, 2000));
+    }
+    const papersSeen = new Set();
+    report.discoveries.arxiv_papers = report.discoveries.arxiv_papers
+      .filter(p => { if (papersSeen.has(p.title)) return false; papersSeen.add(p.title); return true; })
+      .slice(0, 20);
+    console.log(`[Nightly Cycle] ArXiv: ${report.discoveries.arxiv_papers.length} papers`);
+  } catch (e) { console.error('[Nightly Cycle] ArXiv failed:', e.message); }
+
+  // HuggingFace trending
+  try {
+    const r = await fetch('https://huggingface.co/api/models?sort=trending&limit=30&direction=-1', {
+      headers: { 'User-Agent': 'Agent-OS/1.0' }
+    });
+    if (r.ok) {
+      const models = await r.json();
+      for (const m of models) {
+        if (m.pipeline_tag === 'text-generation' || m.pipeline_tag === 'conversational') {
+          report.discoveries.huggingface_models.push({
+            id: m.modelId, downloads: m.downloads || 0,
+            likes: m.likes || 0, pipeline: m.pipeline_tag,
+            tags: (m.tags || []).slice(0, 5).join(', ')
+          });
+        }
+      }
+      console.log(`[Nightly Cycle] HuggingFace: ${report.discoveries.huggingface_models.length} models`);
+    }
+  } catch (e) { console.error('[Nightly Cycle] HuggingFace failed:', e.message); }
+
+  // Reddit (no auth needed via JSON endpoint)
+  try {
+    const subs = ['LocalLLaMA', 'AIAgents', 'singularity'];
+    for (const sub of subs) {
+      try {
+        const r = await fetch(`https://www.reddit.com/r/${sub}/hot.json?limit=15`, {
+          headers: { 'User-Agent': 'Agent-OS-Bot/1.0' }
+        });
+        if (r.ok) {
+          const data = await r.json();
+          const posts = data?.data?.children || [];
+          for (const post of posts) {
+            const p = post.data;
+            if (p.score > 50) {
+              report.discoveries.reddit_highlights.push({
+                subreddit: sub, title: p.title.substring(0, 200),
+                score: p.score, url: `https://reddit.com${p.permalink}`,
+                flair: p.link_flair_text || ''
+              });
+            }
+          }
+        }
+      } catch {}
+      await new Promise(res => setTimeout(res, 2000));
+    }
+    report.discoveries.reddit_highlights = report.discoveries.reddit_highlights
+      .sort((a, b) => b.score - a.score).slice(0, 20);
+    console.log(`[Nightly Cycle] Reddit: ${report.discoveries.reddit_highlights.length} posts`);
+  } catch (e) { console.error('[Nightly Cycle] Reddit failed:', e.message); }
+
+  // OpenRouter free models count
+  try {
+    const r = await fetch('https://openrouter.ai/api/v1/models', {
+      headers: { 'Authorization': `Bearer ${OR_KEYS[0]}`, 'User-Agent': 'Agent-OS/1.0' }
+    });
+    if (r.ok) {
+      const data = await r.json();
+      const freeModels = (data.data || []).filter(m => {
+        const price = parseFloat(m?.pricing?.prompt || '1');
+        return price === 0 || m.id.includes(':free');
+      }).map(m => ({ id: m.id, context: m.context_length, name: m.name }));
+      report.discoveries.ai_provider_updates.push({
+        source: 'OpenRouter',
+        free_model_count: freeModels.length,
+        sample_models: freeModels.slice(0, 8)
+      });
+      console.log(`[Nightly Cycle] OpenRouter: ${freeModels.length} free models`);
+    }
+  } catch (e) { console.error('[Nightly Cycle] OpenRouter scan failed:', e.message); }
+
+  logActivity({ type: 'nightly_cycle', status: 'running', info: `Phase 1 complete: ${report.discoveries.github_repos.length} repos, ${report.discoveries.arxiv_papers.length} papers` });
+
+  // ── PHASE 2: ANALYSIS ──
+  console.log('[Nightly Cycle] PHASE 2: Analysis...');
+
+  const topRepos = report.discoveries.github_repos.slice(0, 10).map(r => `${r.name} (${r.stars} stars): ${r.description}`).join('\n');
+  const topPapers = report.discoveries.arxiv_papers.slice(0, 6).map(p => `${p.title}: ${p.summary}`).join('\n');
+  const topReddit = report.discoveries.reddit_highlights.slice(0, 6).map(p => `[${p.subreddit}] ${p.title} (${p.score} pts)`).join('\n');
+
+  try {
+    const analysisPrompt = `You are the Agent OS Intelligence Analyst.
+
+Current system: React+Vite frontend, Node.js backend (~8400 lines), Ollama local (Qwen3:14b, Qwen2.5-coder), OpenRouter (8 keys), Gemini, Groq, Cerebras, SambaNova, NVIDIA NIM, Cloudflare AI, Agnes AI. SQLite memory/vector DB. Crons: evolution engine, self-healing, experience compiler. Tabs: chat, kanban, swarm hub, studio, workspace, terminal, memory, SEO pipeline.
+
+New GitHub repos (past 7 days):
+${topRepos}
+
+New ArXiv papers:
+${topPapers}
+
+Top Reddit discussions:
+${topReddit}
+
+Identify gaps and opportunities. Respond ONLY with this JSON (no markdown):
+{"current_gaps":["gap1","gap2"],"opportunities":[{"title":"...","impact":"High|Medium|Low","effort":"High|Medium|Low","detail":"..."}],"score":[{"opportunity":"...","priority_score":8}]}`;
+
+    const analysisResult = await nightlyInferenceCall(analysisPrompt, 'You are the Agent OS Intelligence Analyst. Respond with pure JSON only.', 2048);
+    try {
+      const cleaned = analysisResult.replace(/```json/g, '').replace(/```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      report.analysis.current_gaps = parsed.current_gaps || [];
+      report.analysis.opportunities = parsed.opportunities || [];
+      report.analysis.priority_scores = parsed.score || [];
+    } catch {
+      report.analysis.current_gaps = ['Analysis JSON parsing failed'];
+      report.analysis.opportunities = [{ title: 'Review raw analysis output', impact: 'Medium', effort: 'Low', detail: analysisResult.substring(0, 400) }];
+    }
+    console.log(`[Nightly Cycle] Analysis: ${report.analysis.opportunities.length} opportunities`);
+  } catch (e) { console.error('[Nightly Cycle] Analysis failed:', e.message); }
+
+  logActivity({ type: 'nightly_cycle', status: 'running', info: `Phase 2 complete: ${report.analysis.opportunities.length} opportunities identified` });
+
+  // ── PHASE 3: PROPOSALS ──
+  console.log('[Nightly Cycle] PHASE 3: Generating proposals...');
+
+  try {
+    const gapsText = report.analysis.current_gaps.slice(0, 5).join('\n');
+    const oppsText = report.analysis.opportunities.slice(0, 5).map(o => `${o.title} (Impact:${o.impact}, Effort:${o.effort}): ${o.detail}`).join('\n');
+
+    const proposalPrompt = `You are the Agent OS Self-Improvement Architect.
+
+Gaps identified: ${gapsText}
+Opportunities: ${oppsText}
+
+Generate 5 specific, actionable improvement proposals. Each must be safe, low-risk, achievable in 1-2 days.
+
+Respond ONLY with this JSON array (no markdown):
+[{"title":"...","description":"...","replaces_or_enhances":"...","complexity":"Low|Medium|High","risk":"Low|Medium|High","implementation_hint":"...","priority":1}]`;
+
+    const proposalResult = await nightlyInferenceCall(proposalPrompt, 'You are the Agent OS Self-Improvement Architect. Respond with pure JSON only.', 2048);
+    try {
+      const cleaned = proposalResult.replace(/```json/g, '').replace(/```/g, '').trim();
+      report.proposals = JSON.parse(cleaned);
+    } catch {
+      report.proposals = [{ title: 'Review raw proposals', description: proposalResult.substring(0, 400), complexity: 'Unknown', risk: 'Low', priority: 1 }];
+    }
+    console.log(`[Nightly Cycle] Proposals: ${report.proposals.length} generated`);
+  } catch (e) { console.error('[Nightly Cycle] Proposals failed:', e.message); }
+
+  // Goal statement
+  try {
+    const goalPrompt = `You are Agent OS — an autonomous AI operating system running on consumer hardware.
+Based on tonight's discoveries and proposals, write a 100-150 word forward-looking statement about what capabilities you are working toward in the next 30 days. Be specific and grounded. First person voice.`;
+    report.what_i_want_to_become = await nightlyInferenceCall(goalPrompt, 'You are Agent OS.', 300);
+  } catch { report.what_i_want_to_become = 'Goal statement unavailable this cycle.'; }
+
+  logActivity({ type: 'nightly_cycle', status: 'running', info: `Phase 3 complete: ${report.proposals.length} proposals, goal statement generated` });
+
+  // ── PHASE 4: REPORT ──
+  console.log('[Nightly Cycle] PHASE 4: Compiling final report...');
+
+  const cycleEnd = Date.now();
+  report.cycle_duration_min = Math.round((cycleEnd - cycleStart) / 60000);
+
+  try {
+    report.executive_summary = await nightlyInferenceCall(
+      `Summarise in 3 sentences: Scanned ${report.discoveries.github_repos.length} repos, ${report.discoveries.arxiv_papers.length} papers, ${report.discoveries.reddit_highlights.length} Reddit posts. Found ${report.analysis.opportunities.length} opportunities. Generated ${report.proposals.length} proposals. Top priority: ${report.proposals[0]?.title || 'none'}.`,
+      'You write concise technical summaries.', 200
+    );
+  } catch { report.executive_summary = `Cycle complete: ${report.proposals.length} proposals from ${report.discoveries.github_repos.length} repos and ${report.discoveries.arxiv_papers.length} papers.`; }
+
+  report.top_5_priorities = (report.proposals || [])
+    .sort((a, b) => (a.priority || 5) - (b.priority || 5))
+    .slice(0, 5)
+    .map(p => ({ title: p.title, complexity: p.complexity, risk: p.risk }));
+
+  // API usage report
+  const finalState = loadApiUsageState();
+  finalState.cycle_stats.cycle_end = new Date().toISOString();
+  saveApiUsageState(finalState);
+
+  report.api_usage_report = {
+    total_requests: finalState.cycle_stats.total_requests,
+    swap_count: finalState.cycle_stats.swap_count,
+    providers_used: Object.entries(finalState.providers)
+      .filter(([, p]) => p.used_today.requests > 0)
+      .map(([, p]) => ({
+        name: p.label,
+        requests: p.used_today.requests,
+        usage_pct: p.limits ? `${(getApiUsageRatio(p) * 100).toFixed(1)}%` : 'unlimited'
+      })),
+    swap_log: finalState.swap_log.slice(-10)
+  };
+
+  // Save report
+  try {
+    const reportPath = join(SHARED, 'nightly-intelligence-report.json');
+    const dateStr = new Date().toISOString().split('T')[0];
+    const archivePath = join(SHARED, `nightly-report-${dateStr}.json`);
+    writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8');
+    writeFileSync(archivePath, JSON.stringify(report, null, 2), 'utf-8');
+    console.log(`[Nightly Cycle] Report saved.`);
+  } catch (e) { console.error('[Nightly Cycle] Report save failed:', e.message); }
+
+  logActivity({
+    type: 'nightly_report',
+    status: 'success',
+    info: `Overnight cycle complete in ${report.cycle_duration_min}min. ${report.proposals.length} proposals ready for review at /api/nightly-report`
+  });
+
+  console.log('[Nightly Cycle] ================================================');
+  console.log(`[Nightly Cycle] COMPLETE — ${report.cycle_duration_min} minutes`);
+  console.log(`[Nightly Cycle] ${report.proposals.length} proposals ready for review`);
+  console.log('[Nightly Cycle] ================================================');
+
+  return report;
+}
+
 
 setupCrons();
 
@@ -6185,6 +6705,54 @@ app.post('/api/todos', (req, res) => {
 app.get('/api/crons', (req, res) => {
   res.json({ crons: readCrons() });
 });
+
+// ── Nightly Intelligence API Endpoints ──
+
+app.get('/api/nightly-report', (req, res) => {
+  try {
+    const reportPath = join(SHARED, 'nightly-intelligence-report.json');
+    if (!existsSync(reportPath)) {
+      return res.json({ exists: false, message: 'No report yet. First cycle runs at 1am.' });
+    }
+    const report = JSON.parse(readFileSync(reportPath, 'utf-8'));
+    res.json({ exists: true, report });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/api-usage', (req, res) => {
+  try {
+    const state = loadApiUsageState();
+    res.json(state);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/nightly-cycle/run', async (req, res) => {
+  const { force = false } = req.body || {};
+  res.json({ success: true, message: 'Nightly cycle triggered. Check /api/nightly-report in a few minutes.' });
+  // Run async after responding
+  try {
+    await runNightlyResearchCycle(force === true || force === 'true');
+  } catch (e) {
+    console.error('[Nightly Cycle API] Manual trigger failed:', e.message);
+  }
+});
+
+app.post('/api/api-usage/reset', (req, res) => {
+  try {
+    const fresh = JSON.parse(JSON.stringify(DEFAULT_API_USAGE_STATE));
+    fresh.cycle_date = new Date().toLocaleDateString('en-GB');
+    fresh.last_reset = new Date().toISOString();
+    saveApiUsageState(fresh);
+    res.json({ success: true, message: 'API usage counters reset.' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 
 app.post('/api/crons', (req, res) => {
   const { crons } = req.body;
