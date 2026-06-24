@@ -882,6 +882,8 @@ function executeCronTask(job) {
     runExternalIngestion();
   } else if (job.name === 'Model Catalog & Evolution Scanner') {
     runModelScanner();
+  } else if (job.name === 'Self-Healing Engine') {
+    runSelfHealingScan();
   }
 }
 
@@ -900,6 +902,7 @@ function setupCrons() {
   const n8nIngestionExists = crons.some(j => j.name === 'N8N Workflow Ingestion');
   const externalIngestionExists = crons.some(j => j.name === 'External Ingestion Engine');
   const scannerExists = crons.some(j => j.name === 'Model Catalog & Evolution Scanner');
+  const selfHealingExists = crons.some(j => j.name === 'Self-Healing Engine');
   
   if (!compilerExists) {
     crons.push({ id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" });
@@ -927,6 +930,10 @@ function setupCrons() {
   }
   if (!scannerExists) {
     crons.push({ id: "11", name: "Model Catalog & Evolution Scanner", interval: "24 hour", status: "running", next: "" });
+    modified = true;
+  }
+  if (!selfHealingExists) {
+    crons.push({ id: "12", name: "Self-Healing Engine", interval: "30 sec", status: "running", next: "" });
     modified = true;
   }
   
@@ -996,6 +1003,136 @@ function runModelScanner(force = false) {
       if (stderr) console.warn('[Scanner] Warnings:\n', stderr);
     }
   });
+}
+
+async function healError(errorId, source, errorMessage, errorStack) {
+  console.log(`[Self-Healing] Starting auto-repair loop for error ID ${errorId}`);
+  const fileRegex = /(?:file:\/\/\/)?([a-zA-Z]:[\\/][^:\n]+):(\d+):(\d+)/;
+  const match = errorStack.match(fileRegex) || errorMessage.match(fileRegex);
+  
+  let targetFilePath = '';
+  let lineNum = 0;
+  if (match) {
+    targetFilePath = match[1].replace(/%20/g, ' ');
+    lineNum = parseInt(match[2]);
+    console.log(`[Self-Healing] Detected target file: ${targetFilePath} at line ${lineNum}`);
+  }
+
+  let fileContent = '';
+  if (targetFilePath && existsSync(targetFilePath)) {
+    try {
+      fileContent = readFileSync(targetFilePath, 'utf-8');
+    } catch (readErr) {
+      console.error('[Self-Healing] Failed to read target file:', readErr.message);
+    }
+  }
+
+  const prompt = `You are the Agent OS Autonomic Self-Healing System.
+We detected a runtime or compile error in our system.
+
+ERROR DETAILS:
+- Source/Context: ${source}
+- Message: ${errorMessage}
+- Stack Trace: ${errorStack}
+${targetFilePath ? `- Target File: ${targetFilePath}\n- Faulty Line: ${lineNum}` : ''}
+
+${fileContent ? `Here is the source code context around the failure:\n\`\`\`javascript\n${fileContent.split('\n').slice(Math.max(0, lineNum - 100), Math.min(fileContent.split('\n').length, lineNum + 100)).join('\n')}\n\`\`\`` : ''}
+
+You must write a repair patch. Respond ONLY with a valid JSON object in this format (no markdown blocks, no prefix, just pure raw JSON):
+{
+  "explanation": "Brief explanation of the bug and how you are fixing it",
+  "filePath": "${targetFilePath ? targetFilePath.replace(/\\/g, '\\\\') : 'the absolute path to the file to edit'}",
+  "targetContent": "the exact string/code snippet in the file that causes the error",
+  "replacementContent": "the complete replacement string/code snippet to swap in"
+}`;
+
+  try {
+    const response = await fetchGeminiWithRotation('gemini-2.0-flash:generateContent', {
+      contents: [{ parts: [{ text: prompt }] }]
+    });
+    if (!response || response.status !== 200) {
+      throw new Error(`AI model returned status ${response ? response.status : 'offline'}`);
+    }
+    const d = await response.json();
+    let text = d.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+    const repairPlan = JSON.parse(text);
+
+    const filePath = repairPlan.filePath;
+    const targetContent = repairPlan.targetContent;
+    const replacementContent = repairPlan.replacementContent;
+
+    if (!filePath || !existsSync(filePath)) {
+      throw new Error(`Invalid filePath: ${filePath}`);
+    }
+    if (!targetContent || !replacementContent) {
+      throw new Error('Missing targetContent or replacementContent in repair plan');
+    }
+
+    console.log(`[Self-Healing] Applying patch to: ${filePath}`);
+    const originalContent = readFileSync(filePath, 'utf-8');
+    if (!originalContent.includes(targetContent)) {
+      throw new Error(`Target content not found in file: ${filePath}`);
+    }
+
+    const backupPath = `${filePath}.bak`;
+    writeFileSync(backupPath, originalContent, 'utf-8');
+
+    const patchedContent = originalContent.replace(targetContent, replacementContent);
+    writeFileSync(filePath, patchedContent, 'utf-8');
+
+    console.log('[Self-Healing] Verifying patched build...');
+    const buildRes = await execAsync('npm run build', { timeout: 45000 });
+    
+    if (buildRes.err) {
+      console.error('[Self-Healing] Patch verification failed! Build output:\n', buildRes.err.message);
+      writeFileSync(filePath, originalContent, 'utf-8');
+      aionuiDb.prepare("UPDATE system_errors SET resolved = 3, error_message = ? WHERE id = ?").run(
+        `Healing failed (Build error: ${buildRes.err.message.substring(0, 150)})`, errorId
+      );
+      console.log('[Self-Healing] Successfully rolled back patched file to original state.');
+      speakNotification('Agent OS self healing failed. Changes rolled back.');
+    } else {
+      console.log('[Self-Healing] Build verified successfully! Committing changes to Git...');
+      await execAsync(`git add "${filePath}"`, { timeout: 10000 });
+      await execAsync(`git commit -m "auto-healing: repair exception in ${filePath.split(/[\\/]/).pop()}"`, { timeout: 10000 });
+      await execAsync('git push origin main', { timeout: 20000 });
+      
+      aionuiDb.prepare("UPDATE system_errors SET resolved = 1 WHERE id = ?").run(errorId);
+      console.log(`[Self-Healing] Error ID ${errorId} resolved and pushed to GitHub!`);
+      speakNotification('Agent OS has successfully self healed runtime exception.');
+    }
+
+  } catch (err) {
+    console.error(`[Self-Healing] Self-repair failed for error ID ${errorId}:`, err.message);
+    aionuiDb.prepare("UPDATE system_errors SET resolved = 3, error_message = ? WHERE id = ?").run(
+      `Healing failed (AI/System error: ${err.message.substring(0, 150)})`, errorId
+    );
+  }
+}
+
+async function runSelfHealingScan() {
+  const db = aionuiDb;
+  if (!db) return;
+  try {
+    const unresolved = db.prepare(`
+      SELECT id, source, error_message, stack 
+      FROM system_errors 
+      WHERE resolved = 0 
+        AND error_message NOT LIKE 'Self-check:%' 
+        AND error_message NOT LIKE 'Healing failed%'
+      ORDER BY id ASC 
+      LIMIT 1
+    `).get();
+    
+    if (unresolved) {
+      console.log(`[Self-Healing] Watcher detected unresolved error ID ${unresolved.id} from: ${unresolved.source}`);
+      db.prepare("UPDATE system_errors SET resolved = 2 WHERE id = ?").run(unresolved.id);
+      healError(unresolved.id, unresolved.source, unresolved.error_message, unresolved.stack);
+    }
+  } catch (e) {
+    console.error('[Self-Healing] Watcher scan failed:', e.message);
+  }
 }
 
 async function runN8NWorkflowIngestion() {
