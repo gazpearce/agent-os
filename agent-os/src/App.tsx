@@ -1387,6 +1387,8 @@ function TodoPanel() {
 function SystemEvolutionPanel() {
   const [brief, setBrief] = useState("");
   const [loading, setLoading] = useState(false);
+  const [evolving, setEvolving] = useState(false);
+  const [evolveStatus, setEvolveStatus] = useState("");
 
   const fetchBrief = async () => {
     setLoading(true);
@@ -1400,6 +1402,28 @@ function SystemEvolutionPanel() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleApplyUpgrade = async () => {
+    if (!confirm("Are you sure you want to trigger the Auto-Evolution Upgrade? This will programmatically update codebase components, increment version number, and push to Git.")) return;
+    setEvolving(true);
+    setEvolveStatus("Executing evolution scanner scripts...");
+    try {
+      const res = await fetch("/api/evolution/apply-upgrade", { method: "POST" });
+      if (res.ok) {
+        setEvolveStatus("Evolved successfully! Page will refresh.");
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        const data = await res.json();
+        setEvolveStatus(`Failed: ${data.error || "Unknown error"}`);
+      }
+    } catch (e: any) {
+      setEvolveStatus(`Error: ${e.message}`);
+    } finally {
+      setEvolving(false);
     }
   };
 
@@ -1425,8 +1449,24 @@ function SystemEvolutionPanel() {
         {brief || "No update brief available."}
       </div>
 
+      {brief && brief.includes("🌟 Newly Discovered Models") && (
+        <div className="pt-1.5 flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleApplyUpgrade}
+            disabled={evolving}
+            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 font-sans"
+          >
+            🧬 {evolving ? "Evolving System..." : "Apply Auto-Upgrade & Evolve"}
+          </button>
+          {evolveStatus && (
+            <div className="text-[9px] font-mono text-purple-400 text-center animate-pulse">{evolveStatus}</div>
+          )}
+        </div>
+      )}
+
       <div className="bg-indigo-500/5 border border-indigo-500/15 rounded-xl p-3 text-[10px] leading-relaxed text-indigo-200">
-        📢 <strong>Antigravity Sync Protocol:</strong> You can copy recommendations above and instruct Antigravity in the chat window: 
+        📢 <strong>Antigravity Sync Protocol:</strong> You can copy recommendations above and instruct Antigravity in the chat window:
         <span className="block mt-1 font-mono text-[9px] bg-black/30 p-1.5 rounded border border-indigo-500/20 select-all">
           "Run self-evolution updates from the 3am scanner"
         </span>
@@ -4104,7 +4144,7 @@ export default function App() {
   // Terminal state
   const [terminalInput, setTerminalInput] = useState("");
   const [terminalLogs, setTerminalLogs] = useState<{ type: 'input' | 'output' | 'error'; text: string }[]>([
-    { type: 'output', text: "Agent OS [Version 2.5.0]\n(c) 2026 Nous Research & Antigravity. All rights reserved.\nType 'help' for standard options." }
+    { type: 'output', text: "Agent OS [Version 2.5.1]\n(c) 2026 Nous Research & Antigravity. All rights reserved.\nType 'help' for standard options." }
   ]);
   const terminalBottomRef = useRef<HTMLDivElement>(null);
   const [isFloatingTerminalOpen, setIsFloatingTerminalOpen] = useState(false);
@@ -4492,6 +4532,26 @@ export default function App() {
     fetchTeams();
     fetchMailbox();
     fetchWorkspaceFiles();
+
+    // Check for self-evolution auto-upgrades
+    const checkEvolutionUpgrade = async () => {
+      try {
+        const res = await fetch("/api/evolution/latest-upgrade");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.upgrade) {
+            // Add a system notification toast!
+            const upgradeMsg = `🚀 System evolved successfully to v${data.upgrade.version}! New models: ${data.upgrade.models_count}. Details: ${data.upgrade.summary}`;
+            setNotifications(prev => [upgradeMsg, ...prev]);
+            setIsNotificationOpen(true);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    checkEvolutionUpgrade();
+
     const interval = setInterval(() => {
       fetchStatus();
       fetchDbTasks();
@@ -5125,7 +5185,7 @@ export default function App() {
             <h1 className="text-sm font-bold tracking-wider uppercase text-white flex items-center gap-1.5">
               Agent OS <span className="text-[10px] text-indigo-400 font-mono font-normal">Mission Control</span>
             </h1>
-            <div className="text-[9px] font-mono text-gray-500">v2.5.0 • Stateful CLI & Swarms</div>
+            <div className="text-[9px] font-mono text-gray-500">v2.5.1 • Stateful CLI & Swarms</div>
           </div>
         </div>
 
@@ -5158,7 +5218,7 @@ export default function App() {
               className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded-full px-2.5 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              v2.5.0
+              v2.5.1
               <ChevronDown size={10} className={`opacity-80 transition-transform ${showVersionHistory ? "rotate-180" : ""}`} />
             </button>
 
@@ -5176,59 +5236,22 @@ export default function App() {
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                     <div className="border-l-2 border-indigo-500 pl-2 py-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.5.0 (Active)</span>
+                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.5.1 (Active)</span>
                         <span className="text-[8px] text-gray-500">Active</span>
+                      </div>
+                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
+                        Auto-Evolution: Scanned and integrated models: Cohere: North Mini Code (free) (`cohere/north-mini-code:free`), NVIDIA: Nemotron 3.5 Content Safety (free) (`nvidia/nemotron-3.5-content-safety:free`), NVIDIA: Nemotron 3 Ultra (free) (`nvidia/nemotron-3-ultra-550b-a55b:free`).
+                      </p>
+                    </div>
+                    <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.5.0</span>
+                        <span className="text-[8px] text-gray-500">Previous</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
                         Stateful persistent terminal console, native Claude Code and OpenClaw CLI integration, multi-model failover retry routing, and real-time SSE progress stream.
                       </p>
                     </div>
-                    <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.4.0</span>
-                        <span className="text-[8px] text-gray-500">Build 10</span>
-                      </div>
-                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Vault DB Sync, SQLite database queries for Kanban, live telemetry logs, and Obsidian markdown editor.
-                      </p>
-                    </div>
-                    <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.3.0</span>
-                        <span className="text-[8px] text-gray-500">Build 9</span>
-                      </div>
-                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Redesigned floating panel interface with gaps, optimized layouts, and collapsible side rails.
-                      </p>
-                    </div>
-                    <div className="border-l-2 border-pink-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-pink-300 font-mono">v2.2.0</span>
-                        <span className="text-[8px] text-gray-500">Build 8</span>
-                      </div>
-                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Hermes configuration manager & automatic YAML hot-reloader for system skills.
-                      </p>
-                    </div>
-                    <div className="border-l-2 border-blue-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-blue-300 font-mono">v2.1.0</span>
-                        <span className="text-[8px] text-gray-500">Build 5</span>
-                      </div>
-                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Telemetry logging, multi-agent workspace synchronization, and system status checkers.
-                      </p>
-                    </div>
-                    <div className="border-l-2 border-gray-600 pl-2 py-0.5 opacity-40 hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-gray-400 font-mono">v1.0.0</span>
-                        <span className="text-[8px] text-gray-500">Legacy</span>
-                      </div>
-                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Original monolithic layout.
-                      </p>
-                    </div>
-                  </div>
                 </div>
               </>
             )}
