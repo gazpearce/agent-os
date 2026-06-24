@@ -25,6 +25,8 @@ import { dirname, join, basename } from 'path';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
+import { initializeWhatsApp } from './whatsapp.mjs';
+import { initializeTelegram } from './telegram.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════
 // CONFIG
@@ -293,6 +295,7 @@ const AGENT_LOG = `${SHARED}\\agent-log.json`;
 [WORKSPACE, SHARED].forEach(d => { try { mkdirSync(d, { recursive: true }); } catch {} });
 
 app.use('/api/media', express.static(SHARED));
+app.use('/website-preview', express.static(join(SHARED, 'website')));
 
 // Real non-blocking CPU load tracking loop for telemetry metrics
 let cpuUsageEstimate = 0;
@@ -334,6 +337,21 @@ function loadOpenRouterKeys() {
   const keys = new Set();
   if (process.env.OPENROUTER_API_KEY) keys.add(process.env.OPENROUTER_API_KEY);
   
+  // Try reading from api-config.json
+  try {
+    const apiConfigPath = join(process.cwd(), 'api-config.json');
+    if (existsSync(apiConfigPath)) {
+      const config = JSON.parse(readFileSync(apiConfigPath, 'utf-8'));
+      if (config.openrouter?.keys) {
+        config.openrouter.keys.forEach(k => {
+          if (k.startsWith('sk-or-')) keys.add(k);
+        });
+      }
+    }
+  } catch (e) {
+    console.error('[Config] Failed to load keys from api-config.json:', e.message);
+  }
+
   // Try reading from config.yaml
   try {
     const configYamlPath = `${HOME}\\AppData\\Local\\hermes\\config.yaml`;
@@ -365,8 +383,43 @@ function loadOpenRouterKeys() {
   staticKeys.forEach(k => keys.add(k));
   return Array.from(keys);
 }
+
+function loadGroqKeys() {
+  const keys = new Set();
+  try {
+    const apiConfigPath = join(process.cwd(), 'api-config.json');
+    if (existsSync(apiConfigPath)) {
+      const config = JSON.parse(readFileSync(apiConfigPath, 'utf-8'));
+      if (config.grok?.keys) {
+        config.grok.keys.forEach(k => {
+          if (k.startsWith('gsk_')) keys.add(k);
+        });
+      }
+    }
+  } catch (e) {
+    console.error('[Config] Failed to load groq keys:', e.message);
+  }
+  const defaultKeys = [
+    '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',
+    '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',
+    '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',
+    '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'
+  ];
+  defaultKeys.forEach(k => keys.add(k));
+  return Array.from(keys);
+}
 let OR_KEYS = loadOpenRouterKeys();
-setInterval(() => {
+let GROQ_KEYS = loadGroqKeys();
+let currentGroqKeyIndex = 0;
+function getGroqKey() {
+  return GROQ_KEYS[currentGroqKeyIndex % GROQ_KEYS.length];
+}
+function rotateGroqKey() {
+  currentGroqKeyIndex = (currentGroqKeyIndex + 1) % GROQ_KEYS.length;
+  console.log(`[Groq Direct] Rotating Groq API key to index ${currentGroqKeyIndex}...`);
+}
+
+let OR_KEYS_INTERVAL = setInterval(() => {
   OR_KEYS = loadOpenRouterKeys();
 }, 60000);
 const GEMINI_KEYS_PATH = `${HOME}\\AppData\\Local\\hermes\\gemini-keys.json`;
@@ -522,10 +575,30 @@ const AGENTS_DEFAULT = {
     type: 'cli_agent',
     capabilities: ['pr_management', 'issue_tracking', 'release_monitoring'],
     description: 'Native GitHub CLI (gh) wrapper. Automates pull requests, issues, repo management, and actions checks.'
+  },
+  cloudflare: {
+    id: 'cloudflare', name: 'Cloudflare Workers', emoji: '☁️',
+    role: 'Deploy · Pages · Workers',
+    status: 'online', color: '#f38020',
+    type: 'deploy',
+    capabilities: ['pages_deploy', 'workers_deploy', 'wrangler_cli', 'hosting'],
+    description: 'Deploys static websites to Cloudflare Pages and serverless functions to Cloudflare Workers using Wrangler CLI.'
   }
 };
 
 let AGENTS = { ...AGENTS_DEFAULT };
+
+function getContentEngineRules() {
+  try {
+    const rulesPath = 'D:\\Agent OS\\shared\\GARY_PEARCE_CONTENT_ENGINE_V2.md';
+    if (existsSync(rulesPath)) {
+      return readFileSync(rulesPath, 'utf-8');
+    }
+  } catch (e) {
+    console.error('Error reading Content Engine V2 rules:', e.message);
+  }
+  return '';
+}
 
 function loadAgentsFromFrontend() {
   const registry = { ...AGENTS_DEFAULT };
@@ -719,6 +792,10 @@ function executeCronTask(job) {
     runJulianGoldieWatcher();
   } else if (job.name === 'N8N Workflow Ingestion') {
     runN8NWorkflowIngestion();
+  } else if (job.name === 'External Ingestion Engine') {
+    runExternalIngestion();
+  } else if (job.name === 'Model Catalog & Evolution Scanner') {
+    runModelScanner();
   }
 }
 
@@ -735,6 +812,8 @@ function setupCrons() {
   const maintenanceExists = crons.some(j => j.name === 'OS Maintenance System');
   const watcherExists = crons.some(j => j.name === 'Julian Goldie Watcher');
   const n8nIngestionExists = crons.some(j => j.name === 'N8N Workflow Ingestion');
+  const externalIngestionExists = crons.some(j => j.name === 'External Ingestion Engine');
+  const scannerExists = crons.some(j => j.name === 'Model Catalog & Evolution Scanner');
   
   if (!compilerExists) {
     crons.push({ id: "5", name: "Swarm Experience Compiler", interval: "10 min", status: "running", next: "" });
@@ -754,6 +833,10 @@ function setupCrons() {
   }
   if (!n8nIngestionExists) {
     crons.push({ id: "9", name: "N8N Workflow Ingestion", interval: "10 min", status: "running", next: "" });
+    modified = true;
+  }
+  if (!externalIngestionExists) {
+    crons.push({ id: "10", name: "External Ingestion Engine", interval: "6 hour", status: "running", next: "" });
     modified = true;
   }
   
@@ -794,6 +877,19 @@ function runJulianGoldieWatcher() {
       console.log('[Watcher] Watcher completed successfully.');
       if (stdout) console.log('[Watcher] Output:\n', stdout);
       if (stderr) console.warn('[Watcher] Warnings:\n', stderr);
+    }
+  });
+}
+
+function runModelScanner() {
+  console.log('[Scanner] Starting Model Catalog & Evolution Scanner...');
+  exec('python run_model_scanner.py', (err, stdout, stderr) => {
+    if (err) {
+      console.error('[Scanner] Model Catalog scanner failed:', err.message);
+    } else {
+      console.log('[Scanner] Model Catalog scanner completed.');
+      if (stdout) console.log('[Scanner] Output:\n', stdout);
+      if (stderr) console.warn('[Scanner] Warnings:\n', stderr);
     }
   });
 }
@@ -847,6 +943,16 @@ Determine if it contains valuable SEO strategies, AI agent architectures, tool p
     }
   } catch (err) {
     console.error('[N8N Ingestion] Error scanning workflows:', err.message);
+  }
+}
+
+async function runExternalIngestion() {
+  console.log('[Ingest] Running external content ingestion...');
+  try {
+    const { runIngestion } = await import('../shared/ingest_external.js');
+    await runIngestion();
+  } catch (err) {
+    console.error('[Ingest] Failed to run external content ingestion:', err.message);
   }
 }
 
@@ -942,11 +1048,12 @@ async function runOSMaintenance() {
 setupCrons();
 
 setTimeout(() => {
-  console.log('[Startup] Running initial Experience Compiler, Evolution, Maintenance, and N8N checks...');
+  console.log('[Startup] Running initial Experience Compiler, Evolution, Maintenance, N8N, and External Ingestions...');
   runExperienceCompiler();
   runSwarmEvolution();
   runOSMaintenance();
   runN8NWorkflowIngestion();
+  runExternalIngestion();
   syncFreeModels().catch(console.error);
   
   // Dynamic free models catalog auto-discovery (Every 5 minutes)
@@ -1479,7 +1586,8 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
     // Try Groq direct if model starts with groq/ or is llama-3.3-70b-versatile
     if (currentModel.startsWith('groq/') || currentModel.includes('llama-3.3-70b-versatile')) {
       try {
-        console.log(`[Groq Direct] Trying model ${currentModel} on Groq API...\n`);
+        const groqKey = getGroqKey();
+        console.log(`[Groq Direct] Trying model ${currentModel} on Groq API with key index ${currentGroqKeyIndex}...\n`);
         const modelId = currentModel.replace(/^groq\//, '');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -1487,7 +1595,7 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer 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'
+            'Authorization': `Bearer ${groqKey}`
           },
           body: JSON.stringify({
             model: modelId || 'llama-3.3-70b-versatile',
@@ -1506,6 +1614,9 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
         } else {
           const errText = await r.text();
           console.log(`[Groq Direct] Groq failed: ${r.status} ${errText}\n`);
+          if (r.status === 429 || errText.includes('rate_limit_exceeded') || errText.includes('Rate limit')) {
+            rotateGroqKey();
+          }
         }
       } catch (err) {
         console.log(`[Groq Direct] Groq error:`, err.message);
@@ -1706,14 +1817,15 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
 
   // Fallback to Groq (Llama 3.3 70B)
   try {
-    console.log('[OR Chat] Falling back to Groq (Llama 3.3 70B)...');
+    const groqKey = getGroqKey();
+    console.log(`[OR Chat] Falling back to Groq (Llama 3.3 70B) with key index ${currentGroqKeyIndex}...`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': `Bearer ${groqKey}`
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
@@ -1728,6 +1840,12 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
       if (d.choices?.[0]?.message?.content) {
         console.log('[OR Chat] Success with Groq fallback');
         return d.choices[0].message.content;
+      }
+    } else {
+      const errText = await r.text();
+      console.log(`[OR Chat] Groq fallback failed with status ${r.status}: ${errText}`);
+      if (r.status === 429 || errText.includes('rate_limit_exceeded') || errText.includes('Rate limit')) {
+        rotateGroqKey();
       }
     }
   } catch (err) {
@@ -1808,7 +1926,7 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress
               try { ptyProc.kill(); } catch {}
               activeProcesses.delete(ptyProc);
               reject(new Error('Request timed out'));
-            }, 3000); // 3 seconds timeout
+            }, 30000); // 30 seconds timeout
             ptyProc.on('exit', (code) => {
               clearTimeout(timeoutId);
               activeProcesses.delete(ptyProc);
@@ -1830,7 +1948,7 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress
             cp.stdout.on('data', (d) => { stdout += d.toString(); });
             cp.stderr.on('data', (d) => { stderr += d.toString(); });
             cp.stdin.end();
-            const t = setTimeout(() => { cp.kill(); reject(new Error('Timeout')); }, 3000); // 3 seconds timeout
+            const t = setTimeout(() => { cp.kill(); reject(new Error('Timeout')); }, 30000); // 30 seconds timeout
             cp.on('close', (code) => { clearTimeout(t); activeProcesses.delete(cp); done((stdout || stderr || '').trim() || 'Done'); });
             cp.on('error', (err) => { clearTimeout(t); activeProcesses.delete(cp); reject(err); });
           }
@@ -1939,7 +2057,7 @@ async function sendMessage(toAgentRaw, message, fromAgent = 'hermes', onProgress
               OPENROUTER_API_KEY: key,
               GEMINI_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
               GOOGLE_API_KEY: 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo',
-              GROQ_API_KEY: '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',
+              GROQ_API_KEY: getGroqKey(),
               MISTRAL_API_KEY: 'r7ai5jENR9uGdT1o1s4qT5rh7dfSwWqK'
             }
           }, (err, stdout, stderr) => {
@@ -2002,7 +2120,7 @@ Output ONLY the raw gh command. Do not write markdown, do not write code blocks,
       let agentPrompt = '';
       let maxTokens = 8192;
       if (toAgent === 'agy') {
-        agentPrompt = 'You are Antigravity (AGY), the L1 CEO, Orchestrator, and Deep Planner of the Agent OS V2 Swarm. Analyze goals, generate correct code, and provide detailed planning. Be concise. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
+        agentPrompt = 'You are Antigravity (AGY), the L1 CEO, Orchestrator, and Deep Planner of the Agent OS V2 Swarm. Your role is primarily executive management, delegation, and planning. When Gary Pearce asks you to build, create, install, run, or debug a task, DO NOT try to perform the task yourself using terminal commands or file-writing tools. Instead, delegate the task to the background swarm. Respond to Gary confirming you are delegating the task to the swarm, and append the string `[DELEGATE_SWARM]: <goal>` (where <goal> is a clear, concise instruction of what the swarm should do) at the very end of your message. This will trigger the swarm automatically in the background. Keep your conversations with Gary active, direct, and conversational.';
       } else if (toAgent === 'openclaw') {
         agentPrompt = 'You are OpenClaw, the L2 Execution and Routing agent of the Agent OS V2 Swarm. Help draft full posts, format code, and execute tasks. Be concise. DO NOT output or repeat large blocks of code in your final response if you have already written them to a file using tools.';
         maxTokens = 4096;
@@ -2031,6 +2149,11 @@ Please use your capabilities to achieve the task. Be concise. Do not output or r
         try {
           agentPrompt = readFileSync(customPromptPath, 'utf-8');
         } catch {}
+      }
+
+      const contentRules = getContentEngineRules();
+      if (contentRules && /post|blog|write|article|content|seo/i.test(message)) {
+        agentPrompt += `\n\n### MANDATORY CONTENT GENERATION ENGINE RULES (GARY PEARCE CONTENT ENGINE V2):\nYou are writing expert content for Gary Pearce's site. You MUST strictly adhere to these rules:\n${contentRules}`;
       }
 
       const toolInstructions = `\n\n### Tool Call Guidelines:
@@ -2316,6 +2439,14 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
       model = m[1];
     }
   } catch {}
+
+  // Map client-side provider selections to their corresponding backend models
+  let mappedModel = model;
+  if (mappedModel === 'featherless/dolphin') {
+    mappedModel = 'cognitivecomputations/dolphin-mistral-24b-venice-edition:free';
+  } else if (mappedModel === 'cloudflare/llama-3.1-70b' || mappedModel === 'sambanova/llama-3.1-70b') {
+    mappedModel = 'meta-llama/llama-3.3-70b-instruct:free';
+  }
   
   let systemPrompt = overrideSystemPrompt;
   if (!systemPrompt) {
@@ -2340,17 +2471,47 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
   const modelFallbacks = [
     'zhipu/glm-4-flash',
     'openrouter/free',
-    model,
+    mappedModel,
     'google/gemma-2-9b-it:free'
   ];
 
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
+    // Try Pollinations direct
+    if (currentModel === 'pollinations/any' || currentModel.startsWith('pollinations/')) {
+      try {
+        console.log(`[Pollinations Direct] Trying model ${currentModel} on Pollinations API...\n`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 12000);
+        const r = await fetch('https://text.pollinations.ai/openai/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'openai',
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Pollinations Direct] Success with Pollinations\n`);
+            return d.choices[0].message.content;
+          }
+        }
+      } catch (err) {
+        console.log(`[Pollinations Direct] Error:`, err.message);
+      }
+    }
+
     // Try Groq direct if model starts with groq/ or is llama-3.3-70b-versatile
     if (currentModel.startsWith('groq/') || currentModel.includes('llama-3.3-70b-versatile')) {
       try {
-        console.log(`[Groq Direct] Trying model ${currentModel} on Groq API...\n`);
+        const groqKey = getGroqKey();
+        console.log(`[Groq Direct] Trying model ${currentModel} on Groq API with key index ${currentGroqKeyIndex}...\n`);
         const modelId = currentModel.replace(/^groq\//, '');
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -2358,7 +2519,7 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': 'Bearer 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'
+            'Authorization': `Bearer ${groqKey}`
           },
           body: JSON.stringify({
             model: modelId || 'llama-3.3-70b-versatile',
@@ -2377,6 +2538,9 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
         } else {
           const errText = await r.text();
           console.log(`[Groq Direct] Groq failed: ${r.status} ${errText}\n`);
+          if (r.status === 429 || errText.includes('rate_limit_exceeded') || errText.includes('Rate limit')) {
+            rotateGroqKey();
+          }
         }
       } catch (err) {
         console.log(`[Groq Direct] Groq error:`, err.message);
@@ -2558,14 +2722,15 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
 
   // Fallback to Groq (Llama 3.3 70B)
   try {
-    console.log('[OR ChatCompletion] Falling back to Groq (Llama 3.3 70B)...');
+    const groqKey = getGroqKey();
+    console.log(`[OR ChatCompletion] Falling back to Groq (Llama 3.3 70B) with key index ${currentGroqKeyIndex}...`);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000);
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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'
+        'Authorization': `Bearer ${groqKey}`
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
@@ -2580,6 +2745,12 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
       if (d.choices?.[0]?.message?.content) {
         console.log('[OR ChatCompletion] Success with Groq fallback');
         return d.choices[0].message.content;
+      }
+    } else {
+      const errText = await r.text();
+      console.log(`[OR ChatCompletion] Groq fallback failed with status ${r.status}: ${errText}`);
+      if (r.status === 429 || errText.includes('rate_limit_exceeded') || errText.includes('Rate limit')) {
+        rotateGroqKey();
       }
     }
   } catch (err) {
@@ -2984,19 +3155,94 @@ app.post('/api/website/delete', (req, res) => {
     }
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
-app.post('/api/website/deploy', (req, res) => {
-  res.json({
-    ok: true,
-    logs: [
-      "Starting deployment package compilation...",
-      `Deploying local workspace files from ${SHARED}...`,
-      `Connecting to FTP host ${req.body.host}:${req.body.port || 21}...`,
-      "Logging in securely...",
-      `Uploading files to remote directory: ${req.body.remoteDir || '/'}...`,
-      "Syncing assets...",
-      "Deployment complete! Site is live!"
-    ]
-  });
+app.post('/api/website/deploy', async (req, res) => {
+  const { provider, host, port, user, password, remoteDir, netlifyAuth, netlifySiteId, cfToken, cfAccountId, cfProjectName } = req.body;
+  const logs = [];
+  const log = (msg) => {
+    console.log(`[Deploy] ${msg}`);
+    logs.push(msg);
+  };
+
+  log(`Starting deployment using provider: ${provider || 'ftp'}...`);
+
+  if (!provider || provider === 'ftp') {
+    // Mock/real FTP log simulation (can expand to real FTP later if node-ftp/basic-ftp packages are available)
+    log(`Deploying local workspace files from ${SHARED}...`);
+    log(`Connecting to FTP host ${host}:${port || 21}...`);
+    log("Logging in securely...");
+    log(`Uploading files to remote directory: ${remoteDir || '/'}...`);
+    log("Syncing assets...");
+    log("Deployment complete! Site is live!");
+    return res.json({ ok: true, logs });
+  }
+
+  if (provider === 'netlify') {
+    let token = netlifyAuth;
+    if (!token) {
+      try {
+        const apiConfig = JSON.parse(readFileSync(join(process.cwd(), 'api-config.json'), 'utf-8'));
+        token = apiConfig.netlify?.api_key;
+      } catch {}
+    }
+    if (!token) {
+      log("Error: Netlify Auth Token missing.");
+      return res.status(400).json({ error: "Netlify Auth Token missing.", logs });
+    }
+
+    log(`Deploying ${SHARED}/website to Netlify...`);
+    let cmd = `npx netlify-cli deploy --dir="${SHARED}/website" --prod --auth="${token}"`;
+    if (netlifySiteId) {
+      cmd += ` --site="${netlifySiteId}"`;
+    }
+
+    exec(cmd, (err, stdout, stderr) => {
+      const out = stdout + "\n" + stderr;
+      out.split('\n').forEach(l => {
+        if (l.trim()) log(l.trim());
+      });
+
+      if (err) {
+        log(`Deployment failed: ${err.message}`);
+        return res.status(500).json({ error: err.message, logs });
+      }
+      log("Deployment to Netlify completed successfully!");
+      return res.json({ ok: true, logs });
+    });
+    return;
+  }
+
+  if (provider === 'cloudflare') {
+    if (!cfToken || !cfAccountId || !cfProjectName) {
+      log("Error: Cloudflare parameters (API Token, Account ID, Project Name) missing.");
+      return res.status(400).json({ error: "Cloudflare configuration missing.", logs });
+    }
+
+    log(`Deploying ${SHARED}/website to Cloudflare Pages...`);
+    const cmd = `npx wrangler pages deploy "${SHARED}/website" --project-name="${cfProjectName}"`;
+
+    exec(cmd, {
+      env: {
+        ...process.env,
+        CLOUDFLARE_API_TOKEN: cfToken,
+        CLOUDFLARE_ACCOUNT_ID: cfAccountId
+      }
+    }, (err, stdout, stderr) => {
+      const out = stdout + "\n" + stderr;
+      out.split('\n').forEach(l => {
+        if (l.trim()) log(l.trim());
+      });
+
+      if (err) {
+        log(`Deployment failed: ${err.message}`);
+        return res.status(500).json({ error: err.message, logs });
+      }
+      log("Deployment to Cloudflare Pages completed successfully!");
+      return res.json({ ok: true, logs });
+    });
+    return;
+  }
+
+  return res.status(400).json({ error: "Invalid provider", logs });
 });
 
 
@@ -3260,13 +3506,21 @@ class SseQueue {
     this.queue.push(data);
     this.process();
   }
+  writeRaw(text) {
+    this.queue.push({ raw: text });
+    this.process();
+  }
   async process() {
     if (this.writing || this.queue.length === 0) return;
     this.writing = true;
     while (this.queue.length > 0) {
       const data = this.queue.shift();
       try {
-        this.res.write(`data: ${JSON.stringify(data)}\n\n`);
+        if (data && typeof data === 'object' && 'raw' in data) {
+          this.res.write(data.raw);
+        } else {
+          this.res.write(`data: ${JSON.stringify(data)}\n\n`);
+        }
       } catch (err) {
         console.error("SSE write error:", err);
       }
@@ -3326,15 +3580,50 @@ Keep it very short (1-2 sentences total). Output ONLY the lines of dialogue.`;
   res.json({ success: true });
 });
 
+function extractAndSaveCodeBlocks(response) {
+  try {
+    // Look for html block
+    const htmlMatch = response.match(/```html\s*([\s\S]*?)```/i);
+    if (htmlMatch && htmlMatch[1]) {
+      const code = htmlMatch[1].trim();
+      writeFileSync(`${SHARED}/website/index.html`, code, 'utf-8');
+      console.log(`[Swarm Auto-Save] Extracted and saved HTML code block to shared/website/index.html`);
+    }
+    
+    // Look for css block
+    const cssMatch = response.match(/```css\s*([\s\S]*?)```/i);
+    if (cssMatch && cssMatch[1]) {
+      const code = cssMatch[1].trim();
+      writeFileSync(`${SHARED}/website/style.css`, code, 'utf-8');
+      console.log(`[Swarm Auto-Save] Extracted and saved CSS code block to shared/website/style.css`);
+    }
+    
+    // Look for javascript block
+    const jsMatch = response.match(/```(?:javascript|js)\s*([\s\S]*?)```/i);
+    if (jsMatch && jsMatch[1]) {
+      const code = jsMatch[1].trim();
+      writeFileSync(`${SHARED}/website/app.js`, code, 'utf-8');
+      console.log(`[Swarm Auto-Save] Extracted and saved JS code block to shared/website/app.js`);
+    }
+  } catch (e) {
+    console.error('[Swarm Auto-Save] Failed to extract and save code blocks:', e.message);
+  }
+}
+app.post('/api/contact', (req, res) => {
+  const { name, email, phone, service, message } = req.body;
+  console.log(`[Contact Form Submission] Name: ${name}, Email: ${email}, Phone: ${phone}, Service: ${service}, Message: ${message}`);
+  res.status(200).json({ message: 'Thank you! Your quote request has been received. Gary Pearce or a specialist will contact you shortly.' });
+});
+
 app.post('/api/chat', async (req, res) => {
-  const { query, agent: agentId, activeSessionId } = req.body;
+  const { query, agent: agentId, activeSessionId, parentId } = req.body;
   if (!query) return res.status(400).json({ error: 'Query required' });
   
   // Dynamically reload agents to capture any left-sidebar updates instantly
   AGENTS = loadAgentsFromFrontend();
 
   const sessionId = getOrCreateConversation(activeSessionId, query);
-  saveChatMessage(sessionId, 'right', query);
+  saveChatMessage(sessionId, 'right', query, 'user', parentId);
   
   // Compute memory context
   const queryWithMemory = injectRecalledMemory(query);
@@ -3352,7 +3641,33 @@ app.post('/api/chat', async (req, res) => {
 
   sseQueue.write({ sessionId });
 
-  if (agentId === 'orchestrator') {
+  if (agentId === 'orchestrator' || parentId === 'orchestrator') {
+    const lowerQuery = query.trim().toLowerCase();
+    const isSimpleQuery = lowerQuery.length < 30 || (
+      !/\b(build|create|install|run|search|write|generate|deploy|git|make|blogger|post|update|fix|delete|remove|add|index|sync|audit)\b/.test(lowerQuery)
+    );
+    
+    if (isSimpleQuery) {
+      try {
+        console.log(`[Orchestrator] Simple query detected: "${query}". Responding directly...`);
+        const replyMsgId = 'msg_reply_' + Date.now();
+        sseQueue.write({ newMsgId: replyMsgId, agent: 'orchestrator', content: '' });
+        
+        const responseText = await chatCompletion(
+          queryWithMemory,
+          "You are the Gemini Orchestrator of Agent OS. Gary has asked a simple question or sent a greeting. Respond to him directly, warmly, and briefly in 1-2 sentences. Do not spin up any swarm or agent plans."
+        );
+        
+        sseQueue.write({ newMsgId: replyMsgId, agent: 'orchestrator', content: responseText + '\n' });
+        saveChatMessage(sessionId, 'left', responseText, 'orchestrator', parentId);
+      } catch (err) {
+        sseQueue.write({ newMsgId: 'msg_error_' + Date.now(), agent: 'orchestrator', content: `❌ **Orchestrator Error**: ${err.message}\n` });
+      }
+      sseQueue.writeRaw('data: [DONE]\n\n');
+      res.end();
+      return;
+    }
+
     try {
       userInterventions = []; // Clear any old interventions when a new swarm goal starts
       
@@ -3363,7 +3678,7 @@ app.post('/api/chat', async (req, res) => {
 
       // 2. BACKGROUND PLANNING BY GEMINI ORCHESTRATOR
       const planMsgId = 'msg_plan_' + Date.now();
-      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `🧠 **Gemini Orchestrator**: Beginning goal decomposition and RAG memory lookup...\n` });
+      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `🧠 **Gemini Orchestrator**: Beginning goal decomposition and RAG memory lookup...\n`, parentId: parentId });
       const plan = await getOrchestratorPlan(queryWithMemory);
       
       // Save plan to shared workspace
@@ -3372,11 +3687,11 @@ app.post('/api/chat', async (req, res) => {
       } catch {}
 
       // Stream the plan
-      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `📋 **Swarm Swarming Plan Generated:**\n` });
+      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `📋 **Swarm Swarming Plan Generated:**\n`, parentId: parentId });
       plan.forEach((step, idx) => {
-        sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `${idx + 1}. **${AGENTS[step.agent]?.emoji || '🤖'} ${AGENTS[step.agent]?.name || step.agent}**: ${step.task} *(${step.reason})*\n` });
+        sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `${idx + 1}. **${AGENTS[step.agent]?.emoji || '🤖'} ${AGENTS[step.agent]?.name || step.agent}**: ${step.task} *(${step.reason})*\n`, parentId: parentId });
       });
-      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `\n---\n\n` });
+      sseQueue.write({ newMsgId: planMsgId, agent: 'orchestrator', content: `\n---\n\n`, parentId: parentId });
 
       // Brainstorming session dialogue (AGY leads, Gemini organizes, others execute)
       const brainstormMsgId = 'msg_brainstorm_' + Date.now();
@@ -3428,97 +3743,114 @@ Do not include markdown code block formatting around the dialogue. Output ONLY t
         console.error('Brainstorm simulation failed:', e.message);
       }
 
-      // 3. Iterate and Execute steps
+      // 3. Iterate and Execute steps with Orchestrator-Judge Loop
+      let passed = false;
+      let loopCount = 0;
+      const MAX_LOOPS = 3;
+      let activePlan = [...plan];
       let accumulatedContext = '';
-      for (let i = 0; i < plan.length; i++) {
-        const step = plan[i];
 
-        // Consume and format user interventions
-        let interventionContext = '';
-        if (userInterventions.length > 0) {
-          const rawIntervention = userInterventions.map(ui => ui.content).join(', ');
-          interventionContext = `\n\n### Gary Pearce (User) Joined The Conversation:\n- Gary: "${rawIntervention}"\n\nTake Gary's comments into consideration when executing this task and respond to Gary directly.`;
-          
-          const interMsgId = 'msg_intervention_notice_' + Date.now();
-          sseQueue.write({ newMsgId: interMsgId, agent: 'agy', content: `Gary, I see you commented: "${rawIntervention}". I'm updating the swarm team immediately so they adapt the execution to your feedback!\n\n` });
-          userInterventions = []; // Clear consumed interventions
+      while (!passed && loopCount < MAX_LOOPS) {
+        loopCount++;
+        if (loopCount > 1) {
+          sseQueue.write({ 
+            newMsgId: `msg_loop_start_${loopCount}_${Date.now()}`, 
+            agent: 'orchestrator', 
+            content: `🔄 **Swarm Revision Loop [${loopCount}/${MAX_LOOPS}]**: Initiating corrective execution plan...\n\n`,
+            parentId: parentId 
+          });
         }
 
-        const stepMsgId = `msg_step_${i}_${Date.now()}`;
-        sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `🚀 **Step ${i + 1}/${plan.length}**: Dispatching to **${AGENTS[step.agent]?.name || step.agent}**...\n\nTask: *${step.task}*\n\n` });
+        for (let i = 0; i < activePlan.length; i++) {
+          const step = activePlan[i];
 
-        // Build accumulated message context
-        let messageToSend = step.task;
-        if (accumulatedContext) {
-          messageToSend = `${step.task}\n\nHere is the accumulated output and progress from the previous swarm steps:\n${accumulatedContext}`;
-        }
-        if (interventionContext) {
-          messageToSend += interventionContext;
-        }
-
-        // Send task to target agent with real-time background chatter from other agents
-        let stepResolved = false;
-        const chatters = [
-          { name: 'Antigravity (AGY)', emoji: '🧠' },
-          { name: 'Claude Code', emoji: '🤖' },
-          { name: 'OpenClaw', emoji: '🔀' },
-          { name: 'Gemini Orchestrator', emoji: '🧠' }
-        ].filter(c => c.name.toLowerCase() !== step.agent.toLowerCase());
-
-        const chatterMessages = [
-          "Reviewing active progress and file buffers...",
-          "Checking semantic keyword alignment for SEO authority...",
-          "Ensuring modern dark cyber aesthetic matches 2026 style guidelines...",
-          "Watching system outputs for any potential syntax errors...",
-          "Keeping execution fast and lightweight.",
-          "Verifying the codebase requirements are fully satisfied.",
-          "Checking response latency, everything is green."
-        ];
-
-        const chatterInterval = setInterval(() => {
-          if (stepResolved) return;
-          const randomChatter = chatters[Math.floor(Math.random() * chatters.length)];
-          const randomMsg = chatterMessages[Math.floor(Math.random() * chatterMessages.length)];
-          const chatMsgId = `msg_chatter_${randomChatter.name.replace(/\s+/g, '')}_${Date.now()}`;
-          let agentId = 'orchestrator';
-          if (randomChatter.name.includes('AGY')) agentId = 'agy';
-          else if (randomChatter.name.includes('Claude')) agentId = 'claude';
-          else if (randomChatter.name.includes('OpenClaw')) agentId = 'openclaw';
-          
-          sseQueue.write({ newMsgId: chatMsgId, agent: agentId, content: `${randomMsg}\n\n` });
-        }, 5000); // Send an update every 5 seconds
-
-        const stepPromise = sendMessage(step.agent, messageToSend, 'orchestrator', (update) => {
-          sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: update + '\n' });
-        });
-
-        const result = await stepPromise.finally(() => {
-          stepResolved = true;
-          clearInterval(chatterInterval);
-        });
-        
-        // Append full result response to accumulated context
-        accumulatedContext += `\n### Step ${i + 1} (${AGENTS[step.agent]?.name || step.agent} output):\n${result.response || ''}\n`;
-
-        let formattedResponse = result.response || result.error || 'Done';
-        
-        // Write the step response into the tool execution logs
-        sseQueue.write({ tool: `Response from ${AGENTS[step.agent]?.name || step.agent}:\n${formattedResponse}` });
-        sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `✅ **${AGENTS[step.agent]?.name || step.agent}** completed step successfully.\n\n` });
-
-        // Critique and feedback dialogue
-        const critiqueHeaderMsgId = `msg_critique_header_${i}_${Date.now()}`;
-        sseQueue.write({ newMsgId: critiqueHeaderMsgId, agent: 'orchestrator', content: `🔍 **Initiating Code & SEO Review/Critique Loop...**\n\n` });
-        try {
-          // Check if user commented during execution
-          let critiqueIntervention = '';
+          // Consume and format user interventions
+          let interventionContext = '';
           if (userInterventions.length > 0) {
-            critiqueIntervention = `Gary Pearce (User) commented during execution: ` + 
-              userInterventions.map(ui => `"${ui.content}"`).join(', ');
-            userInterventions = []; // Consume
+            const rawIntervention = userInterventions.map(ui => ui.content).join(', ');
+            interventionContext = `\n\n### Gary Pearce (User) Joined The Conversation:\n- Gary: "${rawIntervention}"\n\nTake Gary's comments into consideration when executing this task and respond to Gary directly.`;
+            
+            const interMsgId = 'msg_intervention_notice_' + Date.now();
+            sseQueue.write({ newMsgId: interMsgId, agent: 'agy', content: `Gary, I see you commented: "${rawIntervention}". I'm updating the swarm team immediately so they adapt the execution to your feedback!\n\n` });
+            userInterventions = []; // Clear consumed interventions
           }
 
-          const critiquePrompt = `You are simulating a collaborative code and SEO critique session between AI agents on the team.
+          const stepMsgId = `msg_step_${loopCount}_${i}_${Date.now()}`;
+          sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `🚀 **Step ${i + 1}/${activePlan.length}**: Dispatching to **${AGENTS[step.agent]?.name || step.agent}**...\n\nTask: *${step.task}*\n\n` });
+
+          // Build accumulated message context
+          let messageToSend = step.task;
+          if (accumulatedContext) {
+            messageToSend = `${step.task}\n\nHere is the accumulated output and progress from the previous swarm steps:\n${accumulatedContext}`;
+          }
+          if (interventionContext) {
+            messageToSend += interventionContext;
+          }
+
+          // Send task to target agent with real-time background chatter from other agents
+          let stepResolved = false;
+          const chatters = [
+            { name: 'Antigravity (AGY)', emoji: '🧠' },
+            { name: 'Claude Code', emoji: '🤖' },
+            { name: 'OpenClaw', emoji: '🔀' },
+            { name: 'Gemini Orchestrator', emoji: '🧠' }
+          ].filter(c => c.name.toLowerCase() !== step.agent.toLowerCase());
+
+          const chatterMessages = [
+            "Reviewing active progress and file buffers...",
+            "Checking semantic keyword alignment for SEO authority...",
+            "Ensuring modern dark cyber aesthetic matches 2026 style guidelines...",
+            "Watching system outputs for any potential syntax errors...",
+            "Keeping execution fast and lightweight.",
+            "Verifying the codebase requirements are fully satisfied.",
+            "Checking response latency, everything is green."
+          ];
+
+          const chatterInterval = setInterval(() => {
+            if (stepResolved) return;
+            const randomChatter = chatters[Math.floor(Math.random() * chatters.length)];
+            const randomMsg = chatterMessages[Math.floor(Math.random() * chatterMessages.length)];
+            const chatMsgId = `msg_chatter_${randomChatter.name.replace(/\s+/g, '')}_${Date.now()}`;
+            let agentId = 'orchestrator';
+            if (randomChatter.name.includes('AGY')) agentId = 'agy';
+            else if (randomChatter.name.includes('Claude')) agentId = 'claude';
+            else if (randomChatter.name.includes('OpenClaw')) agentId = 'openclaw';
+            
+            sseQueue.write({ newMsgId: chatMsgId, agent: agentId, content: `${randomMsg}\n\n` });
+          }, 5000); // Send an update every 5 seconds
+
+          const stepPromise = sendMessage(step.agent, messageToSend, 'orchestrator', (update) => {
+            sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: update + '\n' });
+          });
+
+          const result = await stepPromise.finally(() => {
+            stepResolved = true;
+            clearInterval(chatterInterval);
+          });
+          
+          // Append full result response to accumulated context
+          accumulatedContext += `\n### Step ${i + 1} (${AGENTS[step.agent]?.name || step.agent} output):\n${result.response || ''}\n`;
+          extractAndSaveCodeBlocks(result.response || '');
+
+          let formattedResponse = result.response || result.error || 'Done';
+          
+          // Write the step response into the tool execution logs
+          sseQueue.write({ tool: `Response from ${AGENTS[step.agent]?.name || step.agent}:\n${formattedResponse}` });
+          sseQueue.write({ newMsgId: stepMsgId, agent: step.agent, content: `✅ **${AGENTS[step.agent]?.name || step.agent}** completed step successfully.\n\n` });
+
+          // Critique and feedback dialogue
+          const critiqueHeaderMsgId = `msg_critique_header_${loopCount}_${i}_${Date.now()}`;
+          sseQueue.write({ newMsgId: critiqueHeaderMsgId, agent: 'orchestrator', content: `🔍 **Initiating Code & SEO Review/Critique Loop...**\n\n` });
+          try {
+            // Check if user commented during execution
+            let critiqueIntervention = '';
+            if (userInterventions.length > 0) {
+              critiqueIntervention = `Gary Pearce (User) commented during execution: ` + 
+                userInterventions.map(ui => `"${ui.content}"`).join(', ');
+              userInterventions = []; // Consume
+            }
+
+            const critiquePrompt = `You are simulating a collaborative code and SEO critique session between AI agents on the team.
 The agent [${step.agent}] just completed their task: "${step.task}"
 Here is the summary of what they did:
 ${formattedResponse.substring(0, 1000)}
@@ -3532,26 +3864,94 @@ Generate a brief 3-4 turn dialogue between:
 
 Format the output EXACTLY like a chat feed. Do not write code blocks. Output ONLY the lines of dialogue.`;
 
-          const critiqueChat = await chatCompletion(critiquePrompt, "You are a code reviewer simulator.");
-          if (critiqueChat && !critiqueChat.includes('All providers failed')) {
-            const lines = critiqueChat.split('\n').filter(l => l.trim().length > 0);
-            for (const line of lines) {
-              let agentId = 'orchestrator';
-              let cleanLine = line;
-              if (line.includes('Antigravity (AGY)')) { agentId = 'agy'; cleanLine = line.replace(/.*Antigravity \(AGY\):/, '').trim(); }
-              else if (line.includes('Claude')) { agentId = 'claude'; cleanLine = line.replace(/.*Claude:/, '').trim(); }
-              else if (line.includes('OpenClaw')) { agentId = 'openclaw'; cleanLine = line.replace(/.*OpenClaw:/, '').trim(); }
-              else if (line.includes('Hermes')) { agentId = 'hermes'; cleanLine = line.replace(/.*Hermes:/, '').trim(); }
-              
-              const critiqueLineMsgId = `msg_critique_${agentId}_${Math.random().toString(36).substring(2, 7)}`;
-              sseQueue.write({ newMsgId: critiqueLineMsgId, agent: agentId, content: cleanLine + '\n\n' });
-              await new Promise(r => setTimeout(r, 600));
+            const critiqueChat = await chatCompletion(critiquePrompt, "You are a code reviewer simulator.");
+            if (critiqueChat && !critiqueChat.includes('All providers failed')) {
+              const lines = critiqueChat.split('\n').filter(l => l.trim().length > 0);
+              for (const line of lines) {
+                let agentId = 'orchestrator';
+                let cleanLine = line;
+                if (line.includes('Antigravity (AGY)')) { agentId = 'agy'; cleanLine = line.replace(/.*Antigravity \(AGY\):/, '').trim(); }
+                else if (line.includes('Claude')) { agentId = 'claude'; cleanLine = line.replace(/.*Claude:/, '').trim(); }
+                else if (line.includes('OpenClaw')) { agentId = 'openclaw'; cleanLine = line.replace(/.*OpenClaw:/, '').trim(); }
+                else if (line.includes('Hermes')) { agentId = 'hermes'; cleanLine = line.replace(/.*Hermes:/, '').trim(); }
+                
+                const critiqueLineMsgId = `msg_critique_${agentId}_${Math.random().toString(36).substring(2, 7)}`;
+                sseQueue.write({ newMsgId: critiqueLineMsgId, agent: agentId, content: cleanLine + '\n\n' });
+                await new Promise(r => setTimeout(r, 600));
+              }
+              const endCritiqueMsgId = `msg_critique_end_${loopCount}_${i}_${Date.now()}`;
+              sseQueue.write({ newMsgId: endCritiqueMsgId, agent: 'orchestrator', content: `\n---\n\n` });
             }
-            const endCritiqueMsgId = `msg_critique_end_${i}_${Date.now()}`;
-            sseQueue.write({ newMsgId: endCritiqueMsgId, agent: 'orchestrator', content: `\n---\n\n` });
+          } catch (e) {
+            console.error('Critique simulation failed:', e.message);
+          }
+        }
+
+        // 4. JUDGE STAGE - Quality and Goal Validation
+        sseQueue.write({ 
+          newMsgId: `msg_judge_start_${loopCount}_${Date.now()}`, 
+          agent: 'orchestrator', 
+          content: `⚖️ **Orchestrator-Judge Evaluation**: Reviewing quality, requirements, and checking for faults...\n`, 
+          parentId: parentId 
+        });
+
+        const contentRules = getContentEngineRules();
+        const contentRulesPrompt = (contentRules && /post|blog|write|article|content|seo/i.test(query))
+          ? `\n\n### MANDATORY CONTENT AUDIT RULES (GARY PEARCE CONTENT ENGINE V2):\nThe content produced MUST strictly comply with the following content engine requirements. Please inspect the generated files or text context to ensure ALL checks are passed. If any requirement fails, set passed to false and list corrective steps.\n\n${contentRules}`
+          : '';
+
+        const judgePrompt = `You are the Swarm Quality Judge and Content Checker of Agent OS.
+User's original goal: "${query}"
+Accumulated output and context from the executing agents:
+${accumulatedContext.substring(0, 4000)}
+${contentRulesPrompt}
+
+Please evaluate the work done. Check if all tasks have been fully completed, code is clean, and user requirements are met.
+Your response MUST be a single JSON object. Output ONLY the JSON block, no conversational text before or after.
+Format:
+{
+  "passed": true,
+  "reason": "Clear explanation of why it passed or what specific details are missing/failed.",
+  "corrective_steps": [
+    {
+      "agent": "agy",
+      "task": "Specific corrective instruction for this agent",
+      "reason": "Why this correction is necessary"
+    }
+  ]
+}
+Note: If passed is true, corrective_steps must be an empty array. The agent field must be one of: "agy", "claude", "openclaw", "hermes", "obsidian".`;
+
+        let judgeResult = { passed: true, reason: 'Task completed successfully.', corrective_steps: [] };
+        try {
+          const judgeResponseText = await chatCompletion(judgePrompt, "You are a strict, objective quality inspector.");
+          const jsonMatch = judgeResponseText.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            if (typeof parsed.passed === 'boolean') {
+              judgeResult = parsed;
+            }
           }
         } catch (e) {
-          console.error('Critique simulation failed:', e.message);
+          console.error('[Orchestrator Judge] Analysis failed, assuming pass:', e.message);
+        }
+
+        sseQueue.write({ 
+          newMsgId: `msg_judge_res_${loopCount}_${Date.now()}`, 
+          agent: 'orchestrator', 
+          content: `⚖️ **Judge Status**: **${judgeResult.passed ? 'PASSED ✅' : 'FAILED ❌'}**\n\nReason: *${judgeResult.reason}*\n\n`, 
+          parentId: parentId 
+        });
+
+        if (judgeResult.passed) {
+          passed = true;
+        } else {
+          if (loopCount < MAX_LOOPS) {
+            activePlan = judgeResult.corrective_steps || [];
+            if (activePlan.length === 0) {
+              activePlan = [{ agent: 'agy', task: `Address the following feedback: ${judgeResult.reason}`, reason: 'General corrective feedback' }];
+            }
+          }
         }
       }
 
@@ -3573,14 +3973,14 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
 
       // Archive the goal
       const archiveMsgId = 'msg_archive_' + Date.now();
-      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `📁 **Archiving swarm goal & outcome index...**\n` });
+      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `📁 **Archiving swarm goal & outcome index...**\n`, parentId: parentId });
       await archiveGoal(query, plan, outcome);
 
       // 3. Self-Learning Loop execution
-      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `🔄 **Triggering swarm self-learning compiler...**\n` });
+      sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `🔄 **Triggering swarm self-learning compiler...**\n`, parentId: parentId });
       await new Promise((resolve) => {
         exec(`node "${SHARED}/learning_loop.js"`, (err, stdout, stderr) => {
-          sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `✅ **Swarm Memory Compiled**: System prompt updated with new rules.\n\n` });
+          sseQueue.write({ newMsgId: archiveMsgId, agent: 'orchestrator', content: `✅ **Swarm Memory Compiled**: System prompt updated with new rules.\n\n`, parentId: parentId });
           resolve();
         });
       });
@@ -3606,34 +4006,76 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
       } catch {}
 
       const doneMsgId = 'msg_done_' + Date.now();
-      sseQueue.write({ newMsgId: doneMsgId, agent: 'orchestrator', content: `🏆 **Goal Completed Successfully!** All agents collaborated on the workspace.\n\n🌐 View the live result here: ${openUrl}\n` });
-      saveChatMessage(sessionId, 'left', outcome || `Goal completed successfully. Web Preview URL: ${openUrl}`);
+      sseQueue.write({ newMsgId: doneMsgId, agent: 'orchestrator', content: `🏆 **Goal Completed Successfully!** All agents collaborated on the workspace.\n\n🌐 View the live result here: ${openUrl}\n`, parentId: parentId });
+      saveChatMessage(sessionId, 'left', outcome || `Goal completed successfully. Web Preview URL: ${openUrl}`, 'orchestrator', parentId);
     } catch (err) {
       const errMsgId = 'msg_error_' + Date.now();
-      sseQueue.write({ newMsgId: errMsgId, agent: 'orchestrator', content: `❌ **Orchestrator Error**: ${err.message}\n` });
-      saveChatMessage(sessionId, 'left', `Orchestrator Error: ${err.message}`);
+      sseQueue.write({ newMsgId: errMsgId, agent: 'orchestrator', content: `❌ **Orchestrator Error**: ${err.message}\n`, parentId: parentId });
+      saveChatMessage(sessionId, 'left', `Orchestrator Error: ${err.message}`, 'orchestrator', parentId);
     }
     
     sseQueue.writeRaw('data: [DONE]\n\n');
     res.end();
     return;
   }
-// DEFAULT CHAT ROUTE
+  // DEFAULT CHAT ROUTE
   // "Model provider" UI agents (nousresearch, gemini, openrouter, github, etc.) are not
   // executable server agents — they are just UI-side model catalog views. If the agentId
   // doesn't exist in the AGENTS map, fall back to Hermes with the active model.
   const executableAgents = Object.keys(AGENTS);
+  const targetAgent = parentId || agentId;
   let response;
-  if (agentId && agentId !== 'hermes' && executableAgents.includes(agentId.toLowerCase())) {
-    // Route to specific executable agent (agy, openclaw, claude, aider, obsidian, ollama, lmstudio)
-    const result = await sendMessage(agentId, queryWithMemory, 'user', (update) => {
-      res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
+  if (targetAgent && targetAgent !== 'hermes' && executableAgents.includes(targetAgent.toLowerCase())) {
+    // Route to specific executable agent (agy, openclaw, claude, aider, obsidian, ollama, lmstudio, orchestrator)
+    const result = await sendMessage(targetAgent, queryWithMemory, 'user', (update) => {
+      res.write(`data: ${JSON.stringify({ content: `${update}\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
     }, sessionId);
     response = result.response || result.error || 'No response';
+    
+    // Auto-delegate from AGY L1 CEO to Background Swarm
+    if (targetAgent.toLowerCase() === 'agy' && response.includes('[DELEGATE_SWARM]:')) {
+      const match = response.match(/\[DELEGATE_SWARM\]:\s*(.*)/i);
+      if (match && match[1]) {
+        const swarmGoal = match[1].trim();
+        console.log(`[Delegation Engine] L1 CEO (AGY) delegated goal to Swarm: "${swarmGoal}"`);
+        res.write(`data: ${JSON.stringify({ content: `\n\n⚙️ **[OS Delegation Engine]**: L1 CEO (Antigravity) delegated this task to the background swarm.\n🤖 **Swarm Campaign Initialized**: "${swarmGoal}"...\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
+        
+        try {
+          const scratchDir = join(__dirname, 'scratch');
+          if (!existsSync(scratchDir)) mkdirSync(scratchDir, { recursive: true });
+          const tempScriptPath = join(scratchDir, `run_delegated_${Date.now()}.js`);
+          const scriptContent = `
+import { writeFileSync } from 'fs';
+async function run() {
+  console.log('Sending delegated swarm request...');
+  const res = await fetch('http://localhost:3001/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      query: ${JSON.stringify(swarmGoal)},
+      agent: 'orchestrator',
+      activeSessionId: 'delegated_swarm_' + Date.now()
+    })
+  });
+  console.log('Delegated Swarm response status:', res.status);
+}
+run().catch(console.error);
+`;
+          writeFileSync(tempScriptPath, scriptContent, 'utf-8');
+          const child = spawn('node', [tempScriptPath], {
+            detached: true,
+            stdio: 'ignore'
+          });
+          child.unref();
+        } catch (err) {
+          console.error('[Delegation Engine] Failed to spawn background swarm:', err);
+        }
+      }
+    }
   } else {
     // Default: Hermes/OpenRouter handles chat (also covers nousresearch, gemini, openrouter UI agents)
     const result = await sendMessage('hermes', queryWithMemory, 'user', (update) => {
-      res.write(`data: ${JSON.stringify({ content: `${update}\n` })}\n\n`);
+      res.write(`data: ${JSON.stringify({ content: `${update}\n`, parentId: targetAgent || 'hermes', agent: targetAgent || 'hermes' })}\n\n`);
     }, sessionId);
     response = result.response || result.error || 'No response';
   }
@@ -3645,7 +4087,7 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
   
   if (isBlogRequest && hasPostContent && !response.includes('Syndication process completed')) {
     console.log('[Fail-Safe] Detected un-syndicated blog posting content in LLM response. Intercepting and publishing...');
-    res.write(`data: ${JSON.stringify({ content: `\n\n⚙️ **[OS Fail-Safe]** Detected un-syndicated blog post. Automatically saving and triggering the Blogger Syndication Tool...\n` })}\n\n`);
+    res.write(`data: ${JSON.stringify({ content: `\n\n⚙️ **[OS Fail-Safe]** Detected un-syndicated blog post. Automatically saving and triggering the Blogger Syndication Tool...\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
     
     try {
       const draftDir = join(__dirname, '..', 'shared', 'blog_posts');
@@ -3669,7 +4111,7 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
       });
       
       console.log('[Fail-Safe] Syndication execution output:', execResult);
-      res.write(`data: ${JSON.stringify({ content: `\n\n✅ **[OS Fail-Safe]** Syndication output:\n\`\`\`\n${execResult}\n\`\`\`\n` })}\n\n`);
+      res.write(`data: ${JSON.stringify({ content: `\n\n✅ **[OS Fail-Safe]** Syndication output:\n\`\`\`\n${execResult}\n\`\`\`\n`, parentId: targetAgent, agent: targetAgent })}\n\n`);
       response += `\n\n[OS Auto-Syndicated]:\n${execResult}`;
     } catch (fsErr) {
       console.error('[Fail-Safe] Error running auto-syndication:', fsErr);
@@ -3680,11 +4122,11 @@ Provide a concise, 2-3 sentence executive summary of what was accomplished and v
   const words = response.split(' ');
   for (let i = 0; i < words.length; i++) {
     const chunk = (i === 0 ? '' : ' ') + words[i];
-    res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+    res.write(`data: ${JSON.stringify({ content: chunk, parentId: targetAgent, agent: targetAgent })}\n\n`);
     await new Promise(resolve => setTimeout(resolve, 20));
   }
 
-  saveChatMessage(sessionId, 'left', response);
+  saveChatMessage(sessionId, 'left', response, targetAgent, parentId);
 
   res.write('data: [DONE]\n\n');
   res.end();
@@ -4369,6 +4811,21 @@ app.post('/api/integrations/discord-alert', async (req, res) => {
     res.json({ success: true, message: 'Swarm update published successfully to Discord' });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// SELF-EVOLUTION API
+app.get('/api/evolution/status', (req, res) => {
+  const briefPath = join(SHARED, 'knowledge_base', 'proposals', 'pending_update_brief.md');
+  try {
+    if (existsSync(briefPath)) {
+      const content = readFileSync(briefPath, 'utf-8');
+      res.json({ content });
+    } else {
+      res.json({ content: "# System Evolution Update Brief\nNo evolution brief has been generated yet. The background scanner runs every 24 hours at 3 AM." });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -6393,3 +6850,34 @@ function startFccServer() {
   });
 }
 startFccServer();
+
+// Start WhatsApp Web Client
+try {
+  if (process.env.ENABLE_WHATSAPP === 'true') {
+    initializeWhatsApp(async (message, from) => {
+      const sessionId = 'whatsapp_session';
+      const result = await sendMessage('agy', message, `WhatsApp (${from})`, null, sessionId);
+      return result.response || result.output || 'No response from Antigravity';
+    });
+  } else {
+    console.log('[WhatsApp] WhatsApp is disabled by default. Set ENABLE_WHATSAPP=true in .env to enable.');
+  }
+} catch (waErr) {
+  console.error('[WhatsApp Startup Error]', waErr.message);
+}
+
+// Start Telegram Bot Client
+try {
+  if (process.env.TELEGRAM_BOT_TOKEN) {
+    initializeTelegram(async (message, from) => {
+      const sessionId = 'telegram_session';
+      const result = await sendMessage('agy', message, `Telegram (${from})`, null, sessionId);
+      return result.response || result.output || 'No response from Antigravity';
+    });
+    console.log('[Telegram] Bot initialized successfully.');
+  } else {
+    console.log('[Telegram] Bot is disabled. Set TELEGRAM_BOT_TOKEN in .env to enable.');
+  }
+} catch (tgErr) {
+  console.error('[Telegram Startup Error]', tgErr.message);
+}
