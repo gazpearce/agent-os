@@ -7,12 +7,13 @@ import {
   Layers, Radio, Shield, Terminal, Database, Workflow, TerminalSquare, RefreshCw,
   ChevronLeft, ChevronRight, Plus, Trash2, Save, Play, Users, Kanban,
   Network, FileText, X, ExternalLink, Globe, Puzzle, Download, Search, Filter,
-  Target, FolderOpen, XCircle, Settings, MessageSquare, Send, Loader2
+  Target, FolderOpen, XCircle, Settings, MessageSquare, Send, Loader2, Bell
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell
 } from "recharts";
+
 
 /* ─────────────── DATA TYPES ─────────────── */
 interface Agent {
@@ -2774,8 +2775,23 @@ function GoalsPanel() {
 
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
-  const [activeAgent, setActiveAgent] = useState("hermes");
+  const [activeAgent, setActiveAgent] = useState(() => {
+    try {
+      const saved = localStorage.getItem("agent_os_active_agent");
+      if (saved) return saved;
+    } catch (e) {}
+    return "hermes";
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("agent_os_active_agent", activeAgent);
+    } catch (e) {}
+  }, [activeAgent]);
   const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm" | "paperclip">("chat");
+  const [workspaceLeftOpen, setWorkspaceLeftOpen] = useState(false);
+  const [workspaceRightOpen, setWorkspaceRightOpen] = useState(false);
+  const [workspaceEditorOpen, setWorkspaceEditorOpen] = useState(false);
 
   // YouTube Video Analyzer States
   const [ytUrl, setYtUrl] = useState<string>("");
@@ -3089,13 +3105,24 @@ export default function App() {
       const res = await fetch("/api/website/files");
       if (res.ok) {
         const data = await res.json();
-        setWorkspaceFiles(data.files || []);
+        const mappedFiles = (data.files || []).map((file: any) => {
+          if (typeof file === "string") {
+            return {
+              path: file,
+              name: file,
+              type: file.includes(".") ? "file" : "directory"
+            };
+          }
+          return file;
+        });
+        setWorkspaceFiles(mappedFiles);
       }
     } catch (e) { console.error(e); }
   };
 
   const handleOpenFile = async (path: string) => {
     setSelectedFile(path);
+    setWorkspaceEditorOpen(true);
     try {
       const res = await fetch(`/api/website/read?f=${encodeURIComponent(path)}`);
       if (res.ok) {
@@ -3120,25 +3147,6 @@ export default function App() {
     } catch (e) { console.error(e); }
   };
 
-  const handleCreateWorkspaceItem = async (isFolder: boolean) => {
-    if (!newFileName.trim()) return;
-    try {
-      const endpoint = isFolder ? "/api/website/create-dir" : "/api/website/write";
-      const body = isFolder
-        ? { name: newFileName }
-        : { name: newFileName, content: "<!-- New File Created in Workspace -->" };
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
-        setNewFileName("");
-        fetchWorkspaceFiles();
-      }
-    } catch (e) { console.error(e); }
-  };
 
   const handleDeleteFile = async (path: string) => {
     if (!confirm(`Delete ${path}?`)) return;
@@ -3764,20 +3772,46 @@ export default function App() {
 
   // Chat state
   const [chatInput, setChatInput] = useState("");
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: 'welcome-collab',
-      agent: 'system',
-      msg: "### Swarm Collaboration Mode Active 🌐\nAll agents are now listening and coordinating in this shared screen. The main Orchestrator will manage the execution flow. You can issue instructions directly to the swarm.",
-      time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-    }
-  ]);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem("agent_os_chat_messages");
+      if (saved) return JSON.parse(saved);
+    } catch (e) { console.error(e); }
+    return [
+      {
+        id: 'welcome-collab',
+        agent: 'system',
+        msg: "### Swarm Collaboration Mode Active 🌐\nAll agents are now listening and coordinating in this shared screen. The main Orchestrator will manage the execution flow. You can issue instructions directly to the swarm.",
+        time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
+      }
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("agent_os_chat_messages", JSON.stringify(chatMessages));
+    } catch (e) { console.error(e); }
+  }, [chatMessages]);
+
   const [threadLoading, setThreadLoading] = useState<Record<string, boolean>>({});
   const [expandedThreads, setExpandedThreads] = useState<Record<string, boolean>>({});
   const [threadReplyInputs, setThreadReplyInputs] = useState<Record<string, string>>({});
 
   // Swarm & Specialist Chat Thread States
-  const [chatMode, setChatMode] = useState<'collab' | 'single'>('collab');
+  const [chatMode, setChatMode] = useState<'collab' | 'single'>(() => {
+    try {
+      const saved = localStorage.getItem("agent_os_chat_mode");
+      if (saved === 'collab' || saved === 'single') return saved;
+    } catch (e) {}
+    return 'collab';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("agent_os_chat_mode", chatMode);
+    } catch (e) {}
+  }, [chatMode]);
+
   const [activeSpecialistId, setActiveSpecialistId] = useState<string | null>(null);
   const [specialistChatInput, setSpecialistChatInput] = useState<string>("");
 
@@ -3918,6 +3952,10 @@ export default function App() {
     }
   };
   const [chatThreads, setChatThreads] = useState<Record<string, ChatMessage[]>>(() => {
+    try {
+      const saved = localStorage.getItem("agent_os_chat_threads");
+      if (saved) return JSON.parse(saved);
+    } catch (e) { console.error(e); }
     return {
       collab: [
         {
@@ -3929,6 +3967,12 @@ export default function App() {
       ]
     };
   });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("agent_os_chat_threads", JSON.stringify(chatThreads));
+    } catch (e) { console.error(e); }
+  }, [chatThreads]);
 
   const [multimediaGenerating, setMultimediaGenerating] = useState(false);
   const [multimediaType, setMultimediaType] = useState<'podcast' | 'presentation' | null>(null);
@@ -4023,7 +4067,106 @@ export default function App() {
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [appNotification, setAppNotification] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<string[]>([]);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // Floating Chat states & draggable logic
+  const [isFloatingChatOpen, setIsFloatingChatOpen] = useState(() => {
+    try {
+      const saved = localStorage.getItem("agent_os_is_floating_chat_open");
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return false;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("agent_os_is_floating_chat_open", JSON.stringify(isFloatingChatOpen));
+    } catch (e) {}
+  }, [isFloatingChatOpen]);
+  const [floatingChatInput, setFloatingChatInput] = useState("");
+  const [floatingChatPos, setFloatingChatPos] = useState({ x: 800, y: 150 });
+  const [isDraggingChat, setIsDraggingChat] = useState(false);
+  const [isChatMinimized, setIsChatMinimized] = useState(false);
+  const [isChatMaximized, setIsChatMaximized] = useState(false);
+  const chatDragStart = useRef({ x: 0, y: 0 });
+  const chatWindowStart = useRef({ x: 0, y: 0 });
+  const floatingChatBottomRef = useRef<HTMLDivElement>(null);
+  const floatingChatContainerRef = useRef<HTMLDivElement>(null);
+  const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const floatingTerminalContainerRef = useRef<HTMLDivElement>(null);
+
+  const handleChatDragStart = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('.overflow-y-auto')) {
+      return;
+    }
+    setIsDraggingChat(true);
+    chatDragStart.current = { x: e.clientX, y: e.clientY };
+    chatWindowStart.current = { x: floatingChatPos.x, y: floatingChatPos.y };
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDraggingChat) return;
+      const dx = e.clientX - chatDragStart.current.x;
+      const dy = e.clientY - chatDragStart.current.y;
+      
+      const targetX = chatWindowStart.current.x + dx;
+      const targetY = chatWindowStart.current.y + dy;
+
+      // Keep header visible and box on screen
+      setFloatingChatPos({
+        x: Math.max(10, Math.min(window.innerWidth - 120, targetX)),
+        y: Math.max(10, Math.min(window.innerHeight - 60, targetY))
+      });
+    };
+    const handleMouseUp = () => {
+      setIsDraggingChat(false);
+    };
+    const handleBlur = () => {
+      setIsDraggingChat(false);
+    };
+    if (isDraggingChat) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('blur', handleBlur);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener('blur', handleBlur);
+    };
+  }, [isDraggingChat]);
+
+  useEffect(() => {
+    setFloatingChatPos({
+      x: Math.max(20, window.innerWidth - 480),
+      y: Math.max(20, window.innerHeight - 560)
+    });
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setFloatingChatPos(prev => ({
+        x: Math.max(10, Math.min(window.innerWidth - 120, prev.x)),
+        y: Math.max(10, Math.min(window.innerHeight - 60, prev.y))
+      }));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (isFloatingChatOpen && floatingChatContainerRef.current) {
+      const timer = setTimeout(() => {
+        if (floatingChatContainerRef.current) {
+          floatingChatContainerRef.current.scrollTop = floatingChatContainerRef.current.scrollHeight;
+        }
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isFloatingChatOpen, chatMessages]);
 
   // Skills & MCP list states
   const [activeSkills, setActiveSkills] = useState<string[]>([]);
@@ -4127,8 +4270,11 @@ export default function App() {
         if (data.activeModel) {
           setActiveModel(data.activeModel);
         }
-        if (data.notification !== undefined) {
-          setAppNotification(data.notification);
+        if (data.notification) {
+          setNotifications(prev => {
+            if (prev.includes(data.notification)) return prev;
+            return [data.notification, ...prev];
+          });
         }
       }
     } catch (e) {
@@ -4316,13 +4462,20 @@ export default function App() {
 
     // Scroll only if they are already at the bottom, or if they just typed a message
     if (isAtBottom || isLastMessageFromUser || isCurrentLoading) {
-      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: "smooth"
+      });
     }
   }, [chatMessages, isCurrentLoading]);
 
   useEffect(() => {
-    terminalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    floatingTerminalBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (terminalContainerRef.current) {
+      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
+    }
+    if (floatingTerminalContainerRef.current) {
+      floatingTerminalContainerRef.current.scrollTop = floatingTerminalContainerRef.current.scrollHeight;
+    }
   }, [terminalLogs]);
 
   // Dynamic terminal SSE stream sync
@@ -4440,6 +4593,19 @@ export default function App() {
 
                       setChatMessages(prev => {
                         if (prev.some(m => m.id === activeWriteMsgId)) return prev;
+                        
+                        // Reuse the empty placeholder message if it exists
+                        const placeholderIdx = prev.findIndex(m => m.id === assistantMsgId && m.msg === "");
+                        if (placeholderIdx !== -1) {
+                          const updated = [...prev];
+                          updated[placeholderIdx] = {
+                            ...updated[placeholderIdx],
+                            id: activeWriteMsgId,
+                            agent: parsed.agent || targetAgent
+                          };
+                          return updated;
+                        }
+
                         return [...prev, {
                           id: activeWriteMsgId,
                           agent: parsed.agent || targetAgent,
@@ -5042,8 +5208,58 @@ export default function App() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2 border-l border-white/10 pl-4">
-              <span className="relative flex h-2 w-2">
+            <div className="flex items-center gap-2 border-l border-white/10 pl-4 relative">
+              {/* Notification Bell */}
+              <div className="relative flex items-center">
+                <button
+                  onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                  className="p-1 rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.05] transition-all cursor-pointer relative"
+                  title="System Alerts"
+                >
+                  <Bell size={13} />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-500"></span>
+                    </span>
+                  )}
+                </button>
+
+                {/* Dropdown Menu */}
+                {isNotificationOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-72 bg-[#0a0a12]/95 border border-white/[0.08] backdrop-blur-md rounded-xl p-3 shadow-2xl z-50 flex flex-col gap-2">
+                    <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">System Alerts ({notifications.length})</span>
+                      {notifications.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setNotifications([]);
+                          }}
+                          className="text-[9px] text-red-400 hover:underline uppercase font-bold"
+                        >
+                          Clear All
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-48 overflow-y-auto space-y-2 py-1 pr-1 font-mono text-[10px]">
+                      {notifications.length === 0 ? (
+                        <div className="text-gray-500 text-center py-2">No system alerts active.</div>
+                      ) : (
+                        notifications.map((notif, idx) => (
+                          <div key={idx} className="bg-white/[0.02] border border-white/[0.04] p-2 rounded-lg text-gray-300 relative flex flex-col gap-1">
+                            <div className="flex items-start gap-1">
+                              <span className="text-yellow-500 font-bold shrink-0">🔧</span>
+                              <span>{notif}</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <span className="relative flex h-2 w-2 ml-1">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
               </span>
@@ -5053,21 +5269,8 @@ export default function App() {
         </div>
       </header>
 
-      {appNotification && (
-        <div className="bg-yellow-500/10 border-b border-yellow-500/20 text-yellow-300 px-5 py-2 text-xs flex items-center justify-between shrink-0 z-40 relative select-none">
-          <span className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
-            </span>
-            🔧 <strong>System Maintenance Alert:</strong> {appNotification}
-          </span>
-          <button onClick={() => setAppNotification(null)} className="text-gray-400 hover:text-white text-xs select-none cursor-pointer">Dismiss</button>
-        </div>
-      )}
-
       {/* ═══ CORE LAYOUT ═══ */}
-      <div className="flex-1 flex overflow-hidden relative p-3 gap-3 bg-[#03030b]/30">
+      <div className="flex-1 flex overflow-hidden relative p-4 gap-4 bg-[#03030b]/30">
 
         {/* ─── LEFT SIDEBAR: SWARMS, PRESETS & AGENT LIST ─── */}
         <aside 
@@ -5398,7 +5601,7 @@ export default function App() {
 
               {/* Centered Scrollable Conversation */}
               <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-6 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                <div className="space-y-6" style={{ maxWidth: '830px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
+                <div className="space-y-6" style={{ maxWidth: '1280px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
                   <AnimatePresence>
                     {chatMessages.length === 0 && !isCurrentLoading && (
                       <motion.div
@@ -5578,7 +5781,7 @@ export default function App() {
                             </div>
                           )}
                           <div 
-                            className={`max-w-[75%] rounded-2xl px-5 py-4 break-words backdrop-blur-md shadow-lg ${
+                            className={`max-w-[88%] rounded-2xl px-5 py-4 break-words backdrop-blur-md shadow-lg ${
                               isUser
                                 ? "bg-gradient-to-br from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-tr-none border border-indigo-500/30 text-[#f1f5f9] shadow-[0_4px_24px_rgba(99,102,241,0.1)]"
                                 : isSystem
@@ -6719,93 +6922,106 @@ export default function App() {
           {centerTab === "workspace" && (
             <div className="flex-grow flex gap-4 overflow-hidden p-4 min-h-0">
               {/* File Explorer (Left) */}
-              <div className="w-1/5 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-3 min-h-0">
-                <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
-                  <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Workspace Files</div>
-                  <button onClick={fetchWorkspaceFiles} className="text-gray-400 hover:text-white transition-colors cursor-pointer">
-                    <RefreshCw size={12} />
-                  </button>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 text-white">
-                  {workspaceFiles.map(file => (
-                    <div
-                      key={file.path}
-                      onClick={() => file.type === "file" && handleOpenFile(file.path)}
-                      className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs select-none transition-all cursor-pointer ${
-                        selectedFile === file.path
-                          ? "bg-indigo-600/10 border border-indigo-500/20 text-white"
-                          : "bg-white/[0.01] hover:bg-white/[0.02] border border-transparent text-gray-400 hover:text-gray-200"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span>{file.type === "directory" ? "📁" : "📄"}</span>
-                        <span className="truncate">{file.name}</span>
-                      </div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.path); }}
-                        className="text-gray-600 hover:text-red-400 transition-colors p-0.5"
-                      >
-                        <Trash2 size={10} />
+              {workspaceLeftOpen ? (
+                <div className="w-1/5 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-3 min-h-0 shrink-0">
+                  <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+                    <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">Workspace Files</div>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={fetchWorkspaceFiles} className="text-gray-400 hover:text-white transition-colors cursor-pointer p-1" title="Refresh files">
+                        <RefreshCw size={11} />
+                      </button>
+                      <button onClick={() => setWorkspaceLeftOpen(false)} className="p-1 rounded bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer" title="Collapse File Explorer">
+                        <ChevronLeft size={11} />
                       </button>
                     </div>
-                  ))}
-                </div>
+                  </div>
 
-                <div className="space-y-2 border-t border-white/[0.05] pt-3">
-                  <input
-                    type="text"
-                    value={newFileName}
-                    onChange={e => setNewFileName(e.target.value)}
-                    placeholder="New file (e.g. index.html)..."
-                    className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleCreateWorkspaceItem(false)}
-                      className="py-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-white rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
-                    >
-                      + File
-                    </button>
-                    <button
-                      onClick={() => handleCreateWorkspaceItem(true)}
-                      className="py-1.5 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl text-[10px] font-bold uppercase transition-all cursor-pointer"
-                    >
-                      + Folder
-                    </button>
+                  <div className="flex-1 overflow-y-auto space-y-1 pr-1 min-h-0 text-white">
+                    {workspaceFiles.map(file => (
+                      <div
+                        key={file.path}
+                        onClick={() => file.type === "file" && handleOpenFile(file.path)}
+                        className={`flex items-center justify-between px-2.5 py-2 rounded-xl text-xs select-none transition-all cursor-pointer ${
+                          selectedFile === file.path
+                            ? "bg-indigo-600/10 border border-indigo-500/20 text-white"
+                            : "bg-white/[0.01] hover:bg-white/[0.02] border border-transparent text-gray-400 hover:text-gray-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          <span>{file.type === "directory" ? "📁" : "📄"}</span>
+                          <span className="truncate">{file.name}</span>
+                        </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteFile(file.path); }}
+                          className="text-gray-600 hover:text-red-400 transition-colors p-0.5"
+                        >
+                          <Trash2 size={10} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="space-y-2 border-t border-white/[0.05] pt-3">
+                    <input
+                      type="text"
+                      value={newFileName}
+                      onChange={e => setNewFileName(e.target.value)}
+                      placeholder="New file (e.g. index.html)..."
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Explorer button moved to footer */}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="w-12 bg-white/[0.015] border border-white/[0.04] py-4 rounded-2xl flex flex-col items-center gap-4 min-h-0 select-none shrink-0">
+                  <button
+                    onClick={() => setWorkspaceLeftOpen(true)}
+                    className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer"
+                    title="Open Files Explorer"
+                  >
+                    <FolderOpen size={14} />
+                  </button>
+                  <div className="flex-grow flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono select-none [writing-mode:vertical-lr] rotate-180">
+                      Explorer
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Code Editor & Live Preview (Center) */}
-              <div className="flex-1 flex flex-col gap-4 min-w-0">
+              <div className="flex-1 flex flex-row gap-4 min-w-0">
                 {/* Visual Editor */}
-                <div className="flex-1 bg-[#04040c]/90 border border-white/[0.04] p-4 rounded-2xl flex flex-col min-h-0">
-                  <div className="flex justify-between items-center border-b border-white/[0.05] pb-2 mb-3">
-                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                      Editor {selectedFile ? `— ${selectedFile}` : "(Select file to edit)"}
+                {workspaceEditorOpen && (
+                  <div className="flex-1 bg-[#04040c]/90 border border-white/[0.04] p-4 rounded-2xl flex flex-col min-h-0">
+                    <div className="flex justify-between items-center border-b border-white/[0.05] pb-2 mb-3">
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Editor {selectedFile ? `— ${selectedFile}` : "(Select file to edit)"}
+                      </div>
+                      {selectedFile && (
+                        <button
+                          onClick={handleSaveFile}
+                          className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                        >
+                          <Save size={10} /> Save Changes
+                        </button>
+                      )}
                     </div>
-                    {selectedFile && (
-                      <button
-                        onClick={handleSaveFile}
-                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
-                      >
-                        <Save size={10} /> Save Changes
-                      </button>
-                    )}
-                  </div>
 
-                  <textarea
-                    value={editorContent}
-                    onChange={e => setEditorContent(e.target.value)}
-                    disabled={!selectedFile}
-                    className="flex-1 w-full bg-black/30 border border-white/5 rounded-xl p-3 font-mono text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/20 resize-none min-h-0 overflow-y-auto"
-                    placeholder="Select a file from the explorer list on the left to start building..."
-                  />
-                </div>
+                    <textarea
+                      value={editorContent}
+                      onChange={e => setEditorContent(e.target.value)}
+                      disabled={!selectedFile}
+                      className="flex-1 w-full bg-black/30 border border-white/5 rounded-xl p-3 font-mono text-xs text-gray-300 placeholder-gray-600 focus:outline-none focus:border-indigo-500/20 resize-none min-h-0 overflow-y-auto"
+                      placeholder="Select a file from the explorer list on the left to start building..."
+                    />
+                  </div>
+                )}
 
                 {/* Real-time Website Live Preview */}
-                <div className="h-1/2 bg-[#04040c]/90 border border-white/[0.04] p-4 rounded-2xl flex flex-col min-h-0">
+                <div className="flex-1 bg-[#04040c]/90 border border-white/[0.04] p-4 rounded-2xl flex flex-col min-h-0">
                   <div className="flex justify-between items-center border-b border-white/[0.05] pb-2 mb-2">
                     <div className="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
                       <span>Workspace Preview Window</span>
@@ -6814,6 +7030,12 @@ export default function App() {
                       </span>
                     </div>
                     <div className="flex gap-3 items-center">
+                      <button
+                        onClick={() => setWorkspaceEditorOpen(prev => !prev)}
+                        className="text-[9px] text-indigo-400 hover:underline uppercase font-bold cursor-pointer font-mono"
+                      >
+                        {workspaceEditorOpen ? "[📂 Hide Editor]" : "[📂 Show Editor]"}
+                      </button>
                       <button
                         onClick={handleRunVisualAudit}
                         disabled={visualAuditLoading}
@@ -6828,12 +7050,7 @@ export default function App() {
                       >
                         {viteLoading ? "Loading..." : isViteRunning ? "⏹️ Stop Vite" : "⚡ Start Vite Dev"}
                       </button>
-                      <button
-                        onClick={() => setPreviewKey(prev => prev + 1)}
-                        className="text-[9px] text-indigo-400 hover:underline uppercase font-bold cursor-pointer"
-                      >
-                        Reload Preview
-                      </button>
+                      {/* Publishing control button moved to footer */}
                     </div>
                   </div>
                   <div className="flex-1 flex gap-4 min-h-0">
@@ -6864,131 +7081,153 @@ export default function App() {
               </div>
 
               {/* FTP Deploy Control (Right) */}
-              <div className="w-1/4 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-4 min-h-0">
-                <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider border-b border-white/[0.05] pb-2">FTP Publishing Control</div>
-
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[9px] text-gray-500 font-bold uppercase">FTP Server Host</label>
-                    <input
-                      type="text"
-                      value={ftpHost}
-                      onChange={e => setFtpHost(e.target.value)}
-                      placeholder="ftp.example.com"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
-                    />
+              {workspaceRightOpen ? (
+                <div className="w-1/4 bg-white/[0.015] border border-white/[0.04] p-4 rounded-2xl flex flex-col gap-4 min-h-0 shrink-0">
+                  <div className="flex justify-between items-center border-b border-white/[0.05] pb-2">
+                    <div className="text-xs font-bold text-indigo-400 uppercase tracking-wider">FTP Publishing Control</div>
+                    <button onClick={() => setWorkspaceRightOpen(false)} className="p-1 rounded bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer" title="Collapse Publishing Control">
+                      <ChevronRight size={11} />
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2 space-y-1">
-                      <label className="text-[9px] text-gray-500 font-bold uppercase">Username</label>
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-gray-500 font-bold uppercase">FTP Server Host</label>
                       <input
                         type="text"
-                        value={ftpUser}
-                        onChange={e => setFtpUser(e.target.value)}
-                        placeholder="user"
+                        value={ftpHost}
+                        onChange={e => setFtpHost(e.target.value)}
+                        placeholder="ftp.example.com"
                         className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
                       />
                     </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="col-span-2 space-y-1">
+                        <label className="text-[9px] text-gray-500 font-bold uppercase">Username</label>
+                        <input
+                          type="text"
+                          value={ftpUser}
+                          onChange={e => setFtpUser(e.target.value)}
+                          placeholder="user"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[9px] text-gray-500 font-bold uppercase">Port</label>
+                        <input
+                          type="number"
+                          value={ftpPort}
+                          onChange={e => setFtpPort(e.target.value)}
+                          placeholder="21"
+                          className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                        />
+                      </div>
+                    </div>
+
                     <div className="space-y-1">
-                      <label className="text-[9px] text-gray-500 font-bold uppercase">Port</label>
+                      <label className="text-[9px] text-gray-500 font-bold uppercase">Password</label>
                       <input
-                        type="number"
-                        value={ftpPort}
-                        onChange={e => setFtpPort(e.target.value)}
-                        placeholder="21"
+                        type="password"
+                        value={ftpPass}
+                        onChange={e => setFtpPass(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[9px] text-gray-500 font-bold uppercase">Remote Root Folder</label>
+                      <input
+                        type="text"
+                        value={ftpRemoteDir}
+                        onChange={e => setFtpRemoteDir(e.target.value)}
+                        placeholder="/public_html"
                         className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-[9px] text-gray-500 font-bold uppercase">Password</label>
-                    <input
-                      type="password"
-                      value={ftpPass}
-                      onChange={e => setFtpPass(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
-                    />
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[9px] text-gray-500 font-bold uppercase">Remote Root Folder</label>
-                    <input
-                      type="text"
-                      value={ftpRemoteDir}
-                      onChange={e => setFtpRemoteDir(e.target.value)}
-                      placeholder="/public_html"
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/35"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleDeployWebsite}
-                  disabled={ftpDeploying || !ftpHost.trim() || !ftpUser.trim()}
-                  className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                    ftpDeploying
-                      ? "bg-indigo-600/20 text-indigo-300 cursor-not-allowed"
-                      : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25"
-                  }`}
-                >
-                  {ftpDeploying ? "🚀 Uploading Assets..." : "🚀 Publish via FTP"}
-                </button>
-
-                {/* Live upload logger console */}
-                <div className="h-32 bg-black/50 border border-white/5 rounded-xl p-3 font-mono text-[9px] text-gray-400 overflow-y-auto shrink-0 flex flex-col">
-                  <div className="text-[8px] font-bold text-gray-500 uppercase mb-1.5 pb-1 border-b border-white/5 select-none">Deploy Console Logs</div>
-                  <div className="flex-grow space-y-1 overflow-y-auto">
-                    {ftpLogs.map((logLine, index) => (
-                      <div key={index} className="leading-relaxed border-l-2 border-indigo-500/30 pl-1.5">{logLine}</div>
-                    ))}
-                    {ftpLogs.length === 0 && <div className="text-gray-600 text-center py-4">Waiting to deploy...</div>}
-                  </div>
-                </div>
-
-                {/* Unified Campaign Swarm Publisher */}
-                <div className="border-t border-white/[0.05] pt-4 flex flex-col gap-3 min-h-0 flex-1">
-                  <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider border-b border-white/[0.05] pb-2">Campaign Swarm Publisher</div>
-                  <div className="space-y-2 select-none">
-                    <input
-                      type="text"
-                      value={campaignTitle}
-                      onChange={e => setCampaignTitle(e.target.value)}
-                      placeholder="Campaign Title (e.g. Smart Home)..."
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/35"
-                    />
-                    <textarea
-                      value={campaignTopic}
-                      onChange={e => setCampaignTopic(e.target.value)}
-                      placeholder="Brief topic or campaign guidelines..."
-                      className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/35 resize-none"
-                    />
-                  </div>
                   <button
-                    onClick={handleLaunchCampaign}
-                    disabled={campaignRunning || !campaignTitle.trim() || !campaignTopic.trim()}
-                    className={`w-full py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                      campaignRunning
-                        ? "bg-cyan-600/20 text-cyan-300 cursor-not-allowed"
-                        : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/25"
+                    onClick={handleDeployWebsite}
+                    disabled={ftpDeploying || !ftpHost.trim() || !ftpUser.trim()}
+                    className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                      ftpDeploying
+                        ? "bg-indigo-600/20 text-indigo-300 cursor-not-allowed"
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25"
                     }`}
                   >
-                    {campaignRunning ? "⚡ Campaign Swarm Active..." : "🚀 Launch Swarm Campaign"}
+                    {ftpDeploying ? "🚀 Uploading Assets..." : "🚀 Publish via FTP"}
                   </button>
 
-                  <div className="flex-grow bg-black/50 border border-white/5 rounded-xl p-2.5 font-mono text-[8px] text-gray-400 overflow-y-auto min-h-0 flex flex-col">
-                    <div className="text-[7.5px] font-bold text-gray-500 uppercase mb-1 pb-0.5 border-b border-white/5 select-none">Swarm Run logs</div>
+                  {/* Live upload logger console */}
+                  <div className="h-32 bg-black/50 border border-white/5 rounded-xl p-3 font-mono text-[9px] text-gray-400 overflow-y-auto shrink-0 flex flex-col">
+                    <div className="text-[8px] font-bold text-gray-500 uppercase mb-1.5 pb-1 border-b border-white/5 select-none">Deploy Console Logs</div>
                     <div className="flex-grow space-y-1 overflow-y-auto">
-                      {campaignLogs.map((logLine, index) => (
-                        <div key={index} className="leading-relaxed border-l-2 border-cyan-500/30 pl-1.5">{logLine}</div>
+                      {ftpLogs.map((logLine, index) => (
+                        <div key={index} className="leading-relaxed border-l-2 border-indigo-500/30 pl-1.5">{logLine}</div>
                       ))}
-                      {campaignLogs.length === 0 && <div className="text-gray-600 text-center py-2">Swarm idle.</div>}
+                      {ftpLogs.length === 0 && <div className="text-gray-600 text-center py-4">Waiting to deploy...</div>}
+                    </div>
+                  </div>
+
+                  {/* Unified Campaign Swarm Publisher */}
+                  <div className="border-t border-white/[0.05] pt-4 flex flex-col gap-3 min-h-0 flex-1">
+                    <div className="text-xs font-bold text-cyan-400 uppercase tracking-wider border-b border-white/[0.05] pb-2">Campaign Swarm Publisher</div>
+                    <div className="space-y-2 select-none">
+                      <input
+                        type="text"
+                        value={campaignTitle}
+                        onChange={e => setCampaignTitle(e.target.value)}
+                        placeholder="Campaign Title (e.g. Smart Home)..."
+                        className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/35"
+                      />
+                      <textarea
+                        value={campaignTopic}
+                        onChange={e => setCampaignTopic(e.target.value)}
+                        placeholder="Brief topic or campaign guidelines..."
+                        className="w-full h-16 bg-black/40 border border-white/10 rounded-xl p-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/35 resize-none"
+                      />
+                    </div>
+                    <button
+                      onClick={handleLaunchCampaign}
+                      disabled={campaignRunning || !campaignTitle.trim() || !campaignTopic.trim()}
+                      className={`w-full py-2.5 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all duration-200 cursor-pointer ${
+                        campaignRunning
+                          ? "bg-cyan-600/20 text-cyan-300 cursor-not-allowed"
+                          : "bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-600/25"
+                      }`}
+                    >
+                      {campaignRunning ? "⚡ Campaign Swarm Active..." : "🚀 Launch Swarm Campaign"}
+                    </button>
+
+                    <div className="flex-grow bg-black/50 border border-white/5 rounded-xl p-2.5 font-mono text-[8px] text-gray-400 overflow-y-auto min-h-0 flex flex-col">
+                      <div className="text-[7.5px] font-bold text-gray-500 uppercase mb-1 pb-0.5 border-b border-white/5 select-none">Swarm Run logs</div>
+                      <div className="flex-grow space-y-1 overflow-y-auto">
+                        {campaignLogs.map((logLine, index) => (
+                          <div key={index} className="leading-relaxed border-l-2 border-cyan-500/30 pl-1.5">{logLine}</div>
+                        ))}
+                        {campaignLogs.length === 0 && <div className="text-gray-600 text-center py-2">Swarm idle.</div>}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              ) : (
+                <div className="w-12 bg-white/[0.015] border border-white/[0.04] py-4 rounded-2xl flex flex-col items-center gap-4 min-h-0 select-none shrink-0">
+                  <button
+                    onClick={() => setWorkspaceRightOpen(true)}
+                    className="p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer"
+                    title="Open Publishing Control"
+                  >
+                    <Globe size={14} />
+                  </button>
+                  <div className="flex-grow flex items-center justify-center">
+                    <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest font-mono select-none [writing-mode:vertical-lr] rotate-180">
+                      Publishing
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -7007,7 +7246,7 @@ export default function App() {
                   Reset Session
                 </button>
               </div>
-              <div className="flex-grow overflow-y-auto space-y-2 pr-2 select-text custom-scrollbar">
+              <div ref={terminalContainerRef} className="flex-grow overflow-y-auto space-y-2 pr-2 select-text custom-scrollbar">
                 {terminalLogs.map((log, index) => (
                   <div key={index} className={`whitespace-pre-wrap ${
                     log.type === 'input' ? 'text-indigo-300 font-semibold' : log.type === 'error' ? 'text-red-400' : 'text-[#cbd5e1]'
@@ -8421,22 +8660,14 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating CLI Terminal Shell */}
-      <button
-        onClick={() => setIsFloatingTerminalOpen(!isFloatingTerminalOpen)}
-        className="fixed bottom-12 right-4 z-40 flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white border border-indigo-400/20 rounded-full text-[10px] font-bold uppercase transition-all duration-300 shadow-lg cursor-pointer select-none"
-      >
-        <TerminalSquare size={13} />
-        <span>🖥️ Console</span>
-      </button>
 
       {isFloatingTerminalOpen && (
-        <div className="fixed bottom-24 right-4 w-[420px] h-[360px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[9px] flex flex-col justify-between backdrop-blur-lg animate-in fade-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-10 right-4 w-[540px] h-[480px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[10.5px] flex flex-col justify-between backdrop-blur-lg animate-in fade-in duration-200">
           <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none">
             <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
           </div>
-          <div className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar">
+          <div ref={floatingTerminalContainerRef} className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar">
             {terminalLogs.map((log, index) => (
               <div key={index} className={`whitespace-pre-wrap ${
                 log.type === 'input' ? 'text-indigo-300 font-semibold' : log.type === 'error' ? 'text-red-400' : 'text-gray-300'
@@ -8446,17 +8677,150 @@ export default function App() {
             ))}
             <div ref={floatingTerminalBottomRef} />
           </div>
-          <div className="flex items-center gap-2 pt-2 border-t border-white/5 select-none">
-            <span className="text-indigo-400 font-bold">PS Gary&gt;</span>
+          <div className="flex items-center gap-2 pt-2.5 pb-1 border-t border-white/5 select-none">
+            <span className="text-indigo-400 font-bold text-[12.5px] shrink-0">PS Gary&gt;</span>
             <input
               type="text"
               value={terminalInput}
               onChange={e => setTerminalInput(e.target.value)}
               onKeyDown={e => e.key === "Enter" && handleRunCommand()}
-              className="flex-grow bg-transparent text-white focus:outline-none placeholder-gray-600 select-text"
+              className="flex-grow bg-transparent text-white focus:outline-none placeholder-gray-600 select-text text-[13px] py-1.5 pl-1"
               placeholder="Type commands..."
             />
           </div>
+        </div>
+      )}
+
+      {/* Floating Swarm Chat Panel */}
+      {isFloatingChatOpen && (
+        <div
+          onMouseDown={handleChatDragStart}
+          style={isChatMaximized ? {
+            left: 0,
+            top: 0,
+            width: '100vw',
+            height: '100vh',
+            borderRadius: 0
+          } : {
+            left: floatingChatPos.x,
+            top: floatingChatPos.y,
+            width: isChatMinimized ? '240px' : '480px',
+            height: isChatMinimized ? '44px' : '580px',
+            resize: isChatMinimized ? 'none' : 'both',
+            overflow: 'hidden'
+          }}
+          className="fixed bg-[#060612]/98 border border-white/[0.08] rounded-2xl shadow-2xl z-50 flex flex-col justify-between backdrop-blur-xl animate-in fade-in duration-200 select-none cursor-grab active:cursor-grabbing min-w-[320px] min-h-[300px]"
+        >
+          {/* Header */}
+          <div className="flex justify-between items-center p-3.5 border-b border-white/[0.05] shrink-0 select-none">
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-[10px] font-bold text-gray-300 uppercase tracking-wider font-mono">Swarm Chat Console</span>
+            </div>
+            <div className="flex items-center gap-2 select-none">
+              {/* Minimize Toggle */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsChatMinimized(!isChatMinimized); }}
+                className="text-gray-500 hover:text-white font-bold text-xs p-1 bg-white/[0.02] hover:bg-white/[0.05] rounded-md transition-all cursor-pointer"
+                title={isChatMinimized ? "Restore" : "Minimize"}
+              >
+                {isChatMinimized ? "🗖" : "🗕"}
+              </button>
+              {/* Maximize Toggle */}
+              {!isChatMinimized && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); setIsChatMaximized(!isChatMaximized); }}
+                  className="text-gray-500 hover:text-white font-bold text-[10px] p-1 px-1.5 bg-white/[0.02] hover:bg-white/[0.05] rounded-md transition-all cursor-pointer"
+                  title={isChatMaximized ? "Restore Size" : "Maximize"}
+                >
+                  {isChatMaximized ? "❐" : "⛶"}
+                </button>
+              )}
+              {/* Close Button */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setIsFloatingChatOpen(false); }}
+                className="text-gray-500 hover:text-red-400 font-bold text-xs p-1 bg-white/[0.02] hover:bg-white/[0.05] rounded-md transition-all cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+
+          {/* Messages list (only visible if not minimized) */}
+          {!isChatMinimized && (
+            <div ref={floatingChatContainerRef} className="flex-grow overflow-y-auto p-4 space-y-3 select-text cursor-default custom-scrollbar bg-[#020207]/30">
+              {chatMessages.length === 0 ? (
+                <div className="text-gray-600 text-center py-10 text-xs font-mono">No messages in active session.</div>
+              ) : (
+                chatMessages.map((msg) => {
+                  const isUser = msg.agent === 'user';
+                  const isSystem = msg.agent === 'system';
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col max-w-[92%] ${isUser ? 'ml-auto items-end' : 'mr-auto items-start'}`}
+                    >
+                      <div className="text-[8px] uppercase tracking-wider text-gray-500 font-bold mb-1 px-1">
+                        {isUser ? 'You' : msg.agent}
+                      </div>
+                      <div className={`p-3 rounded-2xl text-[11.5px] leading-relaxed border ${
+                        isUser 
+                          ? 'bg-indigo-600/10 border-indigo-500/25 text-indigo-100 rounded-tr-none shadow-md' 
+                          : isSystem 
+                            ? 'bg-yellow-500/5 border-yellow-500/15 text-yellow-200/90 rounded-tl-none font-mono text-[10px]' 
+                            : 'bg-white/[0.02] border-white/[0.06] text-gray-200 rounded-tl-none'
+                      }`}>
+                        {msg.msg}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+              <div ref={floatingChatBottomRef} />
+            </div>
+          )}
+
+          {/* Input form (only visible if not minimized) */}
+          {!isChatMinimized && (
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!floatingChatInput.trim()) return;
+                const txt = floatingChatInput;
+                setFloatingChatInput("");
+                if (isCurrentLoading) {
+                  await handleSendIntervention(txt);
+                } else {
+                  await handleSendMessage(txt);
+                }
+              }}
+              className="p-3 border-t border-white/[0.05] bg-[#04040a]/90 flex gap-2 items-center select-none shrink-0"
+            >
+              <textarea
+                value={floatingChatInput}
+                onChange={e => setFloatingChatInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    e.currentTarget.form?.requestSubmit();
+                  }
+                }}
+                rows={1}
+                placeholder="Message swarm/agent..."
+                className="flex-grow bg-white/[0.02] border border-white/[0.08] rounded-xl px-3 py-2.5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-indigo-500/35 resize-none max-h-24 leading-normal overflow-y-auto"
+              />
+              <button
+                type="submit"
+                disabled={!floatingChatInput.trim()}
+                className="p-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl transition-all cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Send size={12} />
+              </button>
+            </form>
+          )}
         </div>
       )}
 
@@ -8537,7 +8901,47 @@ export default function App() {
           <span className="flex items-center gap-1.5"><Cpu size={11} className="text-gray-600" /> 8 Inference Catalogs</span>
           <span className="flex items-center gap-1.5 text-purple-400"><Sparkles size={11} /> Model: {activeModel}</span>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          {/* Files Explorer Button */}
+          <button
+            onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
+            className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer"
+            title="Toggle Files Explorer"
+          >
+            <FolderOpen size={12} />
+          </button>
+          {/* Publishing Control Button */}
+          <button
+            onClick={() => setIsRightCollapsed(!isRightCollapsed)}
+            className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer"
+            title="Toggle Publishing Control"
+          >
+            <Globe size={12} />
+          </button>
+
+          {/* Console Button */}
+          <button
+            onClick={() => setIsFloatingTerminalOpen(!isFloatingTerminalOpen)}
+            className="p-1.5 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
+            title="Toggle Console"
+          >
+            <TerminalSquare size={12} className="text-indigo-400" />
+            <span className="text-[9px] uppercase font-bold tracking-wider">Console</span>
+          </button>
+
+          {/* Swarm Chat Button */}
+          <button
+            onClick={() => {
+              setIsFloatingChatOpen(!isFloatingChatOpen);
+              setIsChatMinimized(false);
+            }}
+            className="p-1.5 px-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 transition-all cursor-pointer flex items-center gap-1.5"
+            title="Toggle Swarm Chat"
+          >
+            <MessageSquare size={12} />
+            <span className="text-[9px] uppercase font-bold tracking-wider">💬 Swarm Chat</span>
+          </button>
+
           <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-full">Antigravity Premium OS Dashboard</span>
         </div>
       </footer>
