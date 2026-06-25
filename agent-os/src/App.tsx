@@ -9556,12 +9556,16 @@ export default function App() {
 
 
       {isFloatingTerminalOpen && (
-        <div className="fixed bottom-10 right-4 w-[540px] h-[480px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[10.5px] flex flex-col justify-between backdrop-blur-lg"><div className="text-red-400 text-xs font-bold mb-2">Warning: Errors detected in recent activity. Please review the terminal output for details.</div>
-          <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none"><div className="text-red-400 text-xs font-bold mb-2">Warning: Errors detected in recent activity. Please review terminal output for details.</div>
+        <div className="fixed bottom-10 right-4 w-[540px] h-[480px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[10.5px] flex flex-col justify-between backdrop-blur-lg">
+          <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none">
+            <div className="flex items-center gap-2">
+              <span className="text-red-400 text-xs font-bold">⚠️ Errors Detected</span>
+              <button onClick={() => setTerminalLogs([])} className="text-[9px] bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-2 py-0.5 rounded border border-red-500/20 cursor-pointer transition-all" title="Clear error logs">Clear</button>
+            </div>
             <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
           </div>
-          <div ref={floatingTerminalContainerRef} className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar"><div className="text-red-400 text-xs font-bold mb-2">Warning: Errors detected in recent activity. Please review terminal output for details.</div>
+          <div ref={floatingTerminalContainerRef} className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar">
             {terminalLogs.map((log, index) => (
               <div key={index} className={`whitespace-pre-wrap ${
                 log.type === 'input' ? 'text-indigo-300 font-semibold' : log.type === 'error' ? 'text-red-400' : 'text-gray-300'
