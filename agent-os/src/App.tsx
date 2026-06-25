@@ -9557,7 +9557,7 @@ export default function App() {
 
       {isFloatingTerminalOpen && (
         <div className="fixed bottom-10 right-4 w-[540px] h-[480px] bg-[#04040c]/95 p-4 border border-white/10 rounded-2xl shadow-2xl z-40 font-mono text-[10.5px] flex flex-col justify-between backdrop-blur-lg">
-          <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none">
+          <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none"><div className="text-red-400 text-xs font-bold mb-2">Warning: Errors detected in recent activity. Please review terminal output for details.</div>
             <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
           </div>
