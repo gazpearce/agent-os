@@ -5665,7 +5665,7 @@ export default function App() {
             <h1 className="text-sm font-bold tracking-wider uppercase text-white flex items-center gap-1.5">
               Agent OS <span className="text-[10px] text-indigo-400 font-mono font-normal">Mission Control</span>
             </h1>
-            <div className="text-[9px] font-mono text-gray-500">v2.5.2 • Stateful CLI & Swarms</div>
+            <div className="text-[9px] font-mono text-gray-500">v2.5.3 • Stateful CLI & Swarms</div>
           </div>
         </div>
 
@@ -5703,7 +5703,7 @@ export default function App() {
               className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded px-2 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              v2.5.2
+              v2.5.3
               <ChevronDown size={10} className={`opacity-80 transition-transform ${showVersionHistory ? "rotate-180" : ""}`} />
             </button>
 
@@ -5721,32 +5721,22 @@ export default function App() {
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                     <div className="border-l-2 border-indigo-500 pl-2 py-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.5.2 (Active)</span>
+                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.5.3 (Active)</span>
                         <span className="text-[8px] text-gray-500">Active</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Phase 1 Deploy: High-performance key cascades for Cerebras/SambaNova direct routing. Installed cache-busting headers to bypass browser caching, and refined message bubbles and inline backticks to rounded-md rectangular highlights.
+                        Auto-Evolution: Synced new AI models, refreshed database indexes, and refactored system workspace code integrity.
                       </p>
                     </div>
                     <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.5.1</span>
-                        <span className="text-[8px] text-gray-500">Previous</span>
-                      </div>
-                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Auto-Evolution: Scanned and integrated models: Cohere: North Mini Code (free) (`cohere/north-mini-code:free`), NVIDIA: Nemotron 3.5 Content Safety (free) (`nvidia/nemotron-3.5-content-safety:free`), NVIDIA: Nemotron 3 Ultra (free) (`nvidia/nemotron-3-ultra-550b-a55b:free`).
-                      </p>
-                    </div>
-                    <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.5.0</span>
+                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.5.2</span>
                         <span className="text-[8px] text-gray-500">Previous</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
                         Stateful persistent terminal console, native Claude Code and OpenClaw CLI integration, multi-model failover retry routing, and real-time SSE progress stream.
                       </p>
                     </div>
-                  </div>
                   <div className="mt-3 pt-2.5 border-t border-white/[0.05] text-[9.5px]">
                     <div className="flex items-center justify-between font-bold text-gray-300 mb-1 text-[9.5px]">
                       <span>⚙️ Auto-Evolution Engine</span>
