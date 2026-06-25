@@ -9847,6 +9847,7 @@ export default function App() {
           </button>
 
           <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-md">Antigravity Premium OS Dashboard</span>
+          <span className="text-[8px] font-mono text-gray-600 border-l border-gray-800 pl-2 ml-1">v{import.meta.env.VITE_APP_VERSION || 'dev'} • {new Date().toISOString().split('T')[0]}</span>
         </div>
       </footer>
     </div>
