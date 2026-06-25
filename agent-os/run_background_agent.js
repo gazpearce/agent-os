@@ -48,9 +48,9 @@ function getIdleTime() {
 
 // Simple RSS parser using Regex to avoid external XML dependencies
 async function fetchAINews() {
-  logMsg('Scanning RSS feeds for new AI models and releases...');
+  logMsg('Scanning RSS feeds for new AI models, Chinese LLM releases, and free API providers...');
   try {
-    const url = 'https://news.google.com/rss/search?q=LLM+model+OR+AI+model+OR+open-source+model+OR+OpenRouter+OR+HuggingFace&hl=en-US&gl=US&ceid=US:en';
+    const url = 'https://news.google.com/rss/search?q=LLM+model+release+OR+DeepSeek+OR+Qwen+OR+SiliconFlow+OR+Zhipu+OR+SambaNova+OR+Cerebras+OR+HuggingFace+OR+OpenRouter&hl=en-US&gl=US&ceid=US:en';
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const xml = await res.text();
