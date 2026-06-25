@@ -539,61 +539,259 @@ function setLlmCache(model, messages, response) {
 }
 
 const GEMINI_KEYS_PATH = `${HOME}\\AppData\\Local\\hermes\\gemini-keys.json`;
-let geminiKeys = ['AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo'];
 let geminiKeyIndex = 0;
 
+// ── Collect Gemini keys from ALL sources ────────────────────────────────────
 function loadGeminiKeys() {
+  const seen = new Set();
+  const keys = [];
+
+  const addKey = (k) => {
+    if (!k || typeof k !== 'string') return;
+    const t = k.trim();
+    if (t.length > 10 && !seen.has(t)) {
+      seen.add(t);
+      keys.push(t);
+    }
+  };
+
+  // 1. gemini-keys.json (primary store — written by the dashboard UI)
   try {
     if (existsSync(GEMINI_KEYS_PATH)) {
       const data = JSON.parse(readFileSync(GEMINI_KEYS_PATH, 'utf-8'));
-      if (Array.isArray(data) && data.length > 0) {
-        geminiKeys = data;
-        console.log(`[Gemini Keys] Loaded ${geminiKeys.length} keys from config.`);
-      }
+      if (Array.isArray(data)) data.forEach(addKey);
     }
-  } catch (e) {
-    console.log('[Gemini Keys] Failed to load gemini keys:', e.message);
+  } catch (e) { /* ignore */ }
+
+  // 2. GEMINI_API_KEY (single key env var)
+  addKey(process.env.GEMINI_API_KEY);
+
+  // 3. GOOGLE_API_KEY (alternative env var name)
+  addKey(process.env.GOOGLE_API_KEY);
+
+  // 4. GEMINI_API_KEY_1 ... GEMINI_API_KEY_20 (multi-key env vars)
+  for (let i = 1; i <= 20; i++) {
+    addKey(process.env[`GEMINI_API_KEY_${i}`]);
+    addKey(process.env[`GOOGLE_API_KEY_${i}`]);
+  }
+
+  // 5. Built-in fallback (only if nothing else found)
+  if (keys.length === 0) {
+    keys.push('AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo');
+  }
+
+  console.log(`[Gemini Keys] Pool ready: ${keys.length} key(s) loaded from all sources.`);
+  return keys;
+}
+
+let geminiKeys = loadGeminiKeys();
+
+// Call this after saving new keys via the API
+function reloadGeminiKeys() {
+  geminiKeys = loadGeminiKeys();
+  geminiKeyIndex = 0;
+  console.log(`[Gemini Keys] Reloaded. Pool now has ${geminiKeys.length} key(s).`);
+}
+
+// ── Smart Quota Tracker ───────────────────────────────────────────────────────
+// Gemini free tier limits (per key):
+//   gemini-2.0-flash / gemini-1.5-flash: 15 RPM, 1500 RPD
+//   gemini-1.5-pro / gemini-1.0-pro:      2 RPM,   50 RPD
+//   text-embedding-004:               1500 RPM, 100000 RPD
+// Paid tier is much higher — we track usage and warn/rotate at 80%
+const GEMINI_LIMITS = {
+  default:              { rpm: 15,   rpd: 1500   },
+  'gemini-2.0-flash':   { rpm: 15,   rpd: 1500   },
+  'gemini-2.5-flash':   { rpm: 15,   rpd: 1500   },
+  'gemini-1.5-flash':   { rpm: 15,   rpd: 1500   },
+  'gemini-1.5-pro':     { rpm: 2,    rpd: 50     },
+  'gemini-1.0-pro':     { rpm: 2,    rpd: 50     },
+  'text-embedding-004': { rpm: 1500, rpd: 100000 },
+};
+const QUOTA_WARN_THRESHOLD = 0.80; // 80% → rotate to next key
+
+// Per-key usage state
+const geminiQuota = {};
+
+function getQuota(key) {
+  if (!geminiQuota[key]) {
+    geminiQuota[key] = {
+      rpm_count: 0,
+      rpm_window_start: Date.now(),
+      rpd_count: 0,
+      rpd_date: new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' }),
+      depleted: false,
+      depleted_at: null,
+      warning_sent: false,
+    };
+  }
+  return geminiQuota[key];
+}
+
+// Gemini quotas reset at midnight Pacific time
+function getPacificDate() {
+  return new Date().toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' });
+}
+
+function checkAndResetDailyQuota(key, limits) {
+  const q = getQuota(key);
+  const todayPT = getPacificDate();
+  if (q.rpd_date !== todayPT) {
+    console.log(`[Gemini Keys] ♻️  Key ...${key.slice(-6)} daily quota RESET (midnight Pacific). Was ${q.rpd_count}/${limits.rpd} RPD.`);
+    q.rpd_count = 0;
+    q.rpd_date = todayPT;
+    q.depleted = false;
+    q.depleted_at = null;
+    q.warning_sent = false;
   }
 }
-loadGeminiKeys();
 
-function getNextGeminiKey() {
-  if (!geminiKeys || geminiKeys.length === 0) {
-    return 'AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo';
+function recordGeminiRequest(key, modelId) {
+  const q = getQuota(key);
+  const limits = GEMINI_LIMITS[modelId] || GEMINI_LIMITS.default;
+  const now = Date.now();
+
+  checkAndResetDailyQuota(key, limits);
+
+  // Reset per-minute window
+  if (now - q.rpm_window_start > 60000) {
+    q.rpm_count = 0;
+    q.rpm_window_start = now;
   }
-  const key = geminiKeys[geminiKeyIndex % geminiKeys.length];
-  geminiKeyIndex = (geminiKeyIndex + 1) % geminiKeys.length;
+
+  q.rpm_count++;
+  q.rpd_count++;
+
+  const rpmPct = q.rpm_count / limits.rpm;
+  const rpdPct = q.rpd_count / limits.rpd;
+  const usage = Math.max(rpmPct, rpdPct);
+
+  // Warn at 80%
+  if (usage >= QUOTA_WARN_THRESHOLD && !q.warning_sent) {
+    q.warning_sent = true;
+    console.warn(`[Gemini Keys] ⚠️  Key ...${key.slice(-6)} hit ${Math.round(usage * 100)}% quota — auto-rotating to next key. (${q.rpm_count}/${limits.rpm} RPM, ${q.rpd_count}/${limits.rpd} RPD)`);
+  }
+
+  return { rpmPct, rpdPct, usage, limits, atThreshold: usage >= QUOTA_WARN_THRESHOLD };
+}
+
+function isKeyOverQuota(key, modelId) {
+  const q = getQuota(key);
+  const limits = GEMINI_LIMITS[modelId] || GEMINI_LIMITS.default;
+  checkAndResetDailyQuota(key, limits);
+  if (q.depleted) return true;
+  const rpdPct = q.rpd_count / limits.rpd;
+  // Reset minute window before checking RPM
+  if (Date.now() - q.rpm_window_start > 60000) { q.rpm_count = 0; q.rpm_window_start = Date.now(); }
+  const rpmPct = q.rpm_count / limits.rpm;
+  return Math.max(rpdPct, rpmPct) >= QUOTA_WARN_THRESHOLD;
+}
+
+function markKeyDepleted(key) {
+  const q = getQuota(key);
+  q.depleted = true;
+  q.depleted_at = Date.now();
+  console.log(`[Gemini Keys] 🔴 Key ...${key.slice(-6)} DEPLETED (429). Will auto-recover at midnight Pacific.`);
+  const anyActive = geminiKeys.some(k => !getQuota(k).depleted);
+  if (!anyActive) {
+    console.warn(`[Gemini Keys] 🚨 ALL ${geminiKeys.length} Gemini key(s) exhausted. Falling back to other providers until midnight Pacific reset.`);
+  }
+}
+
+// Returns status summary for dashboard API
+function getGeminiKeyStatus() {
+  return {
+    total_keys: geminiKeys.length,
+    keys: geminiKeys.map((key, idx) => {
+      const q = getQuota(key);
+      const limits = GEMINI_LIMITS.default;
+      checkAndResetDailyQuota(key, limits);
+      const rpdPct = Math.min(Math.round((q.rpd_count / limits.rpd) * 100), 100);
+      const rpmPct = Math.min(Math.round((q.rpm_count / limits.rpm) * 100), 100);
+      const overQuota = isKeyOverQuota(key, 'gemini-2.0-flash');
+      return {
+        index: idx + 1,
+        key_hint: `...${key.slice(-6)}`,
+        rpd: { used: q.rpd_count, limit: limits.rpd, pct: rpdPct },
+        rpm: { used: q.rpm_count, limit: limits.rpm, pct: rpmPct },
+        depleted: q.depleted,
+        over_quota: overQuota,
+        reset_at: 'midnight Pacific time',
+        status: q.depleted ? 'depleted' : overQuota ? 'throttled' : rpdPct >= 50 ? 'warning' : 'healthy',
+      };
+    }),
+    next_reset: (() => {
+      const now = new Date();
+      const midnightPT = new Date(now.toLocaleDateString('en-US', { timeZone: 'America/Los_Angeles' }));
+      midnightPT.setDate(midnightPT.getDate() + 1);
+      const msLeft = midnightPT - now;
+      const h = Math.floor(msLeft / 3600000);
+      const m = Math.floor((msLeft % 3600000) / 60000);
+      return `${h}h ${m}m`;
+    })(),
+  };
+}
+
+function getActiveKeys(modelId) {
+  const under = geminiKeys.filter(k => !isKeyOverQuota(k, modelId));
+  return under.length > 0 ? under : geminiKeys; // fall back to all if all over quota
+}
+
+function getNextGeminiKey(modelId = 'gemini-2.0-flash') {
+  const active = getActiveKeys(modelId);
+  const key = active[geminiKeyIndex % active.length];
+  geminiKeyIndex = (geminiKeyIndex + 1) % active.length;
   return key;
 }
 
 async function fetchGeminiWithRotation(urlSuffix, bodyData, controllerSignal) {
-  let attempts = Math.max(geminiKeys.length, 1);
+  const modelId = urlSuffix.split(':')[0];
+  const limits = GEMINI_LIMITS[modelId] || GEMINI_LIMITS.default;
+
+  // Active (under 80%) keys first, then over-quota as last resort
+  const active = getActiveKeys(modelId);
+  const overQuota = geminiKeys.filter(k => isKeyOverQuota(k, modelId));
+  const tryOrder = [...new Set([...active, ...overQuota])];
+
+  if (tryOrder.length === 0) throw new Error('No Gemini keys configured');
+
   let lastError = null;
-  
-  for (let i = 0; i < attempts; i++) {
-    const key = getNextGeminiKey();
+
+  for (let i = 0; i < tryOrder.length; i++) {
+    const key = tryOrder[i];
+    const q = getQuota(key);
+    const rpdPct = Math.min(Math.round((q.rpd_count / limits.rpd) * 100), 100);
+    const icon = q.depleted ? '🔴' : rpdPct >= 80 ? '⚠️' : '✅';
+    console.log(`[Gemini API] ${icon} Key ...${key.slice(-6)} [${rpdPct}% RPD] — attempt ${i + 1}/${tryOrder.length}`);
+
     try {
-      console.log(`[Gemini API] Requesting via key ending in ...${key.slice(-6)} (Attempt ${i + 1}/${attempts})`);
       const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${urlSuffix}?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyData),
         signal: controllerSignal
       });
-      
+
       if (r.status === 200) {
+        recordGeminiRequest(key, modelId);
+        console.log(`[Gemini API] ✓ Key ...${key.slice(-6)} success (${q.rpd_count + 1}/${limits.rpd} RPD used)`);
         return r;
       }
-      
+
       const errText = await r.text();
-      console.log(`[Gemini API] Key ...${key.slice(-6)} returned status ${r.status}: ${errText}`);
+      console.log(`[Gemini API] Key ...${key.slice(-6)} → ${r.status}`);
+
+      // 429 = quota/credits depleted — mark and move on
+      if (r.status === 429) markKeyDepleted(key);
+
       lastError = new Error(`Status ${r.status}: ${errText}`);
     } catch (e) {
-      console.log(`[Gemini API] Key ...${key.slice(-6)} failed:`, e.message);
+      console.log(`[Gemini API] Key ...${key.slice(-6)} failed: ${e.message}`);
       lastError = e;
     }
   }
-  throw lastError || new Error('All Gemini keys failed');
+
+  throw lastError || new Error(`All ${tryOrder.length} Gemini key(s) exhausted`);
 }
 
 async function generateEmbedding(text) {
@@ -7470,27 +7668,43 @@ app.post('/api/config', (req, res) => {
   }
 });
 
-// GET GEMINI KEYS
+// GET GEMINI KEYS — returns key pool + quota status
 app.get('/api/gemini-keys', (req, res) => {
-  res.json({ keys: geminiKeys });
+  const status = getGeminiKeyStatus();
+  res.json({
+    count: geminiKeys.length,
+    keys: geminiKeys.map(k => `...${k.slice(-6)}`), // masked
+    status: status.keys,
+    next_reset: status.next_reset,
+  });
 });
 
-// POST GEMINI KEYS
+// GET GEMINI KEY STATUS — detailed per-key quota dashboard
+app.get('/api/gemini-keys/status', (req, res) => {
+  res.json(getGeminiKeyStatus());
+});
+
+// POST GEMINI KEYS — save new keys and reload full pool
 app.post('/api/gemini-keys', (req, res) => {
   const { keys } = req.body;
   if (!Array.isArray(keys)) return res.status(400).json({ error: 'keys array required' });
   try {
-    const cleanedKeys = keys.map(k => k.trim()).filter(Boolean);
-    if (cleanedKeys.length === 0) {
-      cleanedKeys.push('AIzaSyD9-_9NTLFujqI5JZYiMZBC6pzd9wSgIVo'); // default/fallback
-    }
-    geminiKeys = cleanedKeys;
-    writeFileSync(GEMINI_KEYS_PATH, JSON.stringify(geminiKeys, null, 2), 'utf-8');
-    res.json({ success: true, keys: geminiKeys });
+    const cleanedKeys = keys.map(k => k.trim()).filter(k => k.length > 10);
+    if (cleanedKeys.length === 0) return res.status(400).json({ error: 'No valid keys provided' });
+    // Save to the JSON store (env vars are also merged in on reload)
+    writeFileSync(GEMINI_KEYS_PATH, JSON.stringify(cleanedKeys, null, 2), 'utf-8');
+    reloadGeminiKeys(); // merges json + env vars
+    res.json({
+      success: true,
+      saved: cleanedKeys.length,
+      total_pool: geminiKeys.length,
+      message: `Saved ${cleanedKeys.length} key(s). Total pool (including env vars): ${geminiKeys.length} key(s).`,
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
+
 
 // EDIT SKILLS
 app.post('/api/skills', (req, res) => {
