@@ -1562,9 +1562,98 @@ function SettingsPanel() {
           </button>
         </div>
       </div>
+
+      {/* Background Agent Section */}
+      <BackgroundAgentPanel />
     </div>
   );
 }
+
+/* ─────────── BACKGROUND AGENT MANAGER ─────────── */
+function BackgroundAgentPanel() {
+  const [status, setStatus] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState('');
+
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch('/api/background-agent/status');
+      if (res.ok) {
+        setStatus(await res.json());
+      }
+    } catch (_) {}
+  };
+
+  const triggerScan = async () => {
+    setLoading(true);
+    setMsg('Triggering scan...');
+    try {
+      const res = await fetch('/api/background-agent/trigger', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        setMsg(data.message);
+        setTimeout(() => setMsg(''), 4000);
+        fetchStatus();
+      }
+    } catch (e: any) {
+      setMsg('Error: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStatus();
+    const interval = setInterval(fetchStatus, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!status) return <div className="text-[9px] text-gray-500 py-1">Loading agent status...</div>;
+
+  return (
+    <div className="pt-2.5 border-t border-white/[0.05] space-y-2">
+      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+        <span>🔄 24/7 Research & Evolution Daemon</span>
+        <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
+          status.status === 'researching' ? 'bg-amber-500/20 text-amber-400' :
+          status.status === 'user-active' ? 'bg-blue-500/20 text-blue-400' :
+          status.status === 'idle-passive' ? 'bg-teal-500/20 text-teal-400' :
+          'bg-gray-500/20 text-gray-400'
+        }`}>
+          {(status.status || 'offline').toUpperCase()}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 text-[8px] text-gray-400 font-mono bg-black/20 rounded p-1.5 border border-white/[0.03]">
+        <div>Idle Time: <span className="text-white">{status.idleTimeSeconds || 0}s</span></div>
+        <div>Last Run: <span className="text-white">{status.lastIntensiveRun ? new Date(status.lastIntensiveRun).toLocaleTimeString() : 'Never'}</span></div>
+        <div className="col-span-2">Mode: <span className="text-gray-300">{(status.idleTimeSeconds || 0) >= 1800 ? 'Deep Evolution (Idle)' : 'Passive Monitoring'}</span></div>
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={triggerScan}
+          disabled={loading}
+          className="flex-1 px-2.5 py-1 bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-white rounded text-[8px] font-bold cursor-pointer transition-colors"
+        >
+          {loading ? 'Triggering...' : 'Force Intensive Scan'}
+        </button>
+      </div>
+      {msg && <div className="text-[8px] text-teal-400 font-mono">{msg}</div>}
+
+      <div className="space-y-1">
+        <div className="text-[8px] text-gray-500 font-bold uppercase">Activity Log:</div>
+        <div className="bg-black/40 border border-white/[0.05] rounded p-1.5 max-h-24 overflow-y-auto text-[7.5px] font-mono text-gray-400 space-y-0.5">
+          {(status.logs || []).map((log: string, idx: number) => (
+            <div key={idx} className="whitespace-pre-wrap">{log}</div>
+          ))}
+          {(!status.logs || status.logs.length === 0) && <div>No logs yet.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 /* ─────────── GEMINI API KEYS MANAGER ─────────── */
 function GeminiKeysPanel() {

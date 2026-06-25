@@ -7224,6 +7224,38 @@ app.get('/api/wishlist/markdown', (req, res) => {
   }
 });
 
+// GET /api/background-agent/status
+app.get('/api/background-agent/status', (req, res) => {
+  const statePath = join(SHARED, 'background_agent_state.json');
+  try {
+    if (existsSync(statePath)) {
+      const state = JSON.parse(readFileSync(statePath, 'utf-8'));
+      res.json(state);
+    } else {
+      res.json({
+        status: 'not_running',
+        idleTimeSeconds: 0,
+        lastIntensiveRun: 0,
+        logs: ['No background agent state found yet.']
+      });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// POST /api/background-agent/trigger
+app.post('/api/background-agent/trigger', async (req, res) => {
+  res.json({ success: true, message: 'Intensive background research scan triggered manually.' });
+  try {
+    runJulianGoldieWatcher(true);
+    runModelScanner(true);
+    runSelfImprovementWishlist();
+  } catch (e) {
+    console.error('Manual background trigger error:', e.message);
+  }
+});
+
 
 app.post('/api/api-usage/reset', (req, res) => {
   try {
@@ -9526,3 +9558,21 @@ try {
 } catch (tgErr) {
   console.error('[Telegram Startup Error]', tgErr.message);
 }
+
+// Start 24/7 Background Agent Daemon
+function startBackgroundAgent() {
+  console.log('[Background Agent] Starting 24/7 Research & Self-Evolution Daemon...');
+  try {
+    const child = spawn('node', ['run_background_agent.js'], {
+      detached: true,
+      stdio: 'ignore',
+      env: { ...process.env }
+    });
+    child.unref();
+    console.log('[Background Agent] Daemon spawned successfully in background.');
+  } catch (err) {
+    console.error('[Background Agent] Spawn failed:', err.message);
+  }
+}
+startBackgroundAgent();
+
