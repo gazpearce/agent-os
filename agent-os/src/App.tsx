@@ -9484,7 +9484,7 @@ export default function App() {
             <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
           </div>
-          <div ref={floatingTerminalContainerRef} className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar">
+          <div ref={floatingTerminalContainerRef} className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar"><div className="text-red-400 text-xs font-bold mb-2">Warning: Errors detected in recent activity. Please review terminal output for details.</div>
             {terminalLogs.map((log, index) => (
               <div key={index} className={`whitespace-pre-wrap ${
                 log.type === 'input' ? 'text-indigo-300 font-semibold' : log.type === 'error' ? 'text-red-400' : 'text-gray-300'
