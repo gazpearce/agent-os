@@ -9565,6 +9565,12 @@ export default function App() {
             <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
           </div>
+          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
+            <div className="mb-2 p-2 bg-red-500/5 border border-red-500/20 rounded-lg flex items-center justify-between">
+              <span className="text-[9px] text-red-300">🔴 {terminalLogs.filter(l => l.type === 'error').length} healing failures detected - Check JSON escaping & file paths</span>
+              <span className="text-[8px] text-red-400/60">Last: {new Date().toLocaleTimeString()}</span>
+            </div>
+          )}
           <div ref={floatingTerminalContainerRef} className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar">
             {terminalLogs.map((log, index) => (
               <div key={index} className={`whitespace-pre-wrap ${
