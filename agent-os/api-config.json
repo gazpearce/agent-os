@@ -11,12 +11,17 @@
       "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",
       "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",
       "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",
-      "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"
+      "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",
+      "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"
     ],
     "primary_key": 0,
-    "capabilities": ["text", "image", "code", "video"]
+    "capabilities": [
+      "text",
+      "image",
+      "code",
+      "video"
+    ]
   },
-
   "gemini": {
     "provider": "Google",
     "base_url": "https://generativelanguage.googleapis.com/v1beta",
@@ -26,9 +31,14 @@
       "image": "gemini-2.0-flash-exp-image-generation",
       "multimodal": "gemini-2.0-flash"
     },
-    "capabilities": ["text", "image", "video", "audio", "multimodal"]
+    "capabilities": [
+      "text",
+      "image",
+      "video",
+      "audio",
+      "multimodal"
+    ]
   },
-
   "openrouter": {
     "provider": "OpenRouter",
     "base_url": "https://openrouter.ai/api/v1",
@@ -80,63 +90,77 @@
       "cognitivecomputations/dolphin-mistral-24b-venice-edition:free"
     ]
   },
-
   "huggingface": {
     "provider": "HuggingFace",
     "base_url": "https://api-inference.huggingface.co",
     "keys": [
       "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",
-      "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"
+      "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",
+      "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"
     ],
     "primary_key": 0,
-    "capabilities": ["text", "image", "audio", "video"]
+    "capabilities": [
+      "text",
+      "image",
+      "audio",
+      "video"
+    ]
   },
-
   "pollinations": {
     "provider": "Pollinations.ai",
     "base_url": "https://image.pollinations.ai",
-    "capabilities": ["text", "image"],
+    "capabilities": [
+      "text",
+      "image"
+    ],
     "free": true
   },
-
   "nvidia": {
     "provider": "NVIDIA",
     "base_url": "https://integrate.api.nvidia.com/v1",
-    "api_key": "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",
-    "capabilities": ["text", "image", "coding"]
+    "api_key": "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",
+    "capabilities": [
+      "text",
+      "image",
+      "coding"
+    ]
   },
-
   "n8n": {
     "provider": "n8n",
     "base_url": "http://localhost:5678/api/v1",
     "api_key": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI4MjUyNWJjYy1lMjMxLTQyNzktOGZjZi0xNjA4NDNjNGU3YjciLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiMzRlNzRiMzgtMmRkNi00ZGZlLTkwYTgtZDIwZTU3MGM5MmRlIiwiaWF0IjoxNzc4NDQwMjAyfQ.N77sMcxqhuJADTKpsc9FVG1DgvFUfPFxap3RAjn54Qs",
-    "capabilities": ["workflow", "automation"]
+    "capabilities": [
+      "workflow",
+      "automation"
+    ]
   },
-
   "github": {
     "provider": "GitHub",
     "keys": [
       "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",
-      "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"
+      "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",
+      "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"
     ],
     "primary_key": 0
   },
-
   "openclaw": {
     "provider": "OpenClaw",
     "api_key": "2a43088037348aed0d28e436a4327a7c16668cc4fdb4e1ab"
   },
-
   "netlify": {
     "provider": "Netlify",
     "api_key": "nfp_3W6kGWgg2fzuYArttETJiG3RztXn2YGv91ba"
   },
-
+  "cloudflare": {
+    "provider": "Cloudflare",
+    "api_token": "cfut_GNgOO6HNYLKgHBtktONf4OwVVVS18jRaeSd50dUh2e7f8d65",
+    "account_id": "78c8053676c8c4a161726a8d0be42c38",
+    "project_name": "agent-os-website"
+  },
   "skills": {
     "provider": "Hermes Skills",
     "api_key": "wsk_AxPmoFSQW8b6X8xiCudXMbMvMnkDYspe1d7qGLkM1Vuk"
   },
-
   "google": {
     "api_key": "AQ.Ab8RN6JVslhK5JC50c3QYz5hxLzl22fWr3bSNKKVWMPbpP_MQA",
     "type": "google_api"
@@ -145,7 +169,96 @@
     "provider": "NousResearch",
     "base_url": "https://inference.nous.ai/api/v1",
     "api_key": "sk-nous-CPu13S1xH9dIVCoSfkU0AQqRGd719rSg",
-    "capabilities": ["text", "reasoning"],
+    "capabilities": [
+      "text",
+      "reasoning"
+    ],
     "auto_discover_free": true
-  }
+  },
+  "cerebras": {
+    "provider": "Cerebras",
+    "api_key": "csk-9jy8m34t44whwc34cwex2ed2wntfecmtwr22ke8jyt6xweh6",
+    "capabilities": [
+      "text",
+      "reasoning"
+    ]
+  },
+  "sambanova": {
+    "provider": "SambaNova",
+    "api_key": "4e1bf913-276d-4a6c-9255-b6753e020fd8",
+    "capabilities": [
+      "text",
+      "multimodal"
+    ]
+  },
+  "agnes": {
+    "provider": "Agnes AI",
+    "base_url": "https://apihub.agnes-ai.com/v1",
+    "keys": [
+      "sk-7Ywe86v1bGWioRrIXFS53R9gID3XczezOrFaVDAoCCk4SpiR"
+    ],
+    "models": {
+      "chat": "agnes-2.0-flash",
+      "image": "agnes-image-2.1-flash"
+    },
+    "capabilities": [
+      "text",
+      "image",
+      "video"
+    ]
+  },
+  "mistral": {
+    "provider": "Mistral AI",
+    "base_url": "https://api.mistral.ai/v1",
+    "keys": [
+      "r7ai5jENR9uGdT1o1s4qT5rh7dfSwWqK"
+    ],
+    "models": {
+      "chat": "mistral-large-latest"
+    },
+    "capabilities": [
+      "text"
+    ]
+  },
+  "siliconflow": {
+    "provider": "SiliconFlow",
+    "base_url": "https://api.siliconflow.cn/v1",
+    "keys": [],
+    "models": {
+      "chat": "deepseek-ai/DeepSeek-R1",
+      "fast": "deepseek-ai/DeepSeek-V3",
+      "code": "Qwen/Qwen2.5-Coder-32B-Instruct"
+    },
+    "capabilities": [
+      "text",
+      "reasoning",
+      "code"
+    ]
+  },
+  "puter": {
+    "provider": "Puter.com",
+    "base_url": "https://api.puter.com/v1",
+    "models": {
+      "chat": "gpt-4o-mini",
+      "gemini": "gemini-1.5-flash",
+      "claude": "claude-3-5-sonnet"
+    },
+    "capabilities": [
+      "text"
+    ]
+  },
+  "g4f": {
+    "provider": "GPT4Free (g4f)",
+    "base_url": "http://localhost:1337/v1",
+    "models": {
+      "chat": "gpt-4o",
+      "gemini": "gemini-1.5-flash",
+      "deepseek": "deepseek-r1"
+    },
+    "capabilities": [
+      "text",
+      "reasoning"
+    ]
+  },
+  "unidentified_key": "duKtDw7vT4SoFCO11O56KvRx4yuTatiP"
 }

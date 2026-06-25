@@ -1565,6 +1565,83 @@ function SettingsPanel() {
 
       {/* Background Agent Section */}
       <BackgroundAgentPanel />
+
+      {/* AI Providers Diagnostic Console */}
+      <AIProvidersDiagnosticConsole />
+    </div>
+  );
+}
+
+/* ─────────── AI PROVIDERS DIAGNOSTIC CONSOLE ─────────── */
+function AIProvidersDiagnosticConsole() {
+  const [providers, setProviders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const testConnections = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/providers/status');
+      if (res.ok) {
+        setProviders(await res.json());
+      }
+    } catch (e) {
+      console.error('Failed to fetch provider status:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    testConnections();
+    const interval = setInterval(testConnections, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="pt-2.5 border-t border-white/[0.05] space-y-2">
+      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
+        <span>📶 AI API Diagnostics & Fallbacks</span>
+        <button
+          onClick={testConnections}
+          disabled={loading}
+          className="text-[8px] text-teal-400 hover:text-teal-300 disabled:opacity-50 cursor-pointer"
+        >
+          {loading ? 'Testing...' : 'Refresh'}
+        </button>
+      </div>
+
+      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+        {providers.map((p, idx) => (
+          <div
+            key={idx}
+            className="flex items-center justify-between bg-black/30 border border-white/[0.03] rounded px-2 py-1 text-[8px] font-mono hover:bg-black/40 transition-colors"
+          >
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-1.5">
+                <span className="font-bold text-white">{p.name}</span>
+                <span className="text-[7.5px] text-gray-500">({p.type})</span>
+              </div>
+              <div className="text-[7px] text-gray-400">
+                Model: <span className="text-gray-300">{p.model}</span>
+                {p.keysCount !== undefined && ` | Keys: ${p.keysCount}`}
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {p.online && p.latency !== undefined && (
+                <span className="text-[7px] text-gray-500">{p.latency}ms</span>
+              )}
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                !p.configured ? 'bg-gray-600' :
+                p.online ? 'bg-green-500 shadow-[0_0_4px_#22c55e]' :
+                'bg-red-500 shadow-[0_0_4px_#ef4444]'
+              }`} title={!p.configured ? 'Not Configured' : p.online ? 'Online' : 'Offline/Depleted'} />
+            </div>
+          </div>
+        ))}
+        {providers.length === 0 && (
+          <div className="text-center py-2 text-[8px] text-gray-600 font-mono">No diagnostic data. Click refresh.</div>
+        )}
+      </div>
     </div>
   );
 }

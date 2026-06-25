@@ -449,6 +449,12 @@ let currentGithubKeyIndex = 0;
 let NVIDIA_KEY = '';
 let CLOUDFLARE_AI_TOKEN = '';
 let CLOUDFLARE_AI_ACCOUNT = '';
+let SILICONFLOW_KEYS = [];
+let currentSiliconFlowKeyIndex = 0;
+
+function getSiliconFlowKey() {
+  return SILICONFLOW_KEYS[currentSiliconFlowKeyIndex % SILICONFLOW_KEYS.length] || '';
+}
 
 function loadOtherKeys() {
   try {
@@ -477,6 +483,11 @@ function loadOtherKeys() {
       if (config.cloudflare?.api_token) {
         CLOUDFLARE_AI_TOKEN = config.cloudflare.api_token;
         CLOUDFLARE_AI_ACCOUNT = config.cloudflare.account_id || '';
+      }
+      if (config.siliconflow?.keys) {
+        SILICONFLOW_KEYS = config.siliconflow.keys;
+      } else if (config.siliconflow?.api_key) {
+        SILICONFLOW_KEYS = [config.siliconflow.api_key];
       }
     }
   } catch (e) {
@@ -2872,8 +2883,14 @@ async function rotateOpenRouterKeys() {
 function getOpenRouterModelName(modelId) {
   if (typeof modelId !== 'string') return modelId;
   let clean = modelId;
+  if (clean.startsWith('openrouter/')) {
+    clean = clean.replace(/^openrouter\//, '');
+  }
+  if (clean === 'free') return 'openrouter/free';
   if (clean.startsWith('zhipu/') || clean.startsWith('alibaba/') || clean.startsWith('bigmodel/') || clean.startsWith('dashscope/') || clean.startsWith('glm-') || clean.startsWith('qwen-')) {
-    return 'openrouter/free';
+    if (!clean.includes('/') && !clean.includes(':')) {
+      return 'openrouter/free';
+    }
   }
   // Map Gemini 3.x names to a free OR equivalent
   if (clean.startsWith('google/gemini-3.') || clean.startsWith('google/gemini-3-')) {
@@ -2893,7 +2910,7 @@ function getOpenRouterModelName(modelId) {
 let zhipuCooldownUntil = 0;
 
 async function chatCompletionWithHistory(messages, maxTokens = 2048) {
-  // Inject Gary Pearce's UK Authority and SEO Tier Profile
+  // Inject Gary Pearce's UK Authority and SEO Profile
   const profileMdPath = `${SHARED}\\gary_pearce_authority_profile.md`;
   if (existsSync(profileMdPath)) {
     try {
@@ -2932,9 +2949,122 @@ async function chatCompletionWithHistory(messages, maxTokens = 2048) {
 }
 
 async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, model = 'google/gemini-2.0-flash-001') {
-  const uniqueModels = [...new Set([model, 'agnes/agnes-2.0-flash', 'mistral/mistral-large-latest', 'huggingface/meta-llama/Llama-3.2-3B-Instruct', 'zhipu/glm-4-flash', 'puter/google/gemini-3.5-flash', 'openai/gpt-oss-120b:free', 'openrouter/free'])];
+  const uniqueModels = [...new Set([
+    model, 
+    'agnes/agnes-2.0-flash', 
+    'openrouter/deepseek/deepseek-r1:free',
+    'openrouter/deepseek/deepseek-chat:free',
+    'openrouter/qwen/qwen-2.5-coder-32b-instruct:free',
+    'openrouter/qwen/qwen-2.5-72b-instruct:free',
+    'openrouter/meta-llama/llama-3.3-70b-instruct:free',
+    'mistral/mistral-large-latest', 
+    'huggingface/meta-llama/Llama-3.2-3B-Instruct', 
+    'zhipu/glm-4-flash', 
+    'puter/google/gemini-3.5-flash', 
+    'openai/gpt-oss-120b:free', 
+    'openrouter/free'
+  ])];
 
   for (const currentModel of uniqueModels) {
+    // Try SiliconFlow direct
+    if (currentModel.startsWith('siliconflow/')) {
+      try {
+        const sfKey = getSiliconFlowKey();
+        if (sfKey) {
+          const modelId = currentModel.replace(/^siliconflow\//, '');
+          console.log(`[SiliconFlow] Trying model ${modelId} with SiliconFlow API...`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+          const r = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sfKey}`
+            },
+            body: JSON.stringify({
+              model: modelId,
+              messages: messages,
+              max_tokens: maxTokens
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (r.ok) {
+            const d = await r.json();
+            if (d.choices?.[0]?.message?.content) {
+              console.log(`[SiliconFlow] Success with model ${currentModel}`);
+              return d.choices[0].message.content;
+            }
+          }
+        }
+      } catch (err) {
+        console.log(`[SiliconFlow] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try Puter direct
+    if (currentModel.startsWith('puter/')) {
+      try {
+        const modelId = currentModel.replace(/^puter\//, '');
+        console.log(`[Puter Direct] Trying model ${modelId} via Puter API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('https://api.puter.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: modelId,
+            messages: messages,
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Puter Direct] Success with Puter for ${modelId}`);
+            return d.choices[0].message.content;
+          }
+        }
+      } catch (err) {
+        console.log(`[Puter Direct] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try GPT4Free local daemon
+    if (currentModel.startsWith('g4f/')) {
+      try {
+        const modelId = currentModel.replace(/^g4f\//, '');
+        console.log(`[g4f Daemon] Trying model ${modelId} on local g4f proxy...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('http://localhost:1337/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: modelId,
+            messages: messages,
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[g4f Daemon] Success with g4f model ${modelId}`);
+            return d.choices[0].message.content;
+          }
+        }
+      } catch (err) {
+        console.log(`[g4f Daemon] Error:`, err.message);
+      }
+      continue;
+    }
+
     // Try Gemini direct if model starts with google/ or gemini
     if (currentModel.startsWith('google/') || currentModel.startsWith('gemini')) {
       try {
@@ -4094,6 +4224,11 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
   const modelFallbacks = [
     mappedModel,
     'agnes/agnes-2.0-flash',
+    'openrouter/deepseek/deepseek-r1:free',
+    'openrouter/deepseek/deepseek-chat:free',
+    'openrouter/qwen/qwen-2.5-coder-32b-instruct:free',
+    'openrouter/qwen/qwen-2.5-72b-instruct:free',
+    'openrouter/meta-llama/llama-3.3-70b-instruct:free',
     'nvidia/meta/llama-3.3-70b-instruct',
     'mistral/mistral-large-latest',
     'huggingface/meta-llama/Llama-3.2-3B-Instruct',
@@ -4108,6 +4243,105 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
   const uniqueModels = [...new Set(modelFallbacks)];
 
   for (const currentModel of uniqueModels) {
+    // Try SiliconFlow direct
+    if (currentModel.startsWith('siliconflow/')) {
+      try {
+        const sfKey = getSiliconFlowKey();
+        if (sfKey) {
+          const modelId = currentModel.replace(/^siliconflow\//, '');
+          console.log(`[SiliconFlow] Trying model ${modelId} with SiliconFlow API...`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+          const r = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${sfKey}`
+            },
+            body: JSON.stringify({
+              model: modelId,
+              messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+              max_tokens: maxTokens
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (r.ok) {
+            const d = await r.json();
+            if (d.choices?.[0]?.message?.content) {
+              console.log(`[SiliconFlow] Success with model ${currentModel}`);
+              return d.choices[0].message.content;
+            }
+          }
+        }
+      } catch (err) {
+        console.log(`[SiliconFlow] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try Puter direct
+    if (currentModel.startsWith('puter/')) {
+      try {
+        const modelId = currentModel.replace(/^puter\//, '');
+        console.log(`[Puter Direct] Trying model ${modelId} via Puter API...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('https://api.puter.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: modelId,
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[Puter Direct] Success with Puter for ${modelId}`);
+            return d.choices[0].message.content;
+          }
+        }
+      } catch (err) {
+        console.log(`[Puter Direct] Error:`, err.message);
+      }
+      continue;
+    }
+
+    // Try GPT4Free local daemon
+    if (currentModel.startsWith('g4f/')) {
+      try {
+        const modelId = currentModel.replace(/^g4f\//, '');
+        console.log(`[g4f Daemon] Trying model ${modelId} on local g4f proxy...`);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000);
+        const r = await fetch('http://localhost:1337/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: modelId,
+            messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        if (r.ok) {
+          const d = await r.json();
+          if (d.choices?.[0]?.message?.content) {
+            console.log(`[g4f Daemon] Success with g4f model ${modelId}`);
+            return d.choices[0].message.content;
+          }
+        }
+      } catch (err) {
+        console.log(`[g4f Daemon] Error:`, err.message);
+      }
+      continue;
+    }
+
     // Try Gemini direct if model starts with google/ or gemini
     if (currentModel.startsWith('google/') || currentModel.startsWith('gemini')) {
       try {
@@ -4591,13 +4825,13 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
     }
     for (const key of [...OR_KEYS].sort(() => Math.random() - 0.5).slice(0, 2)) {
       try {
-        console.log(`[OR ChatCompletion] Trying model ${currentModel} with key ${key.substring(0, 15)}...`);
+        console.log(`[OR ChatCompletion] Trying model ${getOpenRouterModelName(currentModel)} with key ${key.substring(0, 15)}...`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
         const r = await fetch('https://openrouter.ai/api/v1/chat/completions', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}`, 'HTTP-Referer': `http://localhost:${PORT}`, 'X-Title': 'Agent OS' },
-          body: JSON.stringify({ model: currentModel, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }], max_tokens: maxTokens }),
+          body: JSON.stringify({ model: getOpenRouterModelName(currentModel), messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }], max_tokens: maxTokens }),
           signal: controller.signal
         });
         clearTimeout(timeoutId);
@@ -7256,6 +7490,148 @@ app.post('/api/background-agent/trigger', async (req, res) => {
   }
 });
 
+// GET /api/providers/status — Diagnostic status of all AI providers
+app.get('/api/providers/status', async (req, res) => {
+  const statusList = [];
+
+  const pingProvider = async (url, options = {}) => {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const start = Date.now();
+      const r = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      return { online: r.ok || r.status === 401 || r.status === 404, status: r.status, latency: Date.now() - start };
+    } catch (e) {
+      return { online: false, error: e.message, latency: 0 };
+    }
+  };
+
+  // 1. Gemini
+  statusList.push({
+    name: 'Gemini direct',
+    configured: geminiKeys.length > 0,
+    keysCount: geminiKeys.length,
+    online: geminiKeys.length > 0 && geminiKeys.some(k => !getQuota(k).depleted),
+    model: 'gemini-2.0-flash',
+    type: 'Google Direct'
+  });
+
+  // 2. OpenRouter
+  const orPing = await pingProvider('https://openrouter.ai/api/v1/models');
+  statusList.push({
+    name: 'OpenRouter',
+    configured: OR_KEYS.length > 0,
+    keysCount: OR_KEYS.length,
+    online: orPing.online,
+    latency: orPing.latency,
+    model: 'deepseek-r1 / free fallback',
+    type: 'Aggregator'
+  });
+
+  // 3. Groq
+  const groqKey = getGroqKey();
+  const groqPing = groqKey ? await pingProvider('https://api.groq.com/openai/v1/models', {
+    headers: { Authorization: `Bearer ${groqKey}` }
+  }) : { online: false, latency: 0 };
+  
+  statusList.push({
+    name: 'Groq',
+    configured: GROQ_KEYS.length > 0,
+    keysCount: GROQ_KEYS.length,
+    online: groqPing.online,
+    latency: groqPing.latency,
+    model: 'llama-3.3-70b-versatile',
+    type: 'Cloud API'
+  });
+
+  // 4. Cerebras
+  statusList.push({
+    name: 'Cerebras',
+    configured: !!CEREBRAS_KEY,
+    online: !!CEREBRAS_KEY,
+    model: 'llama3.1-70b',
+    type: 'Cloud API'
+  });
+
+  // 5. SambaNova
+  statusList.push({
+    name: 'SambaNova',
+    configured: !!SAMBANOVA_KEY,
+    online: !!SAMBANOVA_KEY,
+    model: 'Meta-Llama-3.1-70B-Instruct',
+    type: 'Cloud API'
+  });
+
+  // 6. HuggingFace
+  statusList.push({
+    name: 'HuggingFace',
+    configured: HUGGINGFACE_KEYS.length > 0,
+    keysCount: HUGGINGFACE_KEYS.length,
+    online: HUGGINGFACE_KEYS.length > 0,
+    model: 'meta-llama/Llama-3.2-3B-Instruct',
+    type: 'Inference API'
+  });
+
+  // 7. Zhipu BigModel (China GLM)
+  statusList.push({
+    name: 'Zhipu BigModel',
+    configured: !!ZHIPU_KEY,
+    online: !!ZHIPU_KEY && Date.now() > zhipuCooldownUntil,
+    model: 'glm-4-flash',
+    type: 'Chinese Cloud'
+  });
+
+  // 8. SiliconFlow (China Free/Cheap)
+  statusList.push({
+    name: 'SiliconFlow',
+    configured: SILICONFLOW_KEYS.length > 0,
+    keysCount: SILICONFLOW_KEYS.length,
+    online: SILICONFLOW_KEYS.length > 0,
+    model: 'deepseek-ai/DeepSeek-R1',
+    type: 'Chinese Cloud'
+  });
+
+  // 9. Puter.com (Free, no keys)
+  const puterPing = await pingProvider('https://api.puter.com/v1');
+  statusList.push({
+    name: 'Puter API',
+    configured: true,
+    online: puterPing.online,
+    latency: puterPing.latency,
+    model: 'gpt-4o-mini',
+    type: 'Permanent Free'
+  });
+
+  // 10. Pollinations
+  const pollPing = await pingProvider('https://text.pollinations.ai/openai/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'openai', messages: [{ role: 'user', content: 'ping' }], max_tokens: 1 })
+  });
+  statusList.push({
+    name: 'Pollinations AI',
+    configured: true,
+    online: pollPing.online,
+    latency: pollPing.latency,
+    model: 'unfiltered open models',
+    type: 'Permanent Free'
+  });
+
+  // 11. GPT4Free Local Daemon
+  const g4fPing = await pingProvider('http://localhost:1337/v1/models');
+  statusList.push({
+    name: 'GPT4Free Daemon',
+    configured: true,
+    online: g4fPing.online,
+    latency: g4fPing.latency,
+    model: 'aggregated free web models',
+    type: 'Local Proxy (Port 1337)'
+  });
+
+  res.json(statusList);
+});
+
 
 app.post('/api/api-usage/reset', (req, res) => {
   try {
@@ -9575,4 +9951,29 @@ function startBackgroundAgent() {
   }
 }
 startBackgroundAgent();
+
+// Start GPT4Free (g4f) Local Daemon
+function startG4fDaemon() {
+  console.log('[g4f Daemon] Checking if g4f daemon is already running on port 1337...');
+  exec('powershell -Command "Get-NetTCPConnection -LocalPort 1337 -State Listen -ErrorAction Stop"', (err) => {
+    if (!err) {
+      console.log('[g4f Daemon] g4f local server is already running on port 1337.');
+      return;
+    }
+    console.log('[g4f Daemon] Starting local g4f daemon on port 1337...');
+    try {
+      const child = spawn('python', ['-m', 'g4f.cli', 'api'], {
+        detached: true,
+        stdio: 'ignore',
+        env: { ...process.env }
+      });
+      child.unref();
+      console.log('[g4f Daemon] Local g4f proxy spawned successfully in background.');
+    } catch (spawnErr) {
+      console.error('[g4f Daemon] Spawn failed:', spawnErr.message);
+    }
+  });
+}
+startG4fDaemon();
+
 
