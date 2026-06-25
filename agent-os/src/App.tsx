@@ -37,6 +37,7 @@ interface ChatMessage {
   time: string;
   isError?: boolean;
   tools?: string[];
+  status?: string; // pending_approval, approved, rejected, etc.
 }
 
 interface ThreadedMessage extends ChatMessage {
@@ -2813,7 +2814,19 @@ function PaperclipPanel() {
 }
 
 /* ─────────── SWARM HUB & TEAM COLLABORATION WORKSPACE ─────────── */
-function SwarmHubPanel() {
+interface SwarmHubPanelProps {
+  threadLoading: Record<string, boolean>;
+  chatMessages: ChatMessage[];
+  setChatMode: React.Dispatch<React.SetStateAction<'collab' | 'single'>>;
+  handleSendMessage: (customText?: string) => Promise<void>;
+}
+
+function SwarmHubPanel({
+  threadLoading,
+  chatMessages,
+  setChatMode,
+  handleSendMessage
+}: SwarmHubPanelProps) {
   const [profile, setProfile] = useState({
     userName: 'Gary Pearce',
     seoLeadsTarget: '100',
@@ -2823,18 +2836,18 @@ function SwarmHubPanel() {
   });
   const [savingProfile, setSavingProfile] = useState(false);
   const [swarmObjective, setSwarmObjective] = useState("");
-  const [isSwarmRunning, setIsSwarmRunning] = useState(false);
-  const [swarmLogs, setSwarmLogs] = useState<string[]>([]);
-  const [swarmState, setSwarmState] = useState<'idle' | 'planning' | 'executing' | 'finalizing'>('idle');
 
-  // Active agents status list
-  const [agents] = useState([
-    { name: "Hermes Coder", role: "Software Architect", details: "Node CLI & System controller" },
-    { name: "Gemini Research", role: "RAG & Knowledge Gatherer", details: "NotebookLM syncing & URL content scanning" },
-    { name: "Claude Architect", role: "Workflow Planner", details: "Compiling task blueprints" },
-    { name: "Zhipu Illustrator", role: "Studio Graphics Designer", details: "Infographics & CogView rendering" },
-    { name: "DeepSeek Evaluator", role: "Self-Healing QA Engine", details: "Database diagnostics & recovery actions" }
-  ]);
+  const activeCollabRunning = threadLoading['collab'] || false;
+  const lastMsg = chatMessages[chatMessages.length - 1];
+  const activeAgentNode = activeCollabRunning ? lastMsg?.agent || 'orchestrator' : null;
+
+  const agentsStatusList = [
+    { id: "agy", name: "Antigravity CEO", role: "Strategic Lead", details: "L1 swarm trigger & safety compiler" },
+    { id: "orchestrator", name: "Gemini Orchestrator", role: "Planning & Critique Hub", details: "Task decomposition & feedback loops" },
+    { id: "openclaw", name: "OpenClaw Auditor", role: "SEO & Competitor Scraping", details: "Puppeteer scraping and tag analytics" },
+    { id: "hermes", name: "Hermes Coder", role: "Workspace Developer", details: "Command executions & file manipulation" },
+    { id: "claude", name: "Claude Architect", role: "Refactoring Specialist", details: "Code review and software pattern checks" }
+  ];
 
   const loadProfile = async () => {
     try {
@@ -2861,48 +2874,9 @@ function SwarmHubPanel() {
 
   const triggerSwarmCollaboration = () => {
     if (!swarmObjective.trim()) return;
-    setIsSwarmRunning(true);
-    setSwarmState('planning');
-    setSwarmLogs(["[Orchestrator] Ingesting global targets and workspace guidelines..."]);
-    
-    // Simulate complex inter-agent workflow messages in real-time
-    const sequence = [
-      { delay: 1000, state: 'executing', msg: `🤖 [Claude Architect] -> [Orchestrator]: Plan initialized for: "${swarmObjective}"` },
-      { delay: 2500, state: 'executing', msg: "🤖 [Gemini Research] -> [Claude Architect]: Scanning local knowledge base & NotebookLM sources for context..." },
-      { delay: 4000, state: 'executing', msg: `🤖 [Hermes Coder] -> [Orchestrator]: Initiating command execution in PowerShell. Path: D:\\Agent OS\\shared` },
-      { delay: 5500, state: 'executing', msg: "🤖 [Zhipu Illustrator] -> [Hermes Coder]: Rendering campaign graph diagram for SEO capture outline..." },
-      { delay: 7000, state: 'executing', msg: "🤖 [DeepSeek Evaluator] -> [Orchestrator]: Running system self-healing check on generated files. All tests passed." },
-      { delay: 8500, state: 'finalizing', msg: "🏆 [Orchestrator] -> [System Workspace]: Finalizing markdown reports and recording goals log..." }
-    ];
-
-    sequence.forEach(step => {
-      setTimeout(() => {
-        setSwarmState(step.state as any);
-        setSwarmLogs(prev => [...prev, step.msg]);
-      }, step.delay);
-    });
-
-    // Finalize: write actual file to backend D:/Agent OS/shared/knowledge_base/goals
-    setTimeout(async () => {
-      try {
-        const title = swarmObjective;
-        const date = new Date().toLocaleString();
-        const content = `## Executive Swarm Summary\n\nThis campaign was autonomously run by the collaborative agent swarm to achieve the target: "${swarmObjective}".\n\n### Agent Roles & Action logs:\n- **Claude Architect**: Modeled workflow execution plan.\n- **Gemini Research**: Synced RAG context from NotebookLM.\n- **Hermes Coder**: Performed CLI tool operations and compiled scripts.\n- **Zhipu Illustrator**: Produced media layouts.\n- **DeepSeek Evaluator**: Validated integrity of local output files.\n\n### Targeting Metric:\n- Global target leader: ${profile.userName}\n- Focus area: ${profile.systemFocus}\n- Leads limit: ${profile.seoLeadsTarget} leads/month\n\nStatus: SUCCESS. Objective successfully completed.`;
-        
-        await fetch('/api/goals/create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title, date, content })
-        });
-        
-        setSwarmLogs(prev => [...prev, `🏁 Swarm Campaign complete! Log saved to shared/knowledge_base/goals.`]);
-      } catch (_) {
-        setSwarmLogs(prev => [...prev, "❌ Error saving campaign log file to database."]);
-      } finally {
-        setIsSwarmRunning(false);
-        setSwarmState('idle');
-      }
-    }, 10000);
+    setChatMode("collab");
+    handleSendMessage(swarmObjective);
+    setSwarmObjective("");
   };
 
   useEffect(() => {
@@ -2980,28 +2954,76 @@ function SwarmHubPanel() {
             <Users className="text-purple-400" size={16} />
             <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Swarm Agency Node Topology</h3>
           </div>
+
+          <div className="mb-6 p-4 bg-black/40 border border-white/[0.04] rounded-2xl flex flex-col items-center select-none relative overflow-hidden">
+            <div className="absolute top-2 left-3 text-[9px] font-mono text-gray-500 tracking-wider">Active Connectivity Graph</div>
+            <svg className="w-full max-w-[480px] h-[160px]" viewBox="0 0 480 160">
+              {/* Connection Lines */}
+              <line x1="240" y1="20" x2="240" y2="80" stroke={activeAgentNode ? "#6366f1" : "rgba(255,255,255,0.06)"} strokeWidth={activeAgentNode ? "2" : "1"} className={activeAgentNode ? "animate-pulse" : ""} />
+              <line x1="240" y1="80" x2="100" y2="80" stroke={activeAgentNode === "openclaw" ? "#10b981" : "rgba(255,255,255,0.06)"} strokeWidth={activeAgentNode === "openclaw" ? "2" : "1"} />
+              <line x1="240" y1="80" x2="380" y2="80" stroke={activeAgentNode === "hermes" ? "#a855f7" : "rgba(255,255,255,0.06)"} strokeWidth={activeAgentNode === "hermes" ? "2" : "1"} />
+              <line x1="240" y1="80" x2="170" y2="140" stroke={activeAgentNode === "claude" ? "#ea580c" : "rgba(255,255,255,0.06)"} strokeWidth={activeAgentNode === "claude" ? "2" : "1"} />
+              
+              {/* Nodes */}
+              {/* Antigravity (agy) */}
+              <circle cx="240" cy="20" r="16" fill="#0f0f2d" stroke="#6366f1" strokeWidth="2" />
+              <text x="240" y="24" fill="#a5b4fc" fontSize="10" fontWeight="bold" textAnchor="middle">AGY</text>
+              {activeAgentNode === "agy" && <circle cx="240" cy="20" r="20" fill="none" stroke="#6366f1" strokeWidth="1.5" className="animate-ping" />}
+
+              {/* Orchestrator */}
+              <circle cx="240" cy="80" r="18" fill="#0f0f2d" stroke="#3b82f6" strokeWidth="2" />
+              <text x="240" y="84" fill="#93c5fd" fontSize="9" fontWeight="bold" textAnchor="middle">Gemini</text>
+              {(!activeAgentNode || activeAgentNode === "orchestrator") && activeCollabRunning && <circle cx="240" cy="80" r="22" fill="none" stroke="#3b82f6" strokeWidth="1.5" className="animate-ping" />}
+
+              {/* OpenClaw */}
+              <circle cx="100" cy="80" r="16" fill="#0f0f2d" stroke="#10b981" strokeWidth="2" />
+              <text x="100" y="84" fill="#a7f3d0" fontSize="8" fontWeight="bold" textAnchor="middle">Claw</text>
+              {activeAgentNode === "openclaw" && <circle cx="100" cy="80" r="20" fill="none" stroke="#10b981" strokeWidth="1.5" className="animate-ping" />}
+
+              {/* Hermes */}
+              <circle cx="380" cy="80" r="16" fill="#0f0f2d" stroke="#a855f7" strokeWidth="2" />
+              <text x="380" y="84" fill="#e9d5ff" fontSize="8" fontWeight="bold" textAnchor="middle">Hermes</text>
+              {activeAgentNode === "hermes" && <circle cx="380" cy="80" r="20" fill="none" stroke="#a855f7" strokeWidth="1.5" className="animate-ping" />}
+
+              {/* Claude */}
+              <circle cx="170" cy="140" r="16" fill="#0f0f2d" stroke="#ea580c" strokeWidth="2" />
+              <text x="170" y="144" fill="#ffedd5" fontSize="8" fontWeight="bold" textAnchor="middle">Claude</text>
+              {activeAgentNode === "claude" && <circle cx="170" cy="140" r="20" fill="none" stroke="#ea580c" strokeWidth="1.5" className="animate-ping" />}
+            </svg>
+          </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {agents.map((agent, index) => (
-              <div key={index} className="p-3 bg-white/[0.015] border border-white/[0.03] rounded-xl flex flex-col justify-between hover:border-white/10 transition-colors select-none">
-                <div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-bold text-white font-mono">{agent.name}</span>
-                    <span className="text-[7px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-extrabold uppercase font-mono tracking-wider animate-pulse">online</span>
+            {agentsStatusList.map((agent, index) => {
+              const isWorking = activeAgentNode === agent.id;
+              return (
+                <div key={index} className={`p-3 bg-white/[0.015] border rounded-xl flex flex-col justify-between transition-all select-none duration-300 ${
+                  isWorking ? 'border-indigo-500/50 bg-indigo-950/20 shadow-[0_0_15px_rgba(99,102,241,0.25)] scale-[1.02]' : 'border-white/[0.03] hover:border-white/10'
+                }`}>
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-white font-mono">{agent.name}</span>
+                      <span className={`text-[7px] px-1.5 py-0.5 rounded font-extrabold uppercase font-mono tracking-wider ${
+                        isWorking ? 'bg-indigo-500/20 text-indigo-300 animate-pulse' : 'bg-emerald-500/10 text-emerald-400'
+                      }`}>
+                        {isWorking ? 'processing' : 'online'}
+                      </span>
+                    </div>
+                    <span className="text-[8.5px] text-gray-500 font-medium font-sans mt-0.5 block">{agent.role}</span>
+                    <p className="text-[9.5px] text-gray-400 font-sans mt-2 leading-relaxed">{agent.details}</p>
                   </div>
-                  <span className="text-[8.5px] text-gray-500 font-medium font-sans mt-0.5 block">{agent.role}</span>
-                  <p className="text-[9.5px] text-gray-400 font-sans mt-2 leading-relaxed">{agent.details}</p>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         {/* Campaign Action Box */}
         <div className="flex-1 flex flex-col bg-[#0b0b1e]/90 border border-white/[0.04] p-6 rounded-2xl shadow-2xl relative overflow-hidden backdrop-blur-md min-h-[300px]">
           <div className="flex items-center gap-2 pb-3 border-b border-white/5 mb-4">
-            <Radio className="text-indigo-400 animate-pulse" size={16} />
-            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">Collaborative Orchestration Workspace ({swarmState})</h3>
+            <Radio className={`text-indigo-400 ${activeCollabRunning ? 'animate-pulse' : ''}`} size={16} />
+            <h3 className="text-xs font-bold text-white uppercase tracking-wider font-mono">
+              Collaborative Swarm Console ({activeCollabRunning ? 'executing' : 'idle'})
+            </h3>
           </div>
 
           <div className="space-y-4 flex-grow flex flex-col justify-between">
@@ -3012,13 +3034,13 @@ function SwarmHubPanel() {
                   type="text"
                   value={swarmObjective}
                   onChange={e => setSwarmObjective(e.target.value)}
-                  disabled={isSwarmRunning}
+                  disabled={activeCollabRunning}
                   placeholder="e.g. Generate weekly local business SEO strategy documents..."
                   className="flex-grow bg-black/40 border border-white/10 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500/50"
                 />
                 <button
                   onClick={triggerSwarmCollaboration}
-                  disabled={isSwarmRunning || !swarmObjective.trim()}
+                  disabled={activeCollabRunning || !swarmObjective.trim()}
                   className="px-5 bg-purple-600 hover:bg-purple-500 disabled:bg-purple-800 disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase transition-all shadow-md cursor-pointer select-none"
                 >
                   🚀 Run Swarm
@@ -3028,14 +3050,14 @@ function SwarmHubPanel() {
 
             {/* Simulated timeline execution logs */}
             <div className="flex-grow bg-black/40 border border-white/[0.05] rounded-xl p-4 font-mono text-[9.5px] text-gray-300 min-h-[160px] max-h-[220px] overflow-y-auto space-y-2 select-text custom-scrollbar">
-              {swarmLogs.length === 0 ? (
+              {chatMessages.length === 0 ? (
                 <div className="text-center py-12 text-gray-600 select-none">Enter objective and click Run Swarm to launch collaborative agent execution</div>
               ) : (
-                swarmLogs.map((log, i) => (
+                chatMessages.map((msg, i) => (
                   <div key={i} className={`py-1 border-b border-white/[0.02] last:border-none leading-relaxed ${
-                    log.includes('🏆') ? 'text-indigo-300 font-bold' : log.includes('🏁') ? 'text-emerald-400 font-bold' : 'text-gray-300'
+                    msg.agent === 'user' ? 'text-indigo-300 font-bold' : msg.isError ? 'text-red-400 font-bold' : 'text-gray-300'
                   }`}>
-                    {log}
+                    <strong>[{msg.agent.toUpperCase()}]:</strong> {msg.msg}
                   </div>
                 ))
               )}
@@ -3176,7 +3198,11 @@ export default function App() {
       localStorage.setItem("agent_os_active_agent", activeAgent);
     } catch (e) {}
   }, [activeAgent]);
-  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm" | "paperclip" | "memory">("chat");
+  const [centerTab, setCenterTab] = useState<"chat" | "terminal" | "monitor" | "kanban" | "vault" | "goals" | "studio" | "workspace" | "video-analyzer" | "seo-pipeline" | "settings" | "swarm" | "paperclip" | "memory" | "nightly">("chat");
+  const [nightlyReport, setNightlyReport] = useState<any>(null);
+  const [nightlyLoading, setNightlyLoading] = useState(false);
+  const [nightlyRunning, setNightlyRunning] = useState(false);
+  const [apiUsageState, setApiUsageState] = useState<any>(null);
   const [workspaceLeftOpen, setWorkspaceLeftOpen] = useState(false);
   const [workspaceRightOpen, setWorkspaceRightOpen] = useState(false);
   const [workspaceEditorOpen, setWorkspaceEditorOpen] = useState(false);
@@ -4229,6 +4255,8 @@ export default function App() {
                 agent: m.agent || (m.role === 'user' ? 'user' : 'hermes'),
                 msg: m.content,
                 parentId: m.parentId,
+                status: m.status,
+                feedback: m.feedback,
                 time: m.created_at
                   ? new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
                   : 'Restored'
@@ -4262,19 +4290,6 @@ export default function App() {
     const text = specialistChatInput;
     if (!text.trim()) return;
     
-    const userMsgId = 'msg-direct-' + Date.now();
-    const newUserMsg = {
-      id: userMsgId,
-      agent: 'user',
-      msg: text,
-      parentId: agentId,
-      time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-    };
-    
-    setChatThreads(prev => ({
-      ...prev,
-      [agentId]: [...(prev[agentId] || []), newUserMsg]
-    }));
     setSpecialistChatInput("");
     setThreadLoading(prev => ({ ...prev, [agentId]: true }));
     
@@ -4286,59 +4301,24 @@ export default function App() {
           query: text,
           model: activeModel,
           agent: agentId,
+          parentId: agentId,
           activeSessionId: activeSessionId
         })
       });
       
-      if (res.ok && res.body?.getReader) {
-        const assistantMsgId = 'msg-reply-' + Date.now();
-        setChatThreads(prev => ({
-          ...prev,
-          [agentId]: [...(prev[agentId] || []), {
-            id: assistantMsgId,
-            agent: agentId,
-            msg: "",
-            time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-          }]
-        }));
-        
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
-        let accumulated = "";
-        
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n");
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (trimmed.startsWith("data: ")) {
-              const dataText = trimmed.slice(6).trim();
-              if (dataText === "[DONE]") continue;
-              try {
-                const parsed = JSON.parse(dataText);
-                if (parsed.content) {
-                  accumulated += parsed.content;
-                  setChatThreads(prev => {
-                    const currentList = prev[agentId] || [];
-                    return {
-                      ...prev,
-                      [agentId]: currentList.map(m => m.id === assistantMsgId ? { ...m, msg: accumulated } : m)
-                    };
-                  });
-                }
-              } catch {}
-            }
-          }
+      if (res.ok) {
+        const data = await res.json();
+        if (data.sessionId) {
+          setActiveSessionId(data.sessionId);
+          fetchSessionsList();
         }
       }
     } catch (e) {
       console.error("Failed to send direct message to agent:", e);
-    } finally {
       setThreadLoading(prev => ({ ...prev, [agentId]: false }));
     }
   };
+
   const [chatThreads, setChatThreads] = useState<Record<string, ChatMessage[]>>(() => {
     try {
       const saved = localStorage.getItem("agent_os_chat_threads");
@@ -4448,10 +4428,152 @@ export default function App() {
   // Sessions state
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem("agent_os_active_session_id");
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (activeSessionId) {
+        localStorage.setItem("agent_os_active_session_id", activeSessionId);
+      } else {
+        localStorage.removeItem("agent_os_active_session_id");
+      }
+    } catch {}
+  }, [activeSessionId]);
+
+  // Main SSE subscriber effect for active session
+  useEffect(() => {
+    if (!activeSessionId) return;
+
+    console.log("[SSE client] Connecting for session:", activeSessionId);
+    setThreadLoading(prev => ({ ...prev, collab: true }));
+
+    const eventSource = new EventSource(`/api/chat/stream?sessionId=${activeSessionId}`);
+    const accumulatedResponses: Record<string, string> = {};
+
+    eventSource.onmessage = (event) => {
+      if (event.data === '[DONE]') {
+        console.log("[SSE client] Received [DONE]");
+        setThreadLoading(prev => ({ ...prev, collab: false, [activeAgent]: false }));
+        eventSource.close();
+        return;
+      }
+
+      try {
+        const parsed = JSON.parse(event.data);
+
+        if (parsed.sessionId && parsed.sessionId !== activeSessionId) {
+          setActiveSessionId(parsed.sessionId);
+        }
+
+        if (parsed.newMsgId) {
+          const activeWriteMsgId = parsed.newMsgId;
+
+          if (parsed.sync) {
+            accumulatedResponses[activeWriteMsgId] = parsed.content || "";
+          } else {
+            if (parsed.content) {
+              accumulatedResponses[activeWriteMsgId] = (accumulatedResponses[activeWriteMsgId] || "") + parsed.content;
+              
+              // Voice updates / TTS narration for live updates
+              if (voiceUpdatesEnabled) {
+                const text = parsed.content;
+                if (
+                  text.includes('🚀') || 
+                  text.includes('✅') || 
+                  text.includes('🧠') || 
+                  text.includes('🏆') || 
+                  text.includes('❌') || 
+                  text.includes('💻') || 
+                  text.includes('📝') || 
+                  text.includes('📖') || 
+                  text.includes('✏️') || 
+                  text.includes('🔍') || 
+                  text.includes('💬')
+                ) {
+                  speakText(text);
+                }
+              }
+            }
+          }
+
+          // Expand brainstorming/critique threads
+          const isNewBrainstormHeader = activeWriteMsgId.startsWith('msg_brainstorm_') && 
+            !activeWriteMsgId.includes('_agy_') && 
+            !activeWriteMsgId.includes('_orchestrator_') && 
+            !activeWriteMsgId.includes('_openclaw_') && 
+            !activeWriteMsgId.includes('_hermes_') && 
+            !activeWriteMsgId.includes('_claude_');
+          const isNewCritiqueHeader = activeWriteMsgId.startsWith('msg_critique_header_');
+          if (isNewBrainstormHeader || isNewCritiqueHeader) {
+            setExpandedThreads(prev => ({ ...prev, [activeWriteMsgId]: true }));
+          }
+
+          setChatThreads(prev => {
+            const targetThreadId = parsed.parentId || 'collab';
+            const currentList = prev[targetThreadId] || [];
+            const exists = currentList.findIndex(m => m.id === activeWriteMsgId);
+            const timeStr = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+
+            let updatedList;
+            if (exists !== -1) {
+              updatedList = [...currentList];
+              const current = updatedList[exists];
+              const newTools = parsed.tool ? [...(current.tools || []), parsed.tool] : current.tools || [];
+              updatedList[exists] = {
+                ...current,
+                msg: accumulatedResponses[activeWriteMsgId],
+                tools: newTools,
+                status: parsed.status !== undefined ? parsed.status : current.status
+              };
+            } else {
+              updatedList = [...currentList, {
+                id: activeWriteMsgId,
+                agent: parsed.agent || 'orchestrator',
+                msg: accumulatedResponses[activeWriteMsgId],
+                time: timeStr,
+                tools: parsed.tool ? [parsed.tool] : [],
+                status: parsed.status
+              }];
+            }
+
+            const currentActiveThreadId = chatMode === 'collab' ? 'collab' : activeAgent;
+            if (targetThreadId === currentActiveThreadId) {
+              setChatMessages(updatedList);
+            }
+
+            return {
+              ...prev,
+              [targetThreadId]: updatedList
+            };
+          });
+        }
+      } catch (err) {
+        console.error("[SSE client] Error parsing stream event:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("[SSE client] EventSource error:", err);
+      setThreadLoading(prev => ({ ...prev, collab: false, [activeAgent]: false }));
+      eventSource.close();
+    };
+
+    return () => {
+      console.log("[SSE client] Closing EventSource for session:", activeSessionId);
+      eventSource.close();
+    };
+  }, [activeSessionId, chatMode, activeAgent, voiceUpdatesEnabled]);
 
   // System Status & Model selection
   const [activeModel, setActiveModel] = useState("deepseek/deepseek-v4-flash:free");
+  const [evolutionStatus, setEvolutionStatus] = useState<any>(null);
+  const [isReverting, setIsReverting] = useState(false);
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -4673,6 +4795,38 @@ export default function App() {
     }
   };
 
+  const fetchEvolutionStatus = async () => {
+    try {
+      const res = await fetch("/api/evolution/status");
+      if (res.ok) {
+        const data = await res.json();
+        setEvolutionStatus(data.lastRun);
+      }
+    } catch (e) {
+      console.error("Failed to fetch evolution status:", e);
+    }
+  };
+
+  const handleRevertEvolution = async () => {
+    if (!window.confirm("Are you sure you want to revert the last self-evolution update? This will perform a git reset and rebuild the client environment.")) return;
+    setIsReverting(true);
+    try {
+      const res = await fetch("/api/evolution/revert", { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        alert(data.message || "Successfully reverted and rebuilt!");
+        fetchEvolutionStatus();
+      } else {
+        const err = await res.json();
+        alert(`Rollback failed: ${err.error || "Unknown error"}`);
+      }
+    } catch (e: any) {
+      alert(`Network error during rollback: ${e.message}`);
+    } finally {
+      setIsReverting(false);
+    }
+  };
+
   // Fetch past sessions list
   const fetchSessionsList = async () => {
     setSessionsLoading(true);
@@ -4819,6 +4973,7 @@ export default function App() {
   useEffect(() => {
     fetchStatus();
     fetchSessionsList();
+    fetchEvolutionStatus();
     fetchSkills();
     fetchMcpList();
     fetchMcpCatalog();
@@ -4919,22 +5074,78 @@ export default function App() {
   }, [centerTab]);
 
   // Send message to Hermes CLI API
+  const handleRewindSession = async (messageId: string) => {
+    if (!activeSessionId) return;
+    if (!confirm("Are you sure you want to rewind the conversation to this checkpoint? All subsequent messages will be deleted.")) return;
+    try {
+      const res = await fetch("/api/chat/rewind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: activeSessionId, messageId })
+      });
+      if (res.ok) {
+        setChatMessages(prev => {
+          const idx = prev.findIndex(m => m.id === messageId);
+          if (idx !== -1) {
+            return prev.slice(0, idx + 1);
+          }
+          return prev;
+        });
+        fetchSessionsList();
+      }
+    } catch (e) {
+      console.error("Rewind failed:", e);
+    }
+  };
+
+  const handleApproveStep = async (approvalId: string) => {
+    if (!activeSessionId) return;
+    try {
+      const res = await fetch("/api/chat/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: activeSessionId, approvalId })
+      });
+      if (res.ok) {
+        setChatMessages(prev =>
+          prev.map(m => m.id === approvalId ? { ...m, status: 'approved' } : m)
+        );
+      }
+    } catch (e) {
+      console.error("Approval failed:", e);
+    }
+  };
+
+  const handleRejectStep = async (approvalId: string) => {
+    if (!activeSessionId) return;
+    const feedback = prompt("Please provide feedback or instructions to redirect the agent:");
+    if (feedback === null) return; // cancelled
+    try {
+      const res = await fetch("/api/chat/reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: activeSessionId, approvalId, feedback })
+      });
+      if (res.ok) {
+        setChatMessages(prev =>
+          prev.map(m => m.id === approvalId ? { ...m, status: 'rejected' } : m)
+        );
+      }
+    } catch (e) {
+      console.error("Rejection failed:", e);
+    }
+  };
+
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || chatInput;
     if (!textToSend.trim()) return;
     
-    const userMsgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-    const assistantMsgId = 'msg-' + (Date.now() + 1) + '-' + Math.random().toString(36).substring(2, 7);
-
-    setChatMessages(prev => [...prev, { id: userMsgId, agent: "user", msg: textToSend, time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) }]);
     if (!customText) setChatInput("");
-    setThreadLoading(prev => ({ ...prev, [currentThreadId]: true }));
+    const targetAgent = chatMode === 'collab' ? 'orchestrator' : activeAgent;
+    setThreadLoading(prev => ({ ...prev, [targetAgent]: true }));
 
     try {
-      // "Model provider" UI agents are view-only catalogs — chat always runs through hermes/OpenRouter
       const EXECUTABLE_AGENTS = ["agy", "hermes", "openclaw", "claude", "aider", "obsidian", "ollama", "lmstudio", "orchestrator"];
-      const targetAgent = chatMode === 'collab' ? 'orchestrator' : activeAgent;
-      const targetAgentObj = agents.find(a => a.id === targetAgent);
       const effectiveAgent = EXECUTABLE_AGENTS.includes(targetAgent) ? targetAgent : "hermes";
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -4944,187 +5155,24 @@ export default function App() {
           model: activeModel,
           agent: effectiveAgent,
           providerAgent: targetAgent,
-          orchestratorAgent: activeAgent, // selected orchestrator in swarm mode!
-          selectedSkill: selectedManualSkill
+          orchestratorAgent: activeAgent,
+          selectedSkill: selectedManualSkill,
+          activeSessionId: activeSessionId
         })
       });
       
       if (res.ok) {
-        const contentType = res.headers.get("content-type") || "";
-        
-        if (contentType.includes("text/event-stream") && res.body?.getReader) {
-          // Streaming response (old-style)
-          setChatMessages(prev => [...prev, {
-            id: assistantMsgId,
-            agent: targetAgent, msg: "",
-            time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-            tools: []
-          }]);
-          let activeWriteMsgId = assistantMsgId;
-          const accumulatedResponses: Record<string, string> = { [activeWriteMsgId]: "" };
-          
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder();
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            const chunkText = decoder.decode(value, { stream: true });
-            const lines = chunkText.split("\n");
-            for (const line of lines) {
-              const trimmed = line.trim();
-              if (trimmed.startsWith("data: ")) {
-                const dataText = trimmed.slice(6).trim();
-                if (dataText === "[DONE]") continue;
-                try {
-                  const parsed = JSON.parse(dataText);
-                  if (parsed.sessionId) {
-                    setActiveSessionId(parsed.sessionId);
-                    fetchSessionsList();
-                  }
-                  
-                  if (parsed.newMsgId) {
-                    activeWriteMsgId = parsed.newMsgId;
-                    if (!accumulatedResponses[activeWriteMsgId]) {
-                      accumulatedResponses[activeWriteMsgId] = "";
-                      
-                      // Auto expand new sub-threads
-                      const isNewBrainstormHeader = activeWriteMsgId.startsWith('msg_brainstorm_') && 
-                        !activeWriteMsgId.includes('_agy_') && 
-                        !activeWriteMsgId.includes('_orchestrator_') && 
-                        !activeWriteMsgId.includes('_openclaw_') && 
-                        !activeWriteMsgId.includes('_hermes_') && 
-                        !activeWriteMsgId.includes('_claude_');
-                      const isNewCritiqueHeader = activeWriteMsgId.startsWith('msg_critique_header_');
-                      if (isNewBrainstormHeader || isNewCritiqueHeader) {
-                        setExpandedThreads(prev => ({ ...prev, [activeWriteMsgId]: true }));
-                      }
-
-                      setChatMessages(prev => {
-                        if (prev.some(m => m.id === activeWriteMsgId)) return prev;
-                        
-                        // Reuse the empty placeholder message if it exists
-                        const placeholderIdx = prev.findIndex(m => m.id === assistantMsgId && m.msg === "");
-                        if (placeholderIdx !== -1) {
-                          const updated = [...prev];
-                          updated[placeholderIdx] = {
-                            ...updated[placeholderIdx],
-                            id: activeWriteMsgId,
-                            agent: parsed.agent || targetAgent
-                          };
-                          return updated;
-                        }
-
-                        return [...prev, {
-                          id: activeWriteMsgId,
-                          agent: parsed.agent || targetAgent,
-                          msg: "",
-                          time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-                          tools: []
-                        }];
-                      });
-                    }
-                  }
-
-                  if (parsed.content) {
-                    if (accumulatedResponses[activeWriteMsgId] === undefined) {
-                      accumulatedResponses[activeWriteMsgId] = "";
-                    }
-                    accumulatedResponses[activeWriteMsgId] += parsed.content;
-                    if (voiceUpdatesEnabled) {
-                      const text = parsed.content;
-                      if (
-                        text.includes('🚀') || 
-                        text.includes('✅') || 
-                        text.includes('🧠') || 
-                        text.includes('🏆') || 
-                        text.includes('❌') || 
-                        text.includes('💻') || 
-                        text.includes('📝') || 
-                        text.includes('📖') || 
-                        text.includes('✏️') || 
-                        text.includes('🔍') || 
-                        text.includes('💬')
-                      ) {
-                        speakText(text);
-                      }
-                    }
-                  }
-                  setChatMessages(prev => {
-                    const updated = [...prev];
-                    const idx = updated.findIndex(m => m.id === activeWriteMsgId);
-                    if (idx !== -1) {
-                      const current = updated[idx];
-                      const newTools = parsed.tool ? [...(current.tools || []), parsed.tool] : current.tools || [];
-                      updated[idx] = { 
-                        ...current, 
-                        msg: accumulatedResponses[activeWriteMsgId],
-                        tools: newTools
-                      };
-                    }
-                    return updated;
-                  });
-                } catch (_) {}
-              }
-            }
-          }
-          if (voiceUpdatesEnabled && targetAgent !== 'orchestrator') {
-            speakText(`${targetAgentObj?.name || targetAgent} has completed the execution.`);
-          }
-          // URL auto-open for streaming too
-          const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
-          const finalResponse = accumulatedResponses[activeWriteMsgId] || "";
-          const msgMatch = finalResponse.match(urlRegex) || [];
-          if (msgMatch.length > 0) {
-            const href = (msgMatch[0] || "").startsWith("http") ? msgMatch[0] : "http://" + msgMatch[0];
-            window.open(href || "https://google.com", "_blank");
-          }
-          fetchMailbox();
-        } else {
-          // Non-streaming JSON response (new Hermes server)
-          const data = await res.json();
-          if (data.error) {
-            setChatMessages(prev => [...prev, {
-              id: assistantMsgId,
-              agent: targetAgent,
-              msg: `Error: ${data.error}`,
-              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-              isError: true
-            }]);
-          } else {
-            setChatMessages(prev => [...prev, {
-              id: assistantMsgId,
-              agent: data.agent || targetAgent,
-              msg: data.response || "No response received",
-              time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-              tools: data.tokens ? [`tokens: ${data.tokens}`] : []
-            }]);
-            // URL auto-open
-            const urlRegex = /(https?:\/\/[^\s]+|localhost:\d+[^\s]*)/gi;
-            const responseText = data.response || "";
-            const msgMatch = responseText.match(urlRegex) || [];
-            if (msgMatch.length > 0) {
-              const href = (msgMatch[0] || "").startsWith("http") ? msgMatch[0] : "http://" + msgMatch[0];
-              window.open(href || "https://google.com", "_blank");
-            }
-            if (voiceUpdatesEnabled) {
-              speakText(`${data.agent || activeAgent} has completed the execution.`);
-            }
-          }
+        const data = await res.json();
+        if (data.sessionId) {
+          setActiveSessionId(data.sessionId);
+          fetchSessionsList();
         }
       } else {
         throw new Error("HTTP error: " + res.status);
       }
     } catch (e: any) {
-      setChatMessages(prev => [...prev, {
-        id: assistantMsgId,
-        agent: activeAgent,
-        msg: `Failed: ${e.message}`,
-        time: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }),
-        isError: true
-      }]);
-    } finally {
-      setThreadLoading(prev => ({ ...prev, [currentThreadId]: false }));
-      fetchSessionsList(); // Refresh session list after a query
+      console.error("Failed to send query:", e);
+      setThreadLoading(prev => ({ ...prev, [targetAgent]: false }));
     }
   };
 
@@ -5307,37 +5355,8 @@ export default function App() {
 
   // Restores a selected session log
   const handleLoadSession = async (sessionId: string) => {
-    setThreadLoading(prev => ({ ...prev, [currentThreadId]: true }));
     setActiveSessionId(sessionId);
-    try {
-      const res = await fetch(`/api/session-detail?id=${sessionId}`);
-      if (res.ok) {
-        const data = await res.json();
-        const rawList = Array.isArray(data) ? data : (data.messages || []);
-        const mapped = rawList.map((m: any) => ({
-          id: m.id,
-          agent: m.agent || (m.role === 'user' ? 'user' : 'hermes'),
-          msg: m.content,
-          parentId: m.parentId,
-          time: m.created_at
-            ? new Date(m.created_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })
-            : 'Restored'
-        }));
-        setChatMessages(mapped.length > 0 ? mapped : [
-          { agent: "hermes", msg: "Empty session log context.", time: "System Info" }
-        ]);
-        setCenterTab("chat");
-      }
-    } catch (e) {
-      console.error("Failed to load session:", e);
-      setChatMessages([{
-        agent: "system",
-        msg: `Failed to restore details for session ${sessionId}.`,
-        time: "Error"
-      }]);
-    } finally {
-      setThreadLoading(prev => ({ ...prev, [currentThreadId]: false }));
-    }
+    setCenterTab("chat");
   };
 
   // Add card to Kanban board
@@ -5509,7 +5528,12 @@ export default function App() {
           {/* Version Selector Pill */}
           <div className="relative">
             <button
-              onClick={() => setShowVersionHistory(!showVersionHistory)}
+              onClick={() => {
+                setShowVersionHistory(!showVersionHistory);
+                if (!showVersionHistory) {
+                  fetchEvolutionStatus();
+                }
+              }}
               className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded px-2 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
@@ -5556,6 +5580,30 @@ export default function App() {
                         Stateful persistent terminal console, native Claude Code and OpenClaw CLI integration, multi-model failover retry routing, and real-time SSE progress stream.
                       </p>
                     </div>
+                  </div>
+                  <div className="mt-3 pt-2.5 border-t border-white/[0.05] text-[9.5px]">
+                    <div className="flex items-center justify-between font-bold text-gray-300 mb-1 text-[9.5px]">
+                      <span>⚙️ Auto-Evolution Engine</span>
+                      <span className="text-[8px] text-green-400">Daily at 2 AM</span>
+                    </div>
+                    {evolutionStatus ? (
+                      <div className="text-gray-400 text-[8.5px] leading-relaxed mb-2 font-mono">
+                        Last Run: {evolutionStatus.timestamp ? new Date(evolutionStatus.timestamp).toLocaleString('en-GB') : 'Unknown'}
+                        <br />
+                        Info: {evolutionStatus.info || 'Auto-evolution active.'}
+                      </div>
+                    ) : (
+                      <div className="text-gray-500 text-[8.5px] mb-2 font-mono">
+                        Monitoring codebase for improvements...
+                      </div>
+                    )}
+                    <button
+                      onClick={handleRevertEvolution}
+                      disabled={isReverting}
+                      className="w-full mt-1.5 flex items-center justify-center gap-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/35 text-red-400 font-bold rounded py-1 px-2.5 text-[9px] font-mono shadow-[0_0_8px_rgba(239,68,68,0.1)] transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      {isReverting ? "Reverting..." : "Revert Evolution ↩️"}
+                    </button>
                   </div>
                 </div>
               </>
@@ -5908,7 +5956,8 @@ export default function App() {
                 { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={12} /> },
                 { id: "workspace", label: "Workspace", icon: <FolderOpen size={12} /> },
                 { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> },
-                { id: "memory", label: "Memory", icon: <Database size={12} /> }
+                { id: "memory", label: "Memory", icon: <Database size={12} /> },
+                { id: "nightly", label: "Intelligence", icon: <Sparkles size={12} /> }
               ].map(tab => (
                 <button
                   key={tab.id}
@@ -5928,7 +5977,12 @@ export default function App() {
 
           {/* ─── TAB: SWARM HUB ─── */}
           {centerTab === "swarm" && (
-            <SwarmHubPanel />
+            <SwarmHubPanel 
+              threadLoading={threadLoading}
+              chatMessages={chatMessages}
+              setChatMode={setChatMode}
+              handleSendMessage={handleSendMessage}
+            />
           )}
 
           {/* ─── TAB: PAPERCLIP SWARM ─── */}
@@ -6167,16 +6221,28 @@ export default function App() {
                                 </span>
                                 <span className="text-[9px] text-gray-500 font-mono">{msg.time || "just now"}</span>
                               </div>
-                              {!isUser && !isSystem && !msg.isError && (
-                                <button
-                                  onClick={() => handleOpenSpecialistPanel(msg.agent)}
-                                  className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
-                                  title={`Open 1-on-1 Chat with ${agentMeta?.name || msg.agent}`}
-                                >
-                                  <MessageSquare size={9} />
-                                  <span>1-on-1</span>
-                                </button>
-                              )}
+                              <div className="flex items-center gap-1.5">
+                                {msg.id && (
+                                  <button
+                                    onClick={() => handleRewindSession(msg.id!)}
+                                    className="text-[9px] font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-0.5 cursor-pointer select-none bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20"
+                                    title="Rewind session history to this checkpoint"
+                                  >
+                                    <span>🔄</span>
+                                    <span>Rewind</span>
+                                  </button>
+                                )}
+                                {!isUser && !isSystem && !msg.isError && (
+                                  <button
+                                    onClick={() => handleOpenSpecialistPanel(msg.agent)}
+                                    className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
+                                    title={`Open 1-on-1 Chat with ${agentMeta?.name || msg.agent}`}
+                                  >
+                                    <MessageSquare size={9} />
+                                    <span>1-on-1</span>
+                                  </button>
+                                )}
+                              </div>
                             </div>
 
                             {/* Message Body */}
@@ -6189,6 +6255,31 @@ export default function App() {
                             <div className="text-[12.5px] text-[#cbd5e1] leading-relaxed break-words select-text">
                               <Markdown text={msg.msg} />
                             </div>
+
+                            {msg.status === 'pending_approval' && (
+                              <div className="mt-3 p-4 bg-yellow-500/5 border border-yellow-500/20 rounded-xl space-y-3 select-none">
+                                <div className="text-xs font-extrabold text-yellow-400 uppercase tracking-wider flex items-center gap-2">
+                                  <Shield size={12} className="animate-pulse" /> Security Gatekeeper Verification Required
+                                </div>
+                                <p className="text-[11px] text-gray-400 leading-normal">
+                                  This execution step requires human confirmation. You can approve the action or reject it.
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => handleApproveStep(msg.id!)}
+                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-extrabold transition-all cursor-pointer shadow-md select-none"
+                                  >
+                                    ✅ Approve Action
+                                  </button>
+                                  <button
+                                    onClick={() => handleRejectStep(msg.id!)}
+                                    className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-lg text-[10px] font-extrabold transition-all cursor-pointer shadow-md select-none"
+                                  >
+                                    ❌ Reject Action
+                                  </button>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Collapsible Tool Call Steps */}
                             {msg.tools && msg.tools.length > 0 && (
@@ -7308,7 +7399,7 @@ export default function App() {
                             : "bg-white/[0.01] hover:bg-white/[0.02] border border-transparent text-gray-400 hover:text-gray-200"
                         }`}
                       >
-                        <div className="flex items-center gap-2 truncate">
+                        <div className="flex items-center gap-2 truncate" style={{ paddingLeft: `${(file.path.split('/').length - 1) * 12}px` }}>
                           <span>{file.type === "directory" ? "📁" : "📄"}</span>
                           <span className="truncate">{file.name}</span>
                         </div>
@@ -7640,6 +7731,278 @@ export default function App() {
 
           {centerTab === "memory" && (
             <VectorMemoryPanel />
+          )}
+
+          {/* ─── TAB: NIGHTLY INTELLIGENCE ─── */}
+          {centerTab === "nightly" && (
+            <div className="flex-1 flex flex-col overflow-hidden bg-[#070713]/40">
+              {/* Header */}
+              <div className="p-4 border-b border-white/[0.05] flex justify-between items-center bg-[#070713]/55 shrink-0">
+                <div>
+                  <h3 className="text-xs font-bold text-white tracking-wide font-mono flex items-center gap-2">
+                    <span className="text-indigo-400">◈</span>
+                    OVERNIGHT INTELLIGENCE CYCLE
+                  </h3>
+                  <span className="text-[9px] text-gray-500 uppercase tracking-wider font-mono font-bold block mt-0.5">
+                    Self-research · Analysis · Proposals · API rotation — runs 1am–6am nightly
+                  </span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      setNightlyLoading(true);
+                      try {
+                        const r = await fetch('/api/nightly-report');
+                        const d = await r.json();
+                        setNightlyReport(d.exists ? d.report : null);
+                        const u = await fetch('/api/api-usage');
+                        const ud = await u.json();
+                        setApiUsageState(ud);
+                      } catch {}
+                      setNightlyLoading(false);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-semibold border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all cursor-pointer"
+                  >
+                    {nightlyLoading ? '⟳ Loading...' : '⟳ Refresh'}
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (nightlyRunning) return;
+                      setNightlyRunning(true);
+                      try {
+                        await fetch('/api/nightly-cycle/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true }) });
+                      } catch {}
+                      setTimeout(() => setNightlyRunning(false), 3000);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-semibold transition-all cursor-pointer ${
+                      nightlyRunning
+                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 animate-pulse'
+                        : 'bg-indigo-600/15 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/25'
+                    }`}
+                  >
+                    {nightlyRunning ? '⟳ Running...' : '▷ Run Cycle Now'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
+
+                {/* No report yet */}
+                {!nightlyReport && !nightlyLoading && (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-4">
+                      <span className="text-2xl">◈</span>
+                    </div>
+                    <p className="text-sm font-bold text-white font-mono">No report yet</p>
+                    <p className="text-[11px] text-gray-500 mt-1 max-w-sm">The first cycle runs automatically at 1am. Click "Run Cycle Now" to trigger it immediately (force mode).</p>
+                    <button
+                      onClick={() => { setNightlyLoading(true); fetch('/api/api-usage').then(r => r.json()).then(d => { setApiUsageState(d); setNightlyLoading(false); }).catch(() => setNightlyLoading(false)); }}
+                      className="mt-4 px-4 py-2 rounded text-[10px] font-semibold bg-white/[0.03] border border-white/10 text-gray-400 hover:text-white transition-all cursor-pointer"
+                    >
+                      Load API Usage State
+                    </button>
+                  </div>
+                )}
+
+                {/* Executive Summary */}
+                {nightlyReport && (
+                  <>
+                    <div className="bg-[#0b0b1e]/80 border border-indigo-500/20 rounded-xl p-4 shadow-lg">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-[10px] font-bold text-indigo-300 uppercase tracking-wider font-mono">Executive Summary</h4>
+                        <span className="text-[9px] text-gray-600 font-mono">{nightlyReport.generated_at ? new Date(nightlyReport.generated_at).toLocaleString() : ''} · {nightlyReport.cycle_duration_min}min</span>
+                      </div>
+                      <p className="text-[11px] text-gray-300 leading-relaxed">{nightlyReport.executive_summary}</p>
+                    </div>
+
+                    {/* What I Want To Become */}
+                    {nightlyReport.what_i_want_to_become && (
+                      <div className="bg-[#0c0c1f]/90 border border-purple-500/20 rounded-xl p-4 shadow-lg relative overflow-hidden">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/5 rounded-full blur-2xl pointer-events-none" />
+                        <h4 className="text-[10px] font-bold text-purple-300 uppercase tracking-wider font-mono mb-2">◈ What I Want To Become</h4>
+                        <p className="text-[11px] text-gray-300 leading-relaxed italic">{nightlyReport.what_i_want_to_become}</p>
+                      </div>
+                    )}
+
+                    {/* Top 5 Priorities */}
+                    {nightlyReport.top_5_priorities?.length > 0 && (
+                      <div className="bg-[#0b0b1e]/80 border border-white/[0.05] rounded-xl p-4">
+                        <h4 className="text-[10px] font-bold text-white uppercase tracking-wider font-mono mb-3">Top Priority Proposals</h4>
+                        <div className="space-y-2">
+                          {nightlyReport.top_5_priorities.map((p: any, i: number) => (
+                            <div key={i} className="flex items-center gap-3 p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-indigo-500/20 transition-all">
+                              <span className="text-indigo-400 font-mono text-[11px] font-bold w-4 shrink-0">#{i + 1}</span>
+                              <span className="text-[11px] text-gray-200 flex-1 font-medium">{p.title}</span>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                                p.complexity === 'Low' ? 'bg-green-500/15 text-green-400 border border-green-500/20' :
+                                p.complexity === 'Medium' ? 'bg-yellow-500/15 text-yellow-400 border border-yellow-500/20' :
+                                'bg-red-500/15 text-red-400 border border-red-500/20'
+                              }`}>{p.complexity}</span>
+                              <span className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-bold ${
+                                p.risk === 'Low' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/15' :
+                                p.risk === 'Medium' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/15' :
+                                'bg-red-500/10 text-red-400 border border-red-500/15'
+                              }`}>{p.risk} risk</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Two column: Discoveries + Analysis */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                      {/* Discoveries */}
+                      <div className="bg-[#0b0b1e]/80 border border-white/[0.05] rounded-xl p-4">
+                        <h4 className="text-[10px] font-bold text-white uppercase tracking-wider font-mono mb-3">Discoveries</h4>
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+                            <span className="text-[10px] text-gray-400">GitHub Repos</span>
+                            <span className="text-[10px] font-bold text-indigo-300 font-mono">{nightlyReport.discoveries?.github_repos?.length || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+                            <span className="text-[10px] text-gray-400">ArXiv Papers</span>
+                            <span className="text-[10px] font-bold text-indigo-300 font-mono">{nightlyReport.discoveries?.arxiv_papers?.length || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04]">
+                            <span className="text-[10px] text-gray-400">Reddit Posts</span>
+                            <span className="text-[10px] font-bold text-indigo-300 font-mono">{nightlyReport.discoveries?.reddit_highlights?.length || 0}</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1.5">
+                            <span className="text-[10px] text-gray-400">HuggingFace Models</span>
+                            <span className="text-[10px] font-bold text-indigo-300 font-mono">{nightlyReport.discoveries?.huggingface_models?.length || 0}</span>
+                          </div>
+                        </div>
+                        {/* Top repos */}
+                        {nightlyReport.discoveries?.github_repos?.slice(0, 5).map((r: any, i: number) => (
+                          <a key={i} href={r.url} target="_blank" rel="noreferrer" className="block mt-2 p-2 rounded bg-white/[0.02] hover:bg-white/[0.04] border border-white/[0.03] transition-all group">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] text-indigo-300 font-mono group-hover:text-indigo-200">{r.name}</span>
+                              <span className="text-[9px] text-yellow-500">★ {r.stars}</span>
+                            </div>
+                            <p className="text-[9px] text-gray-500 mt-0.5 truncate">{r.description}</p>
+                          </a>
+                        ))}
+                      </div>
+
+                      {/* Analysis gaps */}
+                      <div className="bg-[#0b0b1e]/80 border border-white/[0.05] rounded-xl p-4">
+                        <h4 className="text-[10px] font-bold text-white uppercase tracking-wider font-mono mb-3">Gaps Identified</h4>
+                        <div className="space-y-2">
+                          {nightlyReport.analysis?.current_gaps?.map((gap: string, i: number) => (
+                            <div key={i} className="flex items-start gap-2 p-2 rounded bg-white/[0.02] border border-white/[0.03]">
+                              <span className="text-orange-400 mt-0.5 shrink-0">!</span>
+                              <span className="text-[10px] text-gray-300">{gap}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {nightlyReport.analysis?.opportunities?.slice(0, 4).map((o: any, i: number) => (
+                          <div key={i} className="mt-2 p-2 rounded bg-white/[0.02] border border-white/[0.03]">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[8px] px-1 py-0.5 rounded font-mono font-bold ${
+                                o.impact === 'High' ? 'bg-green-500/15 text-green-400' :
+                                o.impact === 'Medium' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-gray-500/15 text-gray-400'
+                              }`}>{o.impact} impact</span>
+                              <span className="text-[10px] font-semibold text-gray-200">{o.title}</span>
+                            </div>
+                            <p className="text-[9px] text-gray-500 leading-relaxed">{o.detail}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Full Proposals */}
+                    {nightlyReport.proposals?.length > 0 && (
+                      <div className="bg-[#0b0b1e]/80 border border-white/[0.05] rounded-xl p-4">
+                        <h4 className="text-[10px] font-bold text-white uppercase tracking-wider font-mono mb-3">All Proposals ({nightlyReport.proposals.length})</h4>
+                        <div className="space-y-3">
+                          {nightlyReport.proposals.map((p: any, i: number) => (
+                            <div key={i} className="p-3 rounded-lg bg-white/[0.02] border border-white/[0.04] hover:border-indigo-500/20 transition-all">
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="text-indigo-400 font-mono text-[10px] font-bold">#{i + 1}</span>
+                                <span className="text-[11px] font-semibold text-white">{p.title}</span>
+                                <span className={`ml-auto text-[8px] px-1 py-0.5 rounded font-mono font-bold ${
+                                  p.complexity === 'Low' ? 'bg-green-500/15 text-green-400' :
+                                  p.complexity === 'Medium' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-red-500/15 text-red-400'
+                                }`}>{p.complexity}</span>
+                              </div>
+                              <p className="text-[10px] text-gray-400 leading-relaxed mb-1">{p.description}</p>
+                              {p.implementation_hint && (
+                                <p className="text-[9px] text-indigo-400/70 font-mono">→ {p.implementation_hint}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* API Usage State (always show if loaded) */}
+                {apiUsageState && (
+                  <div className="bg-[#0b0b1e]/80 border border-white/[0.05] rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-[10px] font-bold text-white uppercase tracking-wider font-mono">API Usage Register</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-gray-600 font-mono">Resets daily · 80% = auto-swap</span>
+                        <button
+                          onClick={() => fetch('/api/api-usage/reset', { method: 'POST' }).then(() => fetch('/api/api-usage').then(r => r.json()).then(d => setApiUsageState(d)))}
+                          className="text-[9px] px-2 py-0.5 rounded border border-white/10 text-gray-500 hover:text-white transition-all cursor-pointer"
+                        >Reset</button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2">
+                      {Object.entries(apiUsageState.providers || {}).map(([key, p]: [string, any]) => {
+                        const ratio = p.limits && p.used_today ? (
+                          p.limits.requests_per_day ? p.used_today.requests / p.limits.requests_per_day :
+                          p.limits.effective_daily ? p.used_today.requests / p.limits.effective_daily : 0
+                        ) : 0;
+                        const pct = Math.round(ratio * 100);
+                        return (
+                          <div key={key} className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.03]">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="text-[9px] font-bold text-gray-300 font-mono truncate">{p.label}</span>
+                              <span className={`text-[8px] font-mono font-bold ${
+                                p.type === 'local' ? 'text-green-400' :
+                                pct >= 80 ? 'text-red-400' : pct >= 50 ? 'text-yellow-400' : 'text-emerald-400'
+                              }`}>
+                                {p.type === 'local' ? '∞' : `${pct}%`}
+                              </span>
+                            </div>
+                            {p.type !== 'local' && (
+                              <div className="w-full h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all ${
+                                    pct >= 80 ? 'bg-red-500' : pct >= 50 ? 'bg-yellow-500' : 'bg-emerald-500'
+                                  }`}
+                                  style={{ width: `${Math.min(pct, 100)}%` }}
+                                />
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-[8px] text-gray-600">{p.used_today?.requests || 0} req today</span>
+                              <span className={`text-[8px] px-1 rounded font-mono ${
+                                p.priority <= 3 ? 'text-indigo-400' : 'text-gray-600'
+                              }`}>P{p.priority}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {apiUsageState.swap_log?.length > 0 && (
+                      <div className="mt-3 p-2 rounded bg-orange-500/5 border border-orange-500/15">
+                        <h5 className="text-[9px] font-bold text-orange-400 font-mono mb-1">API Swap Log</h5>
+                        {apiUsageState.swap_log.slice(-5).map((s: any, i: number) => (
+                          <div key={i} className="text-[9px] text-gray-500 font-mono">
+                            {new Date(s.timestamp).toLocaleTimeString()} → {s.from} at {s.reason}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              </div>
+            </div>
           )}
 
           {/* ─── TAB 4: SWARM TELEMETRY & SYSTEM LOAD ─── */}
@@ -9228,6 +9591,9 @@ export default function App() {
             
             {/* Split layout inside modal */}
             <div className="flex-grow flex overflow-hidden min-h-0">
+              {/* Diagnostic Warning Banner */}
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 animate-pulse" />
+              
               {/* Left Config Panel Column */}
               <div className="flex-1 overflow-y-auto p-6 border-r border-white/[0.04] space-y-6">
                 <div className="bg-[#0b0b1e]/60 border border-white/[0.03] p-5 rounded-2xl shadow-xl">
