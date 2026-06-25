@@ -8988,11 +8988,37 @@ try {
 // Start Telegram Bot Client
 try {
   if (process.env.TELEGRAM_BOT_TOKEN) {
-    initializeTelegram(async (message, from) => {
-      const sessionId = 'telegram_session';
-      const result = await sendMessage('agy', message, `Telegram (${from})`, null, sessionId);
-      return result.response || result.output || 'No response from Antigravity';
-    });
+    initializeTelegram(
+      // Message callback: routes to specific agent or default 'agy'
+      async (message, fromId, targetAgent, sessionId) => {
+        const agent = targetAgent || 'agy';
+        const sid = sessionId || `telegram_${fromId}`;
+        const result = await sendMessage(agent, message, `Telegram (${fromId})`, null, sid);
+        return result;
+      },
+      // Status callback: returns current system status
+      async () => {
+        try {
+          const agents = {};
+          const agentDefs = [
+            { id: 'orchestrator', name: 'Gemini Orchestrator', role: 'Orchestrator · Brains · Swarm Coordinator' },
+            { id: 'hermes', name: 'Hermes', role: 'Research · Executor · Dashboard' },
+            { id: 'agy', name: 'Antigravity', role: 'Intelligence · CEO · Orchestrator' },
+            { id: 'openclaw', name: 'OpenClaw', role: 'Execution · Router · Gateway' },
+            { id: 'obsidian', name: 'Obsidian', role: 'Memory · Vault · Knowledge Graph' },
+            { id: 'claude', name: 'Claude Code', role: 'Expert Developer · Code Optimizer' },
+            { id: 'aider', name: 'Aider Chat', role: 'Multi-file Coding Agent' },
+            { id: 'github', name: 'GitHub CLI', role: 'Repo Operations & PRs' },
+            { id: 'cloudflare', name: 'Cloudflare Workers', role: 'Deploy · Pages · Workers' },
+          ];
+          for (const a of agentDefs) agents[a.id] = { name: a.name, role: a.role, status: 'online' };
+          const activeModel = readSettings()?.activeModel || process.env.DEFAULT_MODEL || 'openrouter/owl-alpha';
+          return { agents, activeModel, workspace: SHARED };
+        } catch (_) {
+          return { agents: {}, activeModel: 'unknown', workspace: SHARED };
+        }
+      }
+    );
     console.log('[Telegram] Bot initialized successfully.');
   } else {
     console.log('[Telegram] Bot is disabled. Set TELEGRAM_BOT_TOKEN in .env to enable.');
