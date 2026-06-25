@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# ── Agent OS Generated Files ─────────────────────────────────────────────────
+# WhatsApp/Browser automation profile (can be huge)
+shared/temp_profile/
+shared/whatsapp_qr.png
+shared/whatsapp_pairing_code.txt
+
+# Runtime state files (regenerated on startup)
+api-usage-state.json
+*.db
+*.db-shm
+*.db-wal
+
+# Shared runtime outputs (logs, temp files)
+shared/screenshot_*.png
+shared/nightly-intelligence-report.json
