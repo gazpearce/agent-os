@@ -6193,9 +6193,10 @@ export default function App() {
                     </button>
                   </div>
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+            </>
+          )}
+        </div>
 
           <div className="flex items-center gap-4">
             {/* Global Header Mode Switcher */}
@@ -10000,9 +10001,14 @@ export default function App() {
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
           </div>
           {terminalLogs.filter(l => l.type === 'error').length > 0 && (
-            <div className="mb-2 p-2 bg-red-500/5 border border-red-500/20 rounded-lg flex items-center justify-between">
-              <span className="text-[9px] text-red-300">🔴 {terminalLogs.filter(l => l.type === 'error').length} healing failures detected - Check JSON escaping & file paths</span>
-              <span className="text-[8px] text-red-400/60">Last: {new Date().toLocaleTimeString()}</span>
+            <div className="mb-2 p-2.5 bg-red-500/10 border border-red-500/30 rounded-lg flex flex-col gap-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] text-red-300 font-semibold">🔴 {terminalLogs.filter(l => l.type === 'error').length} healing failures detected</span>
+                <span className="text-[8px] text-red-400/60">Last: {new Date().toLocaleTimeString()}</span>
+              </div>
+              <div className="text-[8px] text-red-400/80 bg-red-500/5 rounded px-2 py-1 border border-red-500/10">
+                💡 Tip: Verify package.json path exists. Common fix: Check for absolute vs relative paths (e.g., /home/user/project vs ./project)
+              </div>
             </div>
           )}
           <div ref={floatingTerminalContainerRef} className="flex-grow overflow-y-auto space-y-1.5 my-3 pr-1 select-text custom-scrollbar">
