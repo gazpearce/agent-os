@@ -9203,22 +9203,9 @@ export default function App() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 select-none">
                       <span>Hermes CLI Sessions</span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            setActiveSessionId(null);
-                            setChatMessages([]);
-                            localStorage.removeItem("agent_os_active_session_id");
-                          }}
-                          className="text-[8px] bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 rounded px-1.5 py-0.5 font-bold transition-all cursor-pointer select-none"
-                          title="Start a fresh chat thread"
-                        >
-                          + New Chat
-                        </button>
-                        <button onClick={fetchSessionsList} disabled={sessionsLoading} className="hover:text-white transition-colors cursor-pointer">
-                          <RefreshCw size={10} className={sessionsLoading ? "animate-spin text-indigo-400" : ""} />
-                        </button>
-                      </div>
+                      <button onClick={fetchSessionsList} disabled={sessionsLoading} className="hover:text-white transition-colors cursor-pointer">
+                        <RefreshCw size={10} className={sessionsLoading ? "animate-spin text-indigo-400" : ""} />
+                      </button>
                     </div>
                     {sessionsLoading && (
                       <div className="text-gray-500 text-center py-4 font-mono text-xs select-none">Restoring logs index...</div>
@@ -10319,7 +10306,13 @@ export default function App() {
           </button>
 
           <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-md">Antigravity Premium OS Dashboard</span>
-          <span className="text-[8px] font-mono text-gray-600 border-l border-gray-800 pl-2 ml-1">v{import.meta.env.VITE_APP_VERSION || 'dev'} • {new Date().toISOString().split('T')[0]}</span>
+          <span className={`text-[8px] font-mono border-l border-gray-800 pl-2 ml-1 ${
+            import.meta.env.VITE_ENVIRONMENT === 'production' 
+              ? 'text-emerald-400' 
+              : 'text-amber-400'
+          }`}>
+            ENV:{import.meta.env.VITE_ENVIRONMENT || 'DEV'} • v{import.meta.env.VITE_APP_VERSION || 'dev'} • {new Date().toISOString().split('T')[0]}
+          </span>
         </div>
       </footer>
     </div>
