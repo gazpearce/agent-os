@@ -438,6 +438,7 @@ let OR_KEYS_INTERVAL = setInterval(() => {
   OR_KEYS = loadOpenRouterKeys();
 }, 60000);
 
+let SCALEWAY_KEY = '';
 let CEREBRAS_KEY = '';
 let SAMBANOVA_KEY = '';
 let AGNES_KEY = '';
@@ -451,6 +452,7 @@ let CLOUDFLARE_AI_TOKEN = '';
 let CLOUDFLARE_AI_ACCOUNT = '';
 let SILICONFLOW_KEYS = [];
 let currentSiliconFlowKeyIndex = 0;
+let SILICONFLOW_BASE_URL = 'https://api.siliconflow.com/v1';
 
 function getSiliconFlowKey() {
   return SILICONFLOW_KEYS[currentSiliconFlowKeyIndex % SILICONFLOW_KEYS.length] || '';
@@ -461,6 +463,7 @@ function loadOtherKeys() {
     const apiConfigPath = join(process.cwd(), 'api-config.json');
     if (existsSync(apiConfigPath)) {
       const config = JSON.parse(readFileSync(apiConfigPath, 'utf-8'));
+      if (config.scaleway?.api_key) SCALEWAY_KEY = config.scaleway.api_key;
       if (config.cerebras?.api_key) CEREBRAS_KEY = config.cerebras.api_key;
       if (config.sambanova?.api_key) SAMBANOVA_KEY = config.sambanova.api_key;
       if (config.agnes?.keys?.[0]) {
@@ -488,6 +491,9 @@ function loadOtherKeys() {
         SILICONFLOW_KEYS = config.siliconflow.keys;
       } else if (config.siliconflow?.api_key) {
         SILICONFLOW_KEYS = [config.siliconflow.api_key];
+      }
+      if (config.siliconflow?.base_url) {
+        SILICONFLOW_BASE_URL = config.siliconflow.base_url;
       }
     }
   } catch (e) {
@@ -1644,6 +1650,12 @@ const DEFAULT_API_USAGE_STATE = {
       limits: { requests_per_day: 150, note: 'low_limit' },
       used_today: { requests: 0, tokens: 0 }, available: true,
       best_for: ['gpt4o_mini']
+    },
+    scaleway: {
+      type: 'cloud_free', label: 'Scaleway', priority: 2,
+      limits: { tokens_per_day: 33000, requests_per_day: 500 },
+      used_today: { requests: 0, tokens: 0 }, available: true,
+      best_for: ['general', 'advanced', 'code', 'vision']
     }
   },
   swap_log: [],
@@ -1689,12 +1701,18 @@ function saveApiUsageState(state) {
 
 function getApiUsageRatio(provider) {
   if (!provider.limits || provider.type === 'local') return 0;
+  let ratio = 0;
+  if (provider.limits.tokens_per_day) {
+    ratio = Math.max(ratio, provider.used_today.tokens / provider.limits.tokens_per_day);
+  }
   const limit = provider.limits.requests_per_day ||
                 provider.limits.effective_daily ||
                 (provider.limits.requests_per_hour ? provider.limits.requests_per_hour * 24 : null) ||
                 Infinity;
-  if (!isFinite(limit)) return 0;
-  return provider.used_today.requests / limit;
+  if (isFinite(limit)) {
+    ratio = Math.max(ratio, provider.used_today.requests / limit);
+  }
+  return ratio;
 }
 
 function getNextApiProvider(taskType = 'general') {
@@ -2128,6 +2146,15 @@ function saveWishlist(wishlist) {
     ].join('\n');
 
     writeFileSync(WISHLIST_PATH, md, 'utf-8');
+
+    // Asynchronously sync wishlist and todo list to Hugging Face Storage Bucket
+    exec('python "D:/Agent OS/shared/tools/hf_sync_wishlist.py"', (err, stdout, stderr) => {
+      if (err) {
+        console.error('[HuggingFace Sync] Error:', err.message);
+      } else {
+        console.log('[HuggingFace Sync] Sync completed successfully.');
+      }
+    });
   } catch (e) {
     console.error('[Wishlist] Save failed:', e.message);
   }
@@ -2232,6 +2259,45 @@ async function runSelfImprovementWishlist() {
       await new Promise(res => setTimeout(res, 1500));
     }
   } catch (_) {}
+
+  // 4b. Tech Blogs Crawler (Qwen, OpenAI, Anthropic, HuggingFace)
+  try {
+    const blogs = [
+      { name: 'Qwen Blog', url: 'https://qwen.ai/blog' },
+      { name: 'OpenAI Blog', url: 'https://openai.com/news' },
+      { name: 'Anthropic News', url: 'https://www.anthropic.com/news' },
+      { name: 'HuggingFace Blog', url: 'https://huggingface.co/blog' },
+      { name: 'HuggingFace Papers', url: 'https://huggingface.co/papers' },
+      { name: 'GitHub Blog', url: 'https://github.blog' },
+      { name: 'Hacker News', url: 'https://news.ycombinator.com' },
+      { name: 'OpenRouter Changelog', url: 'https://openrouter.ai/docs/changelog' },
+      { name: 'Google DeepMind', url: 'https://deepmind.google/discover/' },
+      { name: 'Meta AI Blog', url: 'https://ai.meta.com/blog/' }
+    ];
+    for (const blog of blogs) {
+      console.log(`[Model Scanner] Crawling ${blog.name}...`);
+      const r = await fetch(blog.url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
+      if (r.ok) {
+        const html = await r.text();
+        const matches = html.match(/<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi) || [];
+        const found = [];
+        for (const m of matches) {
+          const href = (m.match(/href=["']([^"']+)["']/i) || [])[1] || '';
+          const text = m.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+          if (text.length > 10 && (text.toLowerCase().includes('qwen') || text.toLowerCase().includes('agent') || text.toLowerCase().includes('model') || text.toLowerCase().includes('deepseek') || text.toLowerCase().includes('llama') || text.toLowerCase().includes('gpt') || text.toLowerCase().includes('claude') || text.toLowerCase().includes('reasoning') || text.toLowerCase().includes('world') || text.toLowerCase().includes('r1'))) {
+            found.push(`${text} (${blog.name}: ${href})`);
+          }
+        }
+        const uniqueFound = [...new Set(found)].slice(0, 5);
+        for (const item of uniqueFound) {
+          discoveries.models.push(item);
+        }
+      }
+      await new Promise(res => setTimeout(res, 1000));
+    }
+  } catch (e) {
+    console.error('[Model Scanner] Blog Crawler failed:', e.message);
+  }
 
   // 5. Ask LLM to generate wishlist items from discoveries
   const discoverySummary = [
@@ -2966,6 +3032,56 @@ async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, mo
   ])];
 
   for (const currentModel of uniqueModels) {
+    // Try Scaleway direct
+    if (currentModel.startsWith('scaleway/')) {
+      const state = loadApiUsageState();
+      const providerState = state.providers.scaleway;
+      const ratio = providerState ? getApiUsageRatio(providerState) : 0;
+      if (ratio >= 0.80) {
+        console.log(`[Scaleway] Skipping - near free limit (ratio: ${(ratio*100).toFixed(0)}%).`);
+        continue;
+      }
+
+      try {
+        const key = SCALEWAY_KEY || (providerState ? providerState.api_key : '');
+        if (key) {
+          const modelId = currentModel.replace(/^scaleway\//, '');
+          console.log(`[Scaleway] Trying model ${modelId} with Scaleway API...`);
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 20000);
+          const r = await fetch('https://api.scaleway.ai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model: modelId,
+              messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: query }],
+              max_tokens: maxTokens
+            }),
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          if (r.ok) {
+            const d = await r.json();
+            if (d.choices?.[0]?.message?.content) {
+              console.log(`[Scaleway] Success with model ${currentModel}`);
+              const completionTokens = d.usage?.total_tokens || approxTokens;
+              trackApiUsage('scaleway', completionTokens);
+              return d.choices[0].message.content;
+            }
+          } else {
+            const errText = await r.text();
+            console.log(`[Scaleway] API failed: ${r.status} ${errText}`);
+          }
+        }
+      } catch (err) {
+        print(`[Scaleway] Error: ${err.message}`);
+      }
+      continue;
+    }
+
     // Try SiliconFlow direct
     if (currentModel.startsWith('siliconflow/')) {
       try {
@@ -2975,7 +3091,7 @@ async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, mo
           console.log(`[SiliconFlow] Trying model ${modelId} with SiliconFlow API...`);
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 20000);
-          const r = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+          const r = await fetch(`${SILICONFLOW_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -2991,9 +3107,10 @@ async function _chatCompletionWithHistoryInternal(messages, maxTokens = 2048, mo
           clearTimeout(timeoutId);
           if (r.ok) {
             const d = await r.json();
-            if (d.choices?.[0]?.message?.content) {
+            const content = d.choices?.[0]?.message?.content || d.choices?.[0]?.message?.reasoning_content;
+            if (content) {
               console.log(`[SiliconFlow] Success with model ${currentModel}`);
-              return d.choices[0].message.content;
+              return content;
             }
           }
         }
@@ -4222,6 +4339,13 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
   }
 
   const modelFallbacks = [
+    'siliconflow/Qwen/Qwen3.6-35B-A3B',
+    'siliconflow/Qwen/Qwen3.5-397B-A17B',
+    'siliconflow/Qwen/Qwen3-Coder-30B-A3B-Instruct',
+    'scaleway/qwen3.5-397b-a17b',
+    'scaleway/llama-3.3-70b-instruct',
+    'scaleway/qwen3-coder-30b-a3b-instruct',
+    'scaleway/pixtral-12b-2409',
     mappedModel,
     'agnes/agnes-2.0-flash',
     'openrouter/deepseek/deepseek-r1:free',
@@ -4252,7 +4376,7 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
           console.log(`[SiliconFlow] Trying model ${modelId} with SiliconFlow API...`);
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 20000);
-          const r = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+          const r = await fetch(`${SILICONFLOW_BASE_URL}/chat/completions`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -4268,9 +4392,10 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
           clearTimeout(timeoutId);
           if (r.ok) {
             const d = await r.json();
-            if (d.choices?.[0]?.message?.content) {
+            const content = d.choices?.[0]?.message?.content || d.choices?.[0]?.message?.reasoning_content;
+            if (content) {
               console.log(`[SiliconFlow] Success with model ${currentModel}`);
-              return d.choices[0].message.content;
+              return content;
             }
           }
         }
@@ -5343,6 +5468,52 @@ app.delete('/api/memories/:id', (req, res) => {
     const { id } = req.params;
     aionuiDb.prepare("DELETE FROM memories WHERE id = ?").run(id);
     res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/memories/graph', (req, res) => {
+  try {
+    const rows = aionuiDb.prepare("SELECT id, text, source_type, source_id, embedding, created_at FROM memories").all();
+    const nodes = rows.map(r => ({
+      id: r.id,
+      label: r.text.substring(0, 65) + (r.text.length > 65 ? '...' : ''),
+      source_type: r.source_type,
+      source_id: r.source_id,
+      created_at: r.created_at,
+      val: Math.max(2, Math.min(10, Math.ceil(r.text.length / 100)))
+    }));
+
+    const links = [];
+    for (let i = 0; i < rows.length; i++) {
+      let embI;
+      try { embI = JSON.parse(rows[i].embedding); } catch { continue; }
+      if (!embI || !Array.isArray(embI)) continue;
+
+      for (let j = i + 1; j < rows.length; j++) {
+        let embJ;
+        try { embJ = JSON.parse(rows[j].embedding); } catch { continue; }
+        if (!embJ || !Array.isArray(embJ)) continue;
+
+        const sim = cosineSimilarity(embI, embJ);
+        if (sim > 0.48) {
+          links.push({
+            source: rows[i].id,
+            target: rows[j].id,
+            value: sim
+          });
+        } else if (rows[i].source_id && rows[j].source_id && rows[i].source_id === rows[j].source_id) {
+          links.push({
+            source: rows[i].id,
+            target: rows[j].id,
+            value: 0.7
+          });
+        }
+      }
+    }
+
+    res.json({ nodes, links });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

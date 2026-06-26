@@ -2550,14 +2550,353 @@ function VaultPanel() {
   );
 }
 
+interface GalaxyNode {
+  id: string;
+  label: string;
+  source_type: string;
+  val: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+}
+
+interface GalaxyLink {
+  source: string;
+  target: string;
+  value: number;
+}
+
+function MemoryGalaxyStarMap({ allMemories }: { allMemories: any[] }) {
+  const [data, setData] = useState<{ nodes: GalaxyNode[]; links: GalaxyLink[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedNode, setSelectedNode] = useState<any | null>(null);
+  const containerRef = useRef<SVGSVGElement>(null);
+  const dragNodeRef = useRef<GalaxyNode | null>(null);
+
+  const fetchGraph = async () => {
+    try {
+      setLoading(true);
+      const r = await fetch('/api/memories/graph');
+      if (r.ok) {
+        const d = await r.json();
+        const nodes = d.nodes.map((n: any) => ({
+          ...n,
+          x: 400 + (Math.random() - 0.5) * 300,
+          y: 200 + (Math.random() - 0.5) * 150,
+          vx: 0,
+          vy: 0
+        }));
+        setData({ nodes, links: d.links });
+      }
+    } catch (e) {
+      console.error("Failed to fetch memory graph:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGraph();
+  }, []);
+
+  useEffect(() => {
+    if (!data || loading) return;
+
+    let animId: number;
+    const updateSimulation = () => {
+      const { nodes, links } = data;
+      const width = 800;
+      const height = 400;
+      const centerX = width / 2;
+      const centerY = height / 2;
+      
+      const kLink = 0.08;
+      const kRepulsion = 120;
+      const kGravity = 0.015;
+      const friction = 0.85;
+
+      for (let i = 0; i < nodes.length; i++) {
+        const n1 = nodes[i];
+        for (let j = i + 1; j < nodes.length; j++) {
+          const n2 = nodes[j];
+          const dx = n2.x - n1.x;
+          const dy = n2.y - n1.y;
+          const distSq = dx * dx + dy * dy + 0.1;
+          const dist = Math.sqrt(distSq);
+          if (dist < 220) {
+            const force = kRepulsion / distSq;
+            const fx = (dx / dist) * force;
+            const fy = (dy / dist) * force;
+            
+            if (n1 !== dragNodeRef.current) {
+              n1.vx -= fx;
+              n1.vy -= fy;
+            }
+            if (n2 !== dragNodeRef.current) {
+              n2.vx += fx;
+              n2.vy += fy;
+            }
+          }
+        }
+      }
+
+      links.forEach(link => {
+        const sourceNode = nodes.find(n => n.id === (typeof link.source === 'object' ? (link.source as any).id : link.source));
+        const targetNode = nodes.find(n => n.id === (typeof link.target === 'object' ? (link.target as any).id : link.target));
+        if (!sourceNode || !targetNode) return;
+
+        const dx = targetNode.x - sourceNode.x;
+        const dy = targetNode.y - sourceNode.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+        const desiredDist = 100;
+        const force = (dist - desiredDist) * kLink * link.value;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+
+        if (sourceNode !== dragNodeRef.current) {
+          sourceNode.vx += fx;
+          sourceNode.vy += fy;
+        }
+        if (targetNode !== dragNodeRef.current) {
+          targetNode.vx -= fx;
+          targetNode.vy -= fy;
+        }
+      });
+
+      nodes.forEach(node => {
+        if (node === dragNodeRef.current) return;
+
+        node.vx += (centerX - node.x) * kGravity;
+        node.vy += (centerY - node.y) * kGravity;
+
+        node.vx *= friction;
+        node.vy *= friction;
+
+        const limitSpeed = 8;
+        const speed = Math.sqrt(node.vx * node.vx + node.vy * node.vy);
+        if (speed > limitSpeed) {
+          node.vx = (node.vx / speed) * limitSpeed;
+          node.vy = (node.vy / speed) * limitSpeed;
+        }
+
+        node.x += node.vx;
+        node.y += node.vy;
+
+        node.x = Math.max(40, Math.min(width - 40, node.x));
+        node.y = Math.max(40, Math.min(height - 40, node.y));
+      });
+
+      setData({ nodes: [...nodes], links });
+      animId = requestAnimationFrame(updateSimulation);
+    };
+
+    animId = requestAnimationFrame(updateSimulation);
+    return () => cancelAnimationFrame(animId);
+  }, [data === null, loading]);
+
+  const handleMouseDown = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!data) return;
+    const svg = containerRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 800;
+    const y = ((e.clientY - rect.top) / rect.height) * 400;
+
+    const node = data.nodes.find(n => {
+      const dx = n.x - x;
+      const dy = n.y - y;
+      return dx * dx + dy * dy < 256;
+    });
+
+    if (node) {
+      dragNodeRef.current = node;
+      node.vx = 0;
+      node.vy = 0;
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
+    if (!dragNodeRef.current) return;
+    const svg = containerRef.current;
+    if (!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const x = ((e.clientX - rect.left) / rect.width) * 800;
+    const y = ((e.clientY - rect.top) / rect.height) * 400;
+
+    dragNodeRef.current.x = x;
+    dragNodeRef.current.y = y;
+  };
+
+  const handleMouseUp = () => {
+    dragNodeRef.current = null;
+  };
+
+  const getNodeColor = (type: string) => {
+    switch (type) {
+      case 'youtube_transcript': return '#ef4444';
+      case 'n8n_workflow': return '#f97316';
+      case 'blog_post': return '#10b981';
+      case 'system_logs': return '#3b82f6';
+      default: return '#8b5cf6';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="h-[400px] flex items-center justify-center border border-white/5 bg-black/40 rounded-xl relative z-10">
+        <div className="flex flex-col items-center gap-2 font-mono text-xs text-indigo-400">
+          <RefreshCw size={20} className="animate-spin" />
+          <span>Generating Star-Map coordinates...</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative z-10">
+      <div className="border border-white/10 rounded-xl bg-black/60 relative overflow-hidden h-[400px] shadow-[inset_0_0_40px_rgba(99,102,241,0.06)]">
+        <div className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            backgroundImage: 'radial-gradient(circle, rgba(99,102,241,0.15) 1px, transparent 1px), linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)',
+            backgroundSize: '20px 20px, 40px 40px, 40px 40px'
+          }}
+        />
+
+        <svg
+          ref={containerRef}
+          viewBox="0 0 800 400"
+          className="w-full h-full cursor-crosshair select-none"
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
+          {data?.links.map((link, idx) => {
+            const sourceNode = data.nodes.find(n => n.id === (typeof link.source === 'object' ? (link.source as any).id : link.source));
+            const targetNode = data.nodes.find(n => n.id === (typeof link.target === 'object' ? (link.target as any).id : link.target));
+            if (!sourceNode || !targetNode) return null;
+            return (
+              <line
+                key={idx}
+                x1={sourceNode.x}
+                y1={sourceNode.y}
+                x2={targetNode.x}
+                y2={targetNode.y}
+                stroke="rgba(99,102,241,0.25)"
+                strokeWidth={1 + link.value * 2}
+                strokeDasharray={sourceNode.source_type === 'youtube_transcript' ? "2 2" : "none"}
+              />
+            );
+          })}
+
+          {data?.nodes.map((node) => {
+            const color = getNodeColor(node.source_type);
+            const radius = node.val + 4;
+            return (
+              <g
+                key={node.id}
+                className="cursor-pointer group"
+                onClick={() => setSelectedNode(node)}
+              >
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={radius + 6}
+                  fill={color}
+                  className="opacity-0 group-hover:opacity-20 transition-all duration-300 filter blur-[2px]"
+                />
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={radius}
+                  fill={color}
+                  className="transition-all duration-300 filter drop-shadow-[0_0_4px_rgba(99,102,241,0.5)]"
+                />
+                <circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={2}
+                  fill="#ffffff"
+                />
+                <text
+                  x={node.x}
+                  y={node.y - radius - 5}
+                  textAnchor="middle"
+                  fill="rgba(255,255,255,0.6)"
+                  className="text-[8px] font-mono select-none pointer-events-none group-hover:fill-white group-hover:font-bold"
+                >
+                  {node.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+
+        <div className="absolute bottom-3 left-3 bg-black/80 border border-white/[0.05] rounded-md p-2 flex flex-col gap-1 text-[8px] font-mono text-gray-400 select-none">
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500" /> YouTube Transcript</div>
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-orange-500" /> N8N Schema</div>
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> Blog Content</div>
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> System Logs</div>
+          <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Manual / Other</div>
+        </div>
+
+        <button
+          onClick={fetchGraph}
+          className="absolute top-3 right-3 p-1.5 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:text-white rounded-lg transition-all text-[9px] font-mono cursor-pointer"
+        >
+          ↻ Refresh
+        </button>
+      </div>
+
+      {selectedNode && (
+        <div className="absolute inset-0 bg-black/85 flex items-center justify-center p-6 z-30">
+          <div className="bg-[#0b0b1e] border border-white/10 rounded-xl p-5 max-w-lg w-full flex flex-col gap-4 relative animate-fade-in shadow-2xl">
+            <div className="flex justify-between items-start border-b border-white/10 pb-2">
+              <div>
+                <span className="text-[8px] uppercase font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  {selectedNode.source_type}
+                </span>
+                {selectedNode.source_id && (
+                  <span className="text-[8px] font-mono text-gray-500 ml-2">ID: {selectedNode.source_id}</span>
+                )}
+              </div>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="text-gray-500 hover:text-white transition-colors font-bold text-xs"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <div className="overflow-y-auto max-h-56 pr-1">
+              <p className="text-xs text-gray-300 leading-relaxed font-mono whitespace-pre-wrap select-text bg-black/40 p-3 rounded border border-white/5">
+                {(() => {
+                  const match = allMemories.find(m => m.id === selectedNode.id);
+                  return match ? match.text : selectedNode.label;
+                })()}
+              </p>
+            </div>
+            <div className="text-[8px] text-gray-500 font-mono flex justify-between items-center">
+              <span>Node ID: {selectedNode.id}</span>
+              <span>Ingested: {new Date(selectedNode.created_at).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─────────── SEMANTIC VECTOR MEMORY PANEL ─────────── */
 function VectorMemoryPanel() {
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(5);
   const [results, setResults] = useState<any[]>([]);
   const [allMemories, setAllMemories] = useState<any[]>([]);
+  const [memorySubTab, setMemorySubTab] = useState<'inventory' | 'galaxy'>('galaxy');
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [loadingIngest, setLoadingIngest] = useState(false);
+
   const [newText, setNewText] = useState("");
   const [newSourceType, setNewSourceType] = useState("manual");
   const [newSourceId, setNewSourceId] = useState("");
@@ -2785,60 +3124,90 @@ function VectorMemoryPanel() {
           </div>
         </div>
 
-        {/* Bottom Panel: Memories Inventory */}
+        {/* Bottom Panel: Memories Inventory / Galaxy View */}
         <div className="bg-[#0b0b1e]/90 border border-white/[0.04] rounded-2xl p-6 shadow-2xl relative overflow-hidden backdrop-blur-md">
           <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none" />
-          <h4 className="text-xs font-bold text-indigo-300 font-mono tracking-wide uppercase mb-4 flex items-center gap-1.5 relative z-10">
-            <Database size={12} /> Memories Inventory ({allMemories.length} total)
-          </h4>
-          <div className="relative z-10 overflow-x-auto max-h-80 scrollbar-none pr-1">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="border-b border-white/10 text-gray-500 text-[10px] uppercase font-mono tracking-wider font-bold">
-                  <th className="py-2 px-3">Source</th>
-                  <th className="py-2 px-3">Snippet</th>
-                  <th className="py-2 px-3">Ingested At</th>
-                  <th className="py-2 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.03]">
-                {allMemories.map((mem) => (
-                  <tr key={mem.id} className="hover:bg-white/[0.01] transition-all">
-                    <td className="py-2 px-3 whitespace-nowrap">
-                      <span className="text-[9px] uppercase font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                        {mem.source_type}
-                      </span>
-                      {mem.source_id && (
-                        <div className="text-[8px] text-gray-500 mt-0.5 font-mono">ID: {mem.source_id}</div>
-                      )}
-                    </td>
-                    <td className="py-2 px-3 font-mono text-[11px] text-gray-300 max-w-md truncate">
-                      {mem.text}
-                    </td>
-                    <td className="py-2 px-3 text-gray-500 text-[10px] font-mono whitespace-nowrap">
-                      {new Date(mem.created_at).toLocaleString()}
-                    </td>
-                    <td className="py-2 px-3 text-right">
-                      <button
-                        onClick={() => handleDelete(mem.id)}
-                        className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/5 rounded transition-all cursor-pointer inline-flex"
-                        title="Delete memory"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                {allMemories.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="text-center py-6 text-gray-600 font-mono text-xs">
-                      No memories stored yet. Paste content above to build the agent's semantic brain.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          
+          <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 mb-4 border-b border-white/10 pb-3 relative z-10">
+            <h4 className="text-xs font-bold text-indigo-300 font-mono tracking-wide uppercase flex items-center gap-1.5">
+              <Database size={12} /> Semantic Memories Space ({allMemories.length} total)
+            </h4>
+            <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5">
+              <button
+                onClick={() => setMemorySubTab('galaxy')}
+                className={`px-2.5 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
+                  memorySubTab === 'galaxy'
+                    ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
+                    : "text-gray-400 hover:text-white border border-transparent"
+                }`}
+              >
+                🌌 Memory Galaxy
+              </button>
+              <button
+                onClick={() => setMemorySubTab('inventory')}
+                className={`px-2.5 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
+                  memorySubTab === 'inventory'
+                    ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
+                    : "text-gray-400 hover:text-white border border-transparent"
+                }`}
+              >
+                📋 List Inventory
+              </button>
+            </div>
           </div>
+
+          {memorySubTab === 'galaxy' ? (
+            <MemoryGalaxyStarMap allMemories={allMemories} />
+          ) : (
+            <div className="relative z-10 overflow-x-auto max-h-80 scrollbar-none pr-1">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 text-gray-500 text-[10px] uppercase font-mono tracking-wider font-bold">
+                    <th className="py-2 px-3">Source</th>
+                    <th className="py-2 px-3">Snippet</th>
+                    <th className="py-2 px-3">Ingested At</th>
+                    <th className="py-2 px-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.03]">
+                  {allMemories.map((mem) => (
+                    <tr key={mem.id} className="hover:bg-white/[0.01] transition-all">
+                      <td className="py-2 px-3 whitespace-nowrap">
+                        <span className="text-[9px] uppercase font-bold tracking-wider font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                          {mem.source_type}
+                        </span>
+                        {mem.source_id && (
+                          <div className="text-[8px] text-gray-500 mt-0.5 font-mono">ID: {mem.source_id}</div>
+                        )}
+                      </td>
+                      <td className="py-2 px-3 font-mono text-[11px] text-gray-300 max-w-md truncate">
+                        {mem.text}
+                      </td>
+                      <td className="py-2 px-3 text-gray-500 text-[10px] font-mono whitespace-nowrap">
+                        {new Date(mem.created_at).toLocaleString()}
+                      </td>
+                      <td className="py-2 px-3 text-right">
+                        <button
+                          onClick={() => handleDelete(mem.id)}
+                          className="p-1 text-gray-500 hover:text-red-400 hover:bg-red-500/5 rounded transition-all cursor-pointer inline-flex"
+                          title="Delete memory"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {allMemories.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="text-center py-6 text-gray-600 font-mono text-xs">
+                        No memories stored yet. Paste content above to build the agent's semantic brain.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -3372,6 +3741,68 @@ export default function App() {
   const [workspaceLeftOpen, setWorkspaceLeftOpen] = useState(false);
   const [workspaceRightOpen, setWorkspaceRightOpen] = useState(false);
   const [workspaceEditorOpen, setWorkspaceEditorOpen] = useState(false);
+
+  // System Cron Scheduler States
+  const [cronJobs, setCronJobs] = useState<any[]>([]);
+
+  const fetchCrons = async () => {
+    try {
+      const res = await fetch("/api/crons");
+      if (res.ok) {
+        const data = await res.json();
+        setCronJobs(data);
+      }
+    } catch (e) {
+      console.error("Failed to load crons:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchCrons();
+  }, []);
+
+  const handleToggleCron = async (id: string, currentStatus: string) => {
+    const nextStatus = currentStatus === "running" ? "idle" : "running";
+    const updated = ((cronJobs && cronJobs.length > 0) ? cronJobs : CRON_JOBS).map(job => {
+      if (job.id === id) {
+        return { ...job, status: nextStatus };
+      }
+      return job;
+    });
+    setCronJobs(updated);
+    try {
+      const res = await fetch("/api/crons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ crons: updated })
+      });
+      if (!res.ok) {
+        alert("Failed to update cron status on server");
+        fetchCrons();
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+      fetchCrons();
+    }
+  };
+
+  const handleRunCron = async (name: string) => {
+    try {
+      const res = await fetch("/api/crons/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name })
+      });
+      if (res.ok) {
+        alert(`Successfully triggered run for: ${name}`);
+      } else {
+        const err = await res.json();
+        alert(`Trigger failed: ${err.error || 'unknown error'}`);
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    }
+  };
 
   // YouTube Video Analyzer States
   const [ytUrl, setYtUrl] = useState<string>("");
@@ -5986,16 +6417,29 @@ export default function App() {
                   <span className="text-[8px] bg-green-500/10 text-green-400 px-1 rounded">Actively Monitoring</span>
                 </div>
                 <div className="space-y-1.5">
-                  {CRON_JOBS.map(job => (
-                    <div key={job.id} className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.01] border border-white/[0.02] text-[10px]">
+                  {((cronJobs && cronJobs.length > 0) ? cronJobs : CRON_JOBS).map(job => (
+                    <div key={job.id} className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.01] border border-[#1e1b4b]/20 hover:border-indigo-500/25 text-[10px] transition-all group">
                       <div className="flex items-center gap-2">
-                        <span className="relative flex h-1.5 w-1.5 shrink-0">
-                          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${job.status === "running" ? "bg-green-400" : "bg-gray-400"}`}></span>
-                          <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${job.status === "running" ? "bg-green-500" : "bg-gray-500"}`}></span>
-                        </span>
-                        <span className="text-gray-300 truncate max-w-[130px] font-medium">{job.name}</span>
+                        <button
+                          onClick={() => handleToggleCron(job.id, job.status)}
+                          className="relative flex h-2 w-2 shrink-0 cursor-pointer"
+                          title={job.status === "running" ? "Pause Job" : "Start Job"}
+                        >
+                          <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${job.status === "running" ? "bg-green-400" : "bg-red-400"}`}></span>
+                          <span className={`relative inline-flex rounded-full h-2 w-2 ${job.status === "running" ? "bg-green-500" : "bg-red-500"}`}></span>
+                        </button>
+                        <span className="text-gray-300 truncate max-w-[105px] font-medium" title={job.name}>{job.name}</span>
                       </div>
-                      <span className="text-gray-500 font-mono text-[9px]">{job.interval}</span>
+                      <div className="flex items-center gap-1.5 font-mono text-[9px]">
+                        <span className="text-gray-500">{job.interval}</span>
+                        <button
+                          onClick={() => handleRunCron(job.name)}
+                          className="text-gray-500 hover:text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 cursor-pointer font-sans"
+                          title="Trigger Run Now"
+                        >
+                          ▶
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

@@ -38,9 +38,17 @@ if os.path.exists(SCANS_FILE):
 # Query multiple AI and SEO channels
 channels = {
     "Julian Goldie SEO": "https://www.youtube.com/@JulianGoldieSEO/videos",
+    "Julian Goldie Live": "https://www.youtube.com/@JulianGoldieSEO/streams",
+    "Julian Goldie Shorts": "https://www.youtube.com/@JulianGoldieSEO/shorts",
     "Matt Wolfe": "https://www.youtube.com/@mreflow/videos",
-    "AI Explained": "https://www.youtube.com/@aiexplained-official",
-    "Wes Roth": "https://www.youtube.com/@WesRoth/videos"
+    "AI Explained": "https://www.youtube.com/@aiexplained-official/videos",
+    "Wes Roth": "https://www.youtube.com/@WesRoth/videos",
+    "AI Samson": "https://www.youtube.com/@aisamsonreal/videos",
+    "AI Samson Live": "https://www.youtube.com/@aisamsonreal/streams",
+    "AI Samson Shorts": "https://www.youtube.com/@aisamsonreal/shorts",
+    "Ben Kimball AI": "https://www.youtube.com/@BenKimballAI/videos",
+    "Ben Kimball Live": "https://www.youtube.com/@BenKimballAI/streams",
+    "Ben Kimball Shorts": "https://www.youtube.com/@BenKimballAI/shorts",
 }
 
 ydl_opts = {
