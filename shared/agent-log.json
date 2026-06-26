@@ -1,2283 +1,5 @@
 [
   {
-    "timestamp": "2026-06-26T06:57:38.016Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 07:57:38"
-  },
-  {
-    "timestamp": "2026-06-26T06:57:46.050Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 07:57:46"
-  },
-  {
-    "timestamp": "2026-06-26T06:58:16.061Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 07:58:16"
-  },
-  {
-    "timestamp": "2026-06-26T06:58:46.070Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 07:58:46"
-  },
-  {
-    "timestamp": "2026-06-26T06:59:16.086Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 07:59:16"
-  },
-  {
-    "timestamp": "2026-06-26T06:59:38.017Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 07:59:38"
-  },
-  {
-    "timestamp": "2026-06-26T06:59:46.097Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 07:59:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:00:16.101Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:00:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:00:46.102Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:00:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:01:16.105Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:01:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:01:34.822Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 08:01:34"
-  },
-  {
-    "timestamp": "2026-06-26T07:01:34.824Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 08:01:34"
-  },
-  {
-    "timestamp": "2026-06-26T07:01:35.194Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:01:35"
-  },
-  {
-    "timestamp": "2026-06-26T07:01:38.023Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:01:38"
-  },
-  {
-    "timestamp": "2026-06-26T07:01:46.119Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:01:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:02:16.127Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:02:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:02:46.132Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:02:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:03:16.140Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:03:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:03:38.028Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:03:38"
-  },
-  {
-    "timestamp": "2026-06-26T07:03:46.141Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:03:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:04:16.149Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:04:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:04:46.153Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:04:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:05:16.168Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:05:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:05:38.027Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:05:38"
-  },
-  {
-    "timestamp": "2026-06-26T07:05:46.169Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:05:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:06:16.178Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:06:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:06:34.558Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 08:06:34"
-  },
-  {
-    "timestamp": "2026-06-26T07:06:35.193Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:06:35"
-  },
-  {
-    "timestamp": "2026-06-26T07:06:37.408Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T07:06:46.189Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:06:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:07:16.199Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:07:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:07:38.027Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:07:38"
-  },
-  {
-    "timestamp": "2026-06-26T07:07:46.203Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:07:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:08:16.206Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:08:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:08:46.217Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:08:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:09:16.219Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:09:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:09:38.038Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:09:38"
-  },
-  {
-    "timestamp": "2026-06-26T07:09:46.221Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:09:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:10:16.229Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:10:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:10:46.234Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:10:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:11:16.242Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:11:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:11:34.826Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 08:11:34"
-  },
-  {
-    "timestamp": "2026-06-26T07:11:34.829Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 08:11:34"
-  },
-  {
-    "timestamp": "2026-06-26T07:11:35.198Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:11:35"
-  },
-  {
-    "timestamp": "2026-06-26T07:11:38.050Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:11:38"
-  },
-  {
-    "timestamp": "2026-06-26T07:11:46.249Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:11:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:12:16.257Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:12:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:12:46.264Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:12:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:13:16.272Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:13:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:13:38.064Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:13:38"
-  },
-  {
-    "timestamp": "2026-06-26T07:13:46.279Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:13:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:14:16.287Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:14:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:14:46.294Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:14:46"
-  },
-  {
-    "timestamp": "2026-06-26T07:15:16.302Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:15:16"
-  },
-  {
-    "timestamp": "2026-06-26T07:16:37.809Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T07:16:40.521Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T07:16:50.575Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T07:17:02.796Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:17:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:17:32.808Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:17:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:18:02.809Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:18:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:18:32.794Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:18:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:18:32.809Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:18:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:19:02.816Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:19:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:19:32.819Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:19:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:20:02.829Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:20:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:20:32.802Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:20:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:20:32.833Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:20:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:21:02.835Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:21:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:21:32.804Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:21:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:21:32.851Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:21:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:22:02.855Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:22:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:22:32.812Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:22:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:22:32.858Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:22:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:23:02.864Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:23:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:23:32.870Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:23:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:24:02.881Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:24:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:24:32.823Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:24:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:24:32.884Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:24:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:25:02.890Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:25:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:25:32.905Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:25:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:26:02.915Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:26:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:26:32.799Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 08:26:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:26:32.801Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 08:26:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:26:32.808Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:26:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:26:32.830Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:26:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:26:32.922Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:26:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:27:02.935Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:27:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:27:32.935Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:27:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:28:02.949Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:28:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:28:32.837Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:28:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:28:32.960Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:28:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:29:02.963Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:29:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:29:32.963Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:29:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:30:02.963Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:30:02"
-  },
-  {
-    "timestamp": "2026-06-26T07:30:32.848Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:30:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:30:32.971Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:30:32"
-  },
-  {
-    "timestamp": "2026-06-26T07:30:59.689Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T07:31:02.631Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T07:31:13.973Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T07:31:24.682Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:31:24"
-  },
-  {
-    "timestamp": "2026-06-26T07:31:36.661Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T07:31:39.970Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T07:31:46.317Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T07:32:01.658Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:32:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:32:31.663Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:32:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:33:01.664Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:33:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:33:31.662Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:33:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:33:31.669Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:33:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:34:01.672Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:34:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:34:31.674Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:34:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:35:01.681Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:35:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:35:31.669Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:35:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:35:31.684Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:35:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:36:01.690Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:36:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:36:31.652Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:36:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:36:31.697Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:36:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:37:01.711Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:37:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:37:31.674Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:37:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:37:31.721Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:37:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:38:01.732Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:38:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:38:31.733Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:38:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:39:01.736Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:39:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:39:31.675Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:39:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:39:31.736Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:39:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:40:01.741Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:40:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:40:31.745Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:40:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:41:01.758Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:41:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:41:31.651Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 08:41:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:41:31.653Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 08:41:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:41:31.659Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:41:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:41:31.683Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:41:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:41:31.758Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:41:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:42:01.759Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:42:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:42:31.771Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:42:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:43:01.774Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:43:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:43:31.693Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:43:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:43:31.776Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:43:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:44:01.785Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:44:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:44:31.795Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:44:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:45:01.802Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:45:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:45:31.695Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:45:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:45:31.803Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:45:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:46:01.813Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:46:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:46:31.653Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 08:46:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:46:31.657Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:46:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:46:31.822Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:46:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:46:34.371Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T07:47:01.833Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:47:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:47:31.708Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:47:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:47:31.847Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:47:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:48:01.853Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:48:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:48:31.858Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:48:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:49:01.862Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:49:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:49:31.711Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:49:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:49:31.865Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:49:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:50:01.869Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:50:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:50:31.878Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:50:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:51:01.889Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:51:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:51:31.653Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 08:51:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:51:31.655Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 08:51:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:51:31.662Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:51:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:51:31.715Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:51:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:51:31.900Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:51:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:52:01.901Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:52:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:52:31.903Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:52:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:53:01.914Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:53:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:53:31.723Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:53:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:53:31.923Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:53:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:54:01.935Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:54:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:54:31.945Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:54:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:55:01.944Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:55:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:55:31.731Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:55:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:55:31.947Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:55:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:56:01.947Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:56:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:56:31.671Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 08:56:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:56:31.949Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:56:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:57:01.954Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:57:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:57:31.739Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:57:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:57:31.955Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:57:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:58:01.963Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:58:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:58:31.964Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:58:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:59:01.965Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:59:01"
-  },
-  {
-    "timestamp": "2026-06-26T07:59:31.746Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 08:59:31"
-  },
-  {
-    "timestamp": "2026-06-26T07:59:31.977Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 08:59:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:00:01.982Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:00:01"
-  },
-  {
-    "timestamp": "2026-06-26T08:00:31.983Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:00:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:01.992Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:01:01"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:31.644Z",
-    "type": "cron_run",
-    "name": "OS Maintenance System",
-    "status": "success",
-    "info": "Executed at 09:01:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:31.647Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 09:01:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:31.650Z",
-    "type": "cron_run",
-    "name": "N8N Workflow Ingestion",
-    "status": "success",
-    "info": "Executed at 09:01:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:31.675Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 09:01:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:31.748Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:01:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:32.000Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:01:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:01:35.346Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:02:02.014Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:02:02"
-  },
-  {
-    "timestamp": "2026-06-26T08:02:32.014Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:02:32"
-  },
-  {
-    "timestamp": "2026-06-26T08:03:02.027Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:03:02"
-  },
-  {
-    "timestamp": "2026-06-26T08:03:31.760Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:03:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:03:32.038Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:03:32"
-  },
-  {
-    "timestamp": "2026-06-26T08:04:02.046Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:04:02"
-  },
-  {
-    "timestamp": "2026-06-26T08:04:32.047Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:04:32"
-  },
-  {
-    "timestamp": "2026-06-26T08:05:02.050Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:05:02"
-  },
-  {
-    "timestamp": "2026-06-26T08:05:31.769Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:05:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:05:32.062Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:05:32"
-  },
-  {
-    "timestamp": "2026-06-26T08:06:02.072Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:06:02"
-  },
-  {
-    "timestamp": "2026-06-26T08:06:31.675Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 09:06:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:06:32.077Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:06:32"
-  },
-  {
-    "timestamp": "2026-06-26T08:07:02.085Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:07:02"
-  },
-  {
-    "timestamp": "2026-06-26T08:07:31.768Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:07:31"
-  },
-  {
-    "timestamp": "2026-06-26T08:07:32.092Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:07:32"
-  },
-  {
-    "timestamp": "2026-06-26T08:08:02.100Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:08:02"
-  },
-  {
-    "timestamp": "2026-06-26T08:08:32.106Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:08:32"
-  },
-  {
-    "timestamp": "2026-06-26T08:08:42.260Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T08:08:45.350Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:08:56.537Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T08:09:07.260Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:09:07"
-  },
-  {
-    "timestamp": "2026-06-26T08:09:37.266Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:09:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:10:07.273Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:10:07"
-  },
-  {
-    "timestamp": "2026-06-26T08:10:37.250Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:10:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:10:37.280Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:10:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:10:43.196Z",
-    "type": "wishlist_scan",
-    "status": "success",
-    "info": "Wishlist updated: +11 new items. 15 models, 12 repos, 0 papers scanned."
-  },
-  {
-    "timestamp": "2026-06-26T08:11:07.288Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:11:07"
-  },
-  {
-    "timestamp": "2026-06-26T08:11:35.555Z",
-    "type": "wishlist_scan",
-    "status": "success",
-    "info": "Wishlist updated: +10 new items. 15 models, 12 repos, 0 papers scanned."
-  },
-  {
-    "timestamp": "2026-06-26T08:11:37.289Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:11:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:12:07.297Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:12:07"
-  },
-  {
-    "timestamp": "2026-06-26T08:12:37.259Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:12:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:12:37.305Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:12:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:13:07.318Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:13:07"
-  },
-  {
-    "timestamp": "2026-06-26T08:13:37.259Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 09:13:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:13:37.320Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:13:37"
-  },
-  {
-    "timestamp": "2026-06-26T08:14:00.797Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T08:14:03.596Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:14:14.292Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T08:14:25.798Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:14:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:14:55.810Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:14:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:15:25.818Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:15:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:15:55.794Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:15:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:15:55.824Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:15:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:16:25.830Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:16:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:16:27.648Z",
-    "type": "wishlist_scan",
-    "status": "success",
-    "info": "Wishlist updated: +10 new items. 15 models, 12 repos, 0 papers scanned."
-  },
-  {
-    "timestamp": "2026-06-26T08:16:55.838Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:16:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:17:25.845Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:17:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:17:55.801Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:17:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:17:55.846Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:17:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:18:25.860Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:18:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:18:55.785Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 09:18:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:18:55.861Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:18:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:19:30.580Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T08:19:33.663Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:19:44.705Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T08:19:53.884Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T08:19:56.923Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:20:03.431Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T08:20:18.870Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:20:18"
-  },
-  {
-    "timestamp": "2026-06-26T08:20:30.615Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T08:20:33.572Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:20:40.333Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T08:20:55.609Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:20:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:21:25.620Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:21:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:21:55.633Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:21:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:22:12.162Z",
-    "type": "wishlist_scan",
-    "status": "success",
-    "info": "Wishlist updated: +10 new items. 25 models, 12 repos, 0 papers scanned."
-  },
-  {
-    "timestamp": "2026-06-26T08:22:25.618Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:22:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:22:25.634Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:22:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:22:55.650Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:22:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:23:25.657Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:23:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:23:55.665Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:23:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:24:25.617Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:24:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:24:25.678Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:24:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:24:55.686Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:24:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:25:25.614Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 09:25:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:25:25.688Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:25:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:25:55.703Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:25:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:26:25.625Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:26:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:26:25.702Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:26:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:26:55.712Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:26:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:27:25.724Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:27:25"
-  },
-  {
-    "timestamp": "2026-06-26T08:27:55.739Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:27:55"
-  },
-  {
-    "timestamp": "2026-06-26T08:28:20.544Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T08:28:23.576Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:28:34.299Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T08:28:45.540Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:28:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:29:15.551Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:29:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:29:45.552Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:29:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:29:46.635Z",
-    "type": "wishlist_scan",
-    "status": "success",
-    "info": "Wishlist updated: +10 new items. 45 models, 12 repos, 0 papers scanned."
-  },
-  {
-    "timestamp": "2026-06-26T08:30:15.534Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:30:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:30:15.565Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:30:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:30:45.567Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:30:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:31:15.578Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:31:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:31:45.592Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:31:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:31:55.405Z",
-    "type": "wishlist_scan",
-    "status": "success",
-    "info": "Wishlist updated: +10 new items. 45 models, 12 repos, 0 papers scanned."
-  },
-  {
-    "timestamp": "2026-06-26T08:32:15.547Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:32:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:32:15.593Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:32:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:32:45.603Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:32:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:33:15.523Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 09:33:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:33:15.604Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:33:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:33:45.618Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:33:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:34:15.559Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:34:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:34:15.621Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:34:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:34:45.629Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:34:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:35:15.635Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:35:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:35:45.648Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:35:45"
-  },
-  {
-    "timestamp": "2026-06-26T08:36:15.567Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:36:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:36:15.659Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:36:15"
-  },
-  {
-    "timestamp": "2026-06-26T08:36:44.184Z",
-    "type": "evolution_run",
-    "status": "pending",
-    "info": "Auto-upgrade check started."
-  },
-  {
-    "timestamp": "2026-06-26T08:36:47.262Z",
-    "type": "maintenance_run",
-    "status": "success",
-    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
-  },
-  {
-    "timestamp": "2026-06-26T08:36:58.706Z",
-    "type": "evolution_run",
-    "status": "success",
-    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
-  },
-  {
-    "timestamp": "2026-06-26T08:37:09.168Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:37:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:37:39.182Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:37:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:38:09.185Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:38:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:38:39.177Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:38:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:38:39.183Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:38:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:39:09.190Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:39:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:39:39.192Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:39:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:40:09.191Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:40:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:40:39.186Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:40:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:40:39.200Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:40:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:41:09.211Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:41:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:41:39.180Z",
-    "type": "cron_run",
-    "name": "AionUI Health Monitor",
-    "status": "success",
-    "info": "Executed at 09:41:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:41:39.226Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:41:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:42:09.233Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:42:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:42:39.186Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:42:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:42:39.247Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:42:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:43:09.248Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:43:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:43:39.252Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:43:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:44:09.252Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:44:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:44:39.195Z",
-    "type": "cron_run",
-    "name": "OpenRouter Key Rotation",
-    "status": "success",
-    "info": "Executed at 09:44:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:44:39.257Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:44:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:45:09.263Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:45:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:45:39.269Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:45:39"
-  },
-  {
-    "timestamp": "2026-06-26T08:46:09.269Z",
-    "type": "cron_run",
-    "name": "Self-Healing Engine",
-    "status": "success",
-    "info": "Executed at 09:46:09"
-  },
-  {
-    "timestamp": "2026-06-26T08:46:39.174Z",
-    "type": "cron_run",
-    "name": "Swarm Experience Compiler",
-    "status": "success",
-    "info": "Executed at 09:46:39"
-  },
-  {
     "timestamp": "2026-06-26T08:46:39.176Z",
     "type": "cron_run",
     "name": "N8N Workflow Ingestion",
@@ -6936,5 +4658,2270 @@
     "type": "maintenance_run",
     "status": "success",
     "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:24:18.594Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard rebuild failed (exit 2): "
+  },
+  {
+    "timestamp": "2026-06-26T12:24:32.783Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:24:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:25:02.787Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:25:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:25:32.792Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:25:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:26:02.784Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:26:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:26:02.795Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:26:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:26:32.798Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:26:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:27:02.802Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:27:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:27:32.813Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:27:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:28:02.784Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:28:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:28:02.814Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:28:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:28:27.166Z",
+    "type": "wishlist_scan",
+    "status": "success",
+    "info": "Wishlist updated: +9 new items. 44 models, 12 repos, 0 papers scanned."
+  },
+  {
+    "timestamp": "2026-06-26T12:28:32.824Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:28:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:29:02.780Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 13:29:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:29:02.827Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:29:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:29:32.839Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:29:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:30:02.790Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:30:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:30:02.852Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:30:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:30:32.858Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:30:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:31:02.862Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:31:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:31:32.877Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:31:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:32:02.804Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:32:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:32:02.881Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:32:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:32:32.883Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:32:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:33:02.897Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:33:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:33:32.904Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:33:32"
+  },
+  {
+    "timestamp": "2026-06-26T12:34:02.779Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 13:34:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:34:02.783Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 13:34:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:34:02.789Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 13:34:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:34:02.807Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:34:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:34:02.902Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:34:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:34:33.788Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:34:33"
+  },
+  {
+    "timestamp": "2026-06-26T12:35:03.789Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:35:03"
+  },
+  {
+    "timestamp": "2026-06-26T12:35:33.797Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:35:33"
+  },
+  {
+    "timestamp": "2026-06-26T12:36:02.810Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:36:02"
+  },
+  {
+    "timestamp": "2026-06-26T12:36:03.798Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:36:03"
+  },
+  {
+    "timestamp": "2026-06-26T12:36:33.805Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:36:33"
+  },
+  {
+    "timestamp": "2026-06-26T12:36:44.707Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:36:47.493Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:37:01.487Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:37:09.711Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:37:09"
+  },
+  {
+    "timestamp": "2026-06-26T12:37:42.134Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:37:42"
+  },
+  {
+    "timestamp": "2026-06-26T12:38:12.142Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:38:12"
+  },
+  {
+    "timestamp": "2026-06-26T12:38:39.714Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:38:39"
+  },
+  {
+    "timestamp": "2026-06-26T12:38:42.142Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:38:42"
+  },
+  {
+    "timestamp": "2026-06-26T12:39:05.288Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:39:08.247Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:39:18.166Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:39:30.289Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:39:30"
+  },
+  {
+    "timestamp": "2026-06-26T12:40:00.295Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:40:00"
+  },
+  {
+    "timestamp": "2026-06-26T12:40:01.867Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Self-evolved successfully: Enhancing the Floating Terminal error warning banner to provide more actionable guidance for the recurring package.json file path errors seen in recent evolution failures. This adds specific troubleshooting tips and improves visibility without changing core functionality."
+  },
+  {
+    "timestamp": "2026-06-26T12:40:30.304Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:40:30"
+  },
+  {
+    "timestamp": "2026-06-26T12:41:00.294Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:41:00"
+  },
+  {
+    "timestamp": "2026-06-26T12:41:00.310Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:41:00"
+  },
+  {
+    "timestamp": "2026-06-26T12:41:21.500Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:41:24.428Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:41:34.156Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:41:46.507Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:41:46"
+  },
+  {
+    "timestamp": "2026-06-26T12:42:16.520Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:42:16"
+  },
+  {
+    "timestamp": "2026-06-26T12:42:46.530Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:42:46"
+  },
+  {
+    "timestamp": "2026-06-26T12:42:53.265Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Self-evolved successfully: The recent errors indicate path resolution issues with package.json (Invalid filePath errors). The footer currently displays the date but lacks immediate visibility into environment configuration which is critical for debugging these path/healing failures. I will enhance the footer to include an 'ENV_MODE' indicator (reading from VITE_ENVIRONMENT or defaulting to 'DEV'). This provides a quick diagnostic cue in the UI without requiring users to check browser consoles, helping distinguish between local dev path issues and production config mismatches."
+  },
+  {
+    "timestamp": "2026-06-26T12:43:16.502Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:43:16"
+  },
+  {
+    "timestamp": "2026-06-26T12:43:16.533Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:43:16"
+  },
+  {
+    "timestamp": "2026-06-26T12:43:46.539Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:43:46"
+  },
+  {
+    "timestamp": "2026-06-26T12:44:16.543Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:44:16"
+  },
+  {
+    "timestamp": "2026-06-26T12:44:46.549Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:44:46"
+  },
+  {
+    "timestamp": "2026-06-26T12:45:10.899Z",
+    "type": "wishlist_scan",
+    "status": "success",
+    "info": "Wishlist updated: +12 new items. 44 models, 12 repos, 0 papers scanned."
+  },
+  {
+    "timestamp": "2026-06-26T12:45:16.514Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:45:16"
+  },
+  {
+    "timestamp": "2026-06-26T12:45:16.560Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:45:16"
+  },
+  {
+    "timestamp": "2026-06-26T12:45:46.567Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:45:46"
+  },
+  {
+    "timestamp": "2026-06-26T12:45:57.590Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:46:00.905Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:46:14.819Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:46:22.589Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:46:22"
+  },
+  {
+    "timestamp": "2026-06-26T12:46:52.593Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:46:52"
+  },
+  {
+    "timestamp": "2026-06-26T12:46:55.038Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Self-evolved successfully: Adding an enhanced diagnostic warning banner in the Floating Terminal that provides actionable quick-fix suggestions for the recurring package.json path errors. This includes a copy-path helper and common resolution tips based on the detected healing failures. Low-risk UI enhancement that improves user experience without changing core logic."
+  },
+  {
+    "timestamp": "2026-06-26T12:47:22.593Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:47:22"
+  },
+  {
+    "timestamp": "2026-06-26T12:47:52.585Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:47:52"
+  },
+  {
+    "timestamp": "2026-06-26T12:47:52.593Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:47:52"
+  },
+  {
+    "timestamp": "2026-06-26T12:48:22.598Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:48:22"
+  },
+  {
+    "timestamp": "2026-06-26T12:48:54.144Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:48:57.109Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:49:07.219Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:49:19.151Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:49:19"
+  },
+  {
+    "timestamp": "2026-06-26T12:49:31.345Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:49:34.449Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:49:44.440Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:49:56.343Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:49:56"
+  },
+  {
+    "timestamp": "2026-06-26T12:50:26.359Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:50:26"
+  },
+  {
+    "timestamp": "2026-06-26T12:50:56.356Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:50:56"
+  },
+  {
+    "timestamp": "2026-06-26T12:51:26.338Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:51:26"
+  },
+  {
+    "timestamp": "2026-06-26T12:51:26.373Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:51:26"
+  },
+  {
+    "timestamp": "2026-06-26T12:51:56.379Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:51:56"
+  },
+  {
+    "timestamp": "2026-06-26T12:52:26.386Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:52:26"
+  },
+  {
+    "timestamp": "2026-06-26T12:52:56.145Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:52:59.092Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:53:14.071Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:53:21.143Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:53:21"
+  },
+  {
+    "timestamp": "2026-06-26T12:53:40.709Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Self-evolved successfully: Adding a 'Copy Current Working Directory' button to the Floating Terminal's error panel. The logs show repeated 'Invalid filePath' errors; providing a one-click copy of the actual known project root (D:\\Agent OS) reduces friction for the user when trying to fix these path-related healing failures."
+  },
+  {
+    "timestamp": "2026-06-26T12:53:51.146Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:53:51"
+  },
+  {
+    "timestamp": "2026-06-26T12:54:21.145Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:54:21"
+  },
+  {
+    "timestamp": "2026-06-26T12:54:40.943Z",
+    "type": "wishlist_scan",
+    "status": "success",
+    "info": "Wishlist updated: +9 new items. 44 models, 12 repos, 0 papers scanned."
+  },
+  {
+    "timestamp": "2026-06-26T12:54:50.653Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T12:54:53.578Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T12:55:03.528Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T12:55:15.653Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:55:15"
+  },
+  {
+    "timestamp": "2026-06-26T12:55:45.653Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:55:45"
+  },
+  {
+    "timestamp": "2026-06-26T12:56:15.663Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:56:15"
+  },
+  {
+    "timestamp": "2026-06-26T12:56:45.650Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:56:45"
+  },
+  {
+    "timestamp": "2026-06-26T12:56:45.665Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:56:45"
+  },
+  {
+    "timestamp": "2026-06-26T12:57:15.667Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:57:15"
+  },
+  {
+    "timestamp": "2026-06-26T12:57:45.672Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:57:45"
+  },
+  {
+    "timestamp": "2026-06-26T12:58:15.677Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:58:15"
+  },
+  {
+    "timestamp": "2026-06-26T12:58:45.656Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 13:58:45"
+  },
+  {
+    "timestamp": "2026-06-26T12:58:45.687Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:58:45"
+  },
+  {
+    "timestamp": "2026-06-26T12:59:15.701Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:59:15"
+  },
+  {
+    "timestamp": "2026-06-26T12:59:45.649Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 13:59:45"
+  },
+  {
+    "timestamp": "2026-06-26T12:59:45.705Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 13:59:45"
+  },
+  {
+    "timestamp": "2026-06-26T13:00:15.707Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:00:15"
+  },
+  {
+    "timestamp": "2026-06-26T13:00:38.714Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T13:00:41.809Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T13:00:53.216Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T13:00:56.316Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T13:01:08.859Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T13:01:22.766Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T13:01:25.756Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T13:01:35.506Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T13:01:47.776Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:01:47"
+  },
+  {
+    "timestamp": "2026-06-26T13:02:01.549Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T13:02:06.571Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T13:02:22.846Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T13:02:26.535Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:02:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:02:42.796Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Self-evolved successfully: Adding a system health indicator to the footer that displays error count and provides quick access to the terminal. This helps users immediately see if there are healing failures without opening additional panels. Low-risk as it only adds visual feedback and doesn't modify existing functionality."
+  },
+  {
+    "timestamp": "2026-06-26T13:02:56.535Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:02:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:03:26.539Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:03:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:03:56.543Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:03:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:03:56.551Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:03:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:04:26.561Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:04:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:04:56.572Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:04:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:05:26.575Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:05:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:05:56.549Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:05:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:05:56.579Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:05:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:06:26.591Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:06:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:06:56.531Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:06:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:06:56.593Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:06:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:07:26.598Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:07:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:07:56.552Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:07:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:07:56.613Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:07:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:08:26.623Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:08:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:08:56.633Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:08:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:09:26.649Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:09:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:09:56.563Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:09:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:09:56.648Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:09:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:10:26.648Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:10:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:10:56.650Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:10:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:11:26.662Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:11:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:11:56.530Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 14:11:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:11:56.532Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 14:11:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:11:56.537Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:11:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:11:56.576Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:11:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:11:56.668Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:11:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:12:26.672Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:12:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:12:56.674Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:12:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:13:26.683Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:13:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:13:56.577Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:13:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:13:56.685Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:13:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:14:26.693Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:14:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:14:56.703Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:14:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:15:26.707Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:15:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:15:56.576Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:15:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:15:56.716Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:15:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:16:26.718Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:16:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:16:56.529Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 14:16:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:16:56.545Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:16:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:16:56.730Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:16:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:16:59.269Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T13:17:26.737Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:17:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:17:56.578Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:17:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:17:56.749Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:17:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:18:26.754Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:18:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:18:56.764Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:18:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:19:26.764Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:19:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:19:56.578Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:19:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:19:56.779Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:19:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:20:26.794Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:20:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:20:56.803Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:20:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:21:26.814Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:21:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:21:56.526Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 14:21:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:21:56.529Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 14:21:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:21:56.557Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:21:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:21:56.588Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:21:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:21:56.820Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:21:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:22:26.821Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:22:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:22:56.831Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:22:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:23:26.841Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:23:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:23:56.599Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:23:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:23:56.846Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:23:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:24:26.857Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:24:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:24:56.870Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:24:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:25:26.884Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:25:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:25:56.598Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:25:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:25:56.892Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:25:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:26:26.893Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:26:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:26:49.795Z",
+    "type": "message",
+    "from": "Telegram (8777949928)",
+    "to": "agy",
+    "message": "Ok check if it looks perfect now"
+  },
+  {
+    "timestamp": "2026-06-26T13:26:56.564Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:26:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:26:56.904Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:26:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:27:09.636Z",
+    "type": "response",
+    "from": "agy",
+    "to": "Telegram (8777949928)",
+    "response": "Understood, Gary. I'll delegate this to the swarm to verify that all systems, links, and configurations are now perfect across your UK SEO authority network and installation profiles.\n\n[DELEGATE_SWARM"
+  },
+  {
+    "timestamp": "2026-06-26T13:27:26.907Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:27:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:27:56.603Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:27:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:27:56.912Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:27:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:28:26.917Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:28:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:28:56.919Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:28:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:29:26.925Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:29:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:29:56.611Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:29:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:29:56.936Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:29:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:30:26.948Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:30:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:30:56.948Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:30:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:26.959Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:31:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:56.526Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 14:31:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:56.530Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 14:31:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:56.534Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 14:31:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:56.573Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:31:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:56.619Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:31:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:56.959Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:31:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:31:59.337Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T13:32:26.961Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:32:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:32:56.961Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:32:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:33:12.810Z",
+    "type": "cron_run",
+    "name": "Swarm Auto-Evolution Engine",
+    "status": "success",
+    "info": "Executed at 14:33:12"
+  },
+  {
+    "timestamp": "2026-06-26T13:33:12.812Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
+  },
+  {
+    "timestamp": "2026-06-26T13:33:26.962Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:33:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:33:29.332Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Aider upgraded or verified up-to-date via uv. | Claude Code CLI upgraded or verified up-to-date. | Ollama coding models verified. | Dashboard updated and successfully compiled with zero warnings."
+  },
+  {
+    "timestamp": "2026-06-26T13:33:56.618Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:33:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:33:56.968Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:33:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:34:02.542Z",
+    "type": "evolution_run",
+    "status": "success",
+    "info": "Self-evolved successfully: Add an ARIA live region and clearer tooltip to the error‑count button in the footer. This improves accessibility by announcing error count changes to screen readers and makes the tooltip more descriptive, while keeping the visual layout unchanged."
+  },
+  {
+    "timestamp": "2026-06-26T13:34:26.972Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:34:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:34:56.985Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:34:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:35:26.994Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:35:26"
+  },
+  {
+    "timestamp": "2026-06-26T13:35:56.618Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:35:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:35:57.004Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:35:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:36:27.011Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:36:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:36:56.578Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:36:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:36:57.011Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:36:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:37:27.019Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:37:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:37:56.620Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:37:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:37:57.022Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:37:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:38:27.032Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:38:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:38:57.041Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:38:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:39:27.046Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:39:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:39:56.629Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:39:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:39:57.047Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:39:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:40:27.052Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:40:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:40:57.059Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:40:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:41:27.062Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:41:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:41:56.529Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 14:41:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:41:56.534Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 14:41:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:41:56.590Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:41:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:41:56.637Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:41:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:41:57.071Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:41:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:42:27.072Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:42:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:42:57.085Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:42:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:43:27.093Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:43:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:43:56.651Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:43:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:43:57.099Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:43:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:44:27.100Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:44:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:44:57.108Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:44:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:45:27.118Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:45:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:45:56.657Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:45:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:45:57.120Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:45:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:46:27.135Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:46:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:46:56.526Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 14:46:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:46:56.604Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:46:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:46:57.145Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:46:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:46:59.330Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T13:47:27.151Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:47:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:47:56.667Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:47:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:47:57.163Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:47:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:48:27.177Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:48:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:48:57.181Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:48:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:49:27.186Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:49:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:49:56.673Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:49:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:49:57.200Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:49:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:50:27.213Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:50:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:50:57.214Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:50:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:51:27.227Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:51:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:51:56.525Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 14:51:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:51:56.540Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 14:51:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:51:56.602Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:51:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:51:56.679Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:51:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:51:57.230Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:51:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:52:27.245Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:52:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:52:57.259Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:52:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:53:27.263Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:53:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:53:56.686Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:53:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:53:57.272Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:53:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:54:27.286Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:54:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:54:57.295Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:54:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:55:27.303Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:55:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:55:56.691Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:55:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:55:57.310Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:55:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:56:27.317Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:56:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:56:56.601Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 14:56:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:56:57.328Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:56:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:57:27.335Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:57:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:57:56.700Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:57:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:57:57.349Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:57:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:58:27.352Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:58:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:58:57.354Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:58:57"
+  },
+  {
+    "timestamp": "2026-06-26T13:59:27.362Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:59:27"
+  },
+  {
+    "timestamp": "2026-06-26T13:59:56.706Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 14:59:56"
+  },
+  {
+    "timestamp": "2026-06-26T13:59:57.370Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 14:59:57"
+  },
+  {
+    "timestamp": "2026-06-26T14:00:27.380Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:00:27"
+  },
+  {
+    "timestamp": "2026-06-26T14:00:57.391Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:00:57"
+  },
+  {
+    "timestamp": "2026-06-26T14:01:27.394Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:01:27"
+  },
+  {
+    "timestamp": "2026-06-26T14:01:56.529Z",
+    "type": "cron_run",
+    "name": "OS Maintenance System",
+    "status": "success",
+    "info": "Executed at 15:01:56"
+  },
+  {
+    "timestamp": "2026-06-26T14:01:56.534Z",
+    "type": "cron_run",
+    "name": "Swarm Experience Compiler",
+    "status": "success",
+    "info": "Executed at 15:01:56"
+  },
+  {
+    "timestamp": "2026-06-26T14:01:56.537Z",
+    "type": "cron_run",
+    "name": "N8N Workflow Ingestion",
+    "status": "success",
+    "info": "Executed at 15:01:56"
+  },
+  {
+    "timestamp": "2026-06-26T14:01:56.606Z",
+    "type": "cron_run",
+    "name": "AionUI Health Monitor",
+    "status": "success",
+    "info": "Executed at 15:01:56"
+  },
+  {
+    "timestamp": "2026-06-26T14:01:56.707Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 15:01:56"
+  },
+  {
+    "timestamp": "2026-06-26T14:01:57.396Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:01:57"
+  },
+  {
+    "timestamp": "2026-06-26T14:02:00.243Z",
+    "type": "maintenance_run",
+    "status": "success",
+    "info": "N8N is offline. | Auto-started N8N. | SQLite database optimized (VACUUM completed)."
+  },
+  {
+    "timestamp": "2026-06-26T14:02:27.401Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:02:27"
+  },
+  {
+    "timestamp": "2026-06-26T14:02:57.415Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:02:57"
+  },
+  {
+    "timestamp": "2026-06-26T14:03:27.423Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:03:27"
+  },
+  {
+    "timestamp": "2026-06-26T14:03:56.710Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 15:03:56"
+  },
+  {
+    "timestamp": "2026-06-26T14:03:57.435Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:03:57"
+  },
+  {
+    "timestamp": "2026-06-26T14:04:27.439Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:04:27"
+  },
+  {
+    "timestamp": "2026-06-26T14:04:57.449Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:04:57"
+  },
+  {
+    "timestamp": "2026-06-26T14:05:27.456Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:05:27"
+  },
+  {
+    "timestamp": "2026-06-26T14:05:56.722Z",
+    "type": "cron_run",
+    "name": "OpenRouter Key Rotation",
+    "status": "success",
+    "info": "Executed at 15:05:56"
+  },
+  {
+    "timestamp": "2026-06-26T14:05:57.465Z",
+    "type": "cron_run",
+    "name": "Self-Healing Engine",
+    "status": "success",
+    "info": "Executed at 15:05:57"
+  },
+  {
+    "timestamp": "2026-06-26T14:06:07.172Z",
+    "type": "evolution_run",
+    "status": "pending",
+    "info": "Auto-upgrade check started."
   }
 ]

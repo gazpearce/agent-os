@@ -6094,21 +6094,21 @@ function searchMemoryInternal(q) {
     });
   }
   
+  // Use SQLite memories index for Obsidian files (Phase 2 & Memory Optimization)
   const obsidianPath = 'D:\\Agent OS';
-  if (existsSync(obsidianPath)) {
+  const db = getAionuiDb();
+  if (db) {
     try {
-      const allMdFiles = findMarkdownFiles(obsidianPath);
-      allMdFiles.forEach(filePath => {
-        const lines = getCachedFileLines(filePath);
-        lines.forEach((line, idx) => {
-          if (line.toLowerCase().includes(query)) {
-            const text = line.trim();
-            const relativeName = filePath.replace(obsidianPath + '\\', '').replace(obsidianPath + '/', '').replace(/\\/g, '/');
-            results.push({ source: relativeName, snippet: text });
-          }
-        });
+      const dbRows = db.prepare("SELECT text, source_id, source_type FROM memories WHERE text LIKE ? LIMIT 15").all(`%${query}%`);
+      dbRows.forEach(row => {
+        const sourceName = row.source_type === 'obsidian' 
+          ? row.source_id.replace(obsidianPath + '\\', '').replace(obsidianPath + '/', '').replace(/\\/g, '/')
+          : `${row.source_type} memory`;
+        results.push({ source: sourceName, snippet: row.text });
       });
-    } catch {}
+    } catch (dbErr) {
+      console.error('[Memory Recall] SQLite search failed:', dbErr.message);
+    }
   }
 
   if (existsSync(AGENT_LOG)) {
@@ -6139,16 +6139,10 @@ function searchMemoryInternal(q) {
 
 function injectRecalledMemory(query) {
   const qLower = query.toLowerCase();
-  const triggerWords = [
-    'remember', 'recall', 'previous', 'last', 'vault', 'history', 'happen', 'did we', 'did you', 'how did', 'error', 'fix', 'solved', 'resolution',
-    'sqlite', 'database', 'db', 'vitepress', 'openrouter', 'ollama', 'aider', 'claude', 'github', 'conversation', 'mailbox', 'team', 'diagnostic', 'telemetry', 'error_vault', 'memory'
-  ];
-  const hasTrigger = triggerWords.some(w => qLower.includes(w));
-  if (!hasTrigger) return query;
-
+  
   // Extract clean search words
   const words = query.split(/\s+/);
-  const stopWords = ['what', 'is', 'the', 'how', 'to', 'in', 'on', 'at', 'for', 'with', 'of', 'about', 'last', 'time', 'remember', 'recall', 'did', 'we', 'you', 'me', 'my', 'do', 'does', 'a', 'an', 'was', 'were', 'our', 'us'];
+  const stopWords = ['what', 'is', 'the', 'how', 'to', 'in', 'on', 'at', 'for', 'with', 'of', 'about', 'last', 'time', 'remember', 'recall', 'did', 'we', 'you', 'me', 'my', 'do', 'does', 'a', 'an', 'was', 'were', 'our', 'us', 'who', 'whose', 'it', 'them', 'they'];
   const searchTerms = words
     .map(w => w.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, '').trim())
     .filter(w => w.length > 2 && !stopWords.includes(w.toLowerCase()));
@@ -6163,9 +6157,8 @@ function injectRecalledMemory(query) {
     return b.length - a.length;
   });
 
-  // Query database using top 2 ranked distinctive terms
-  const termsToSearch = sortedTerms.slice(0, 2);
-  console.log(`[Memory Recall] Recall query triggered. Searching term(s): ${termsToSearch.map(t => `"${t}"`).join(', ')}...`);
+  // Query database using top 3 ranked distinctive terms (increase coverage to 3)
+  const termsToSearch = sortedTerms.slice(0, 3);
   
   let hits = [];
   for (const term of termsToSearch) {
