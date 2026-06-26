@@ -10241,6 +10241,14 @@ export default function App() {
               {/* Diagnostic Warning Banner */}
               <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 animate-pulse" />
               
+              {/* Environment Alert Banner */}
+              <div className="absolute top-1 left-0 right-0 p-2 bg-red-500/10 border-b border-red-500/20 text-xs text-red-300 flex items-center justify-center gap-2 font-mono">
+                <span className="animate-pulse">⚠️</span>
+                <span>Current Environment: <span className="font-bold">{import.meta.env.VITE_ENVIRONMENT || 'DEV'}</span></span>
+                <span>•</span>
+                <span>Tip: Run 'pwd' before healing operations</span>
+              </div>
+              
               {/* Left Config Panel Column */}
               <div className="flex-1 overflow-y-auto p-6 border-r border-white/[0.04] space-y-6">
                 <div className="bg-[#0b0b1e]/60 border border-white/[0.03] p-5 rounded-2xl shadow-xl">
