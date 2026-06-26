@@ -9203,9 +9203,22 @@ export default function App() {
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider mb-1 select-none">
                       <span>Hermes CLI Sessions</span>
-                      <button onClick={fetchSessionsList} disabled={sessionsLoading} className="hover:text-white transition-colors cursor-pointer">
-                        <RefreshCw size={10} className={sessionsLoading ? "animate-spin text-indigo-400" : ""} />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setActiveSessionId(null);
+                            setChatMessages([]);
+                            localStorage.removeItem("agent_os_active_session_id");
+                          }}
+                          className="text-[8px] bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 text-indigo-300 rounded px-1.5 py-0.5 font-bold transition-all cursor-pointer select-none"
+                          title="Start a fresh chat thread"
+                        >
+                          + New Chat
+                        </button>
+                        <button onClick={fetchSessionsList} disabled={sessionsLoading} className="hover:text-white transition-colors cursor-pointer">
+                          <RefreshCw size={10} className={sessionsLoading ? "animate-spin text-indigo-400" : ""} />
+                        </button>
+                      </div>
                     </div>
                     {sessionsLoading && (
                       <div className="text-gray-500 text-center py-4 font-mono text-xs select-none">Restoring logs index...</div>
