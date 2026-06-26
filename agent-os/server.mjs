@@ -4290,7 +4290,7 @@ function updateSystemContextCache() {
   try {
     let context = `\n\n=== AGENT OS SYSTEM CONTEXT (PRE-LOADED) ===\n`;
     context += `Current Time: ${new Date().toISOString()}\n`;
-    context += `Platform Version: v2.7.0\n`;
+    context += `Platform Version: v2.7.1\n`;
     context += `Directories:\n`;
     context += `- Workspace root: D:\\Agent OS\n`;
     context += `- Server code: D:\\Agent OS\\agent-os\n`;

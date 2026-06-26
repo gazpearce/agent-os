@@ -6096,7 +6096,7 @@ export default function App() {
             <h1 className="text-sm font-bold tracking-wider uppercase text-white flex items-center gap-1.5">
               Agent OS <span className="text-[10px] text-indigo-400 font-mono font-normal">Mission Control</span>
             </h1>
-            <div className="text-[9px] font-mono text-gray-500">v2.7.0 • Dynamic Skills & Obsidian Sync</div>
+            <div className="text-[9px] font-mono text-gray-500">v2.7.1 • Dynamic Skills & Obsidian Sync</div>
           </div>
         </div>
 
@@ -6134,7 +6134,7 @@ export default function App() {
               className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded px-2 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              v2.7.0
+              v2.7.1
               <ChevronDown size={10} className={`opacity-80 transition-transform ${showVersionHistory ? "rotate-180" : ""}`} />
             </button>
 
@@ -6152,8 +6152,17 @@ export default function App() {
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                     <div className="border-l-2 border-indigo-500 pl-2 py-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.7.0 (Active)</span>
+                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.7.1 (Active)</span>
                         <span className="text-[8px] text-gray-500">Active</span>
+                      </div>
+                      <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
+                        Memory Recall Optimization: Replaced filesystem searching loops with indexed SQLite DB matching and configured background automatic RAG recall on every query.
+                      </p>
+                    </div>
+                    <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.7.0</span>
+                        <span className="text-[8px] text-gray-500">Previous</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
                         Dynamic Skills & Obsidian Sync: Implemented live watcher and dynamic YAML parser for D:\Agent OS\skills\, background directory sync for Obsidian vault to SQLite memory vectors, and global latency optimizations.
