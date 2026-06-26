@@ -17,7 +17,7 @@ import os from 'os';
 import { EventEmitter } from 'events';
 
 EventEmitter.defaultMaxListeners = 30;
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink, unlinkSync, appendFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink, unlinkSync, appendFileSync, watch } from 'fs';
 import { exec, execSync, spawn } from 'child_process';
 import pty from 'node-pty';
 import { fileURLToPath } from 'url';
@@ -782,7 +782,14 @@ async function fetchGeminiWithRotation(urlSuffix, bodyData, controllerSignal) {
     console.log(`[Gemini API] ${icon} Key ...${key.slice(-6)} [${rpdPct}% RPD] — attempt ${i + 1}/${tryOrder.length}`);
 
     try {
-      const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${urlSuffix}?key=${key}`, {
+      let apiVer = 'v1beta';
+      let cleanSuffix = urlSuffix;
+      if (urlSuffix.startsWith('v1/') || urlSuffix.startsWith('v1beta/')) {
+        const parts = urlSuffix.split('/');
+        apiVer = parts[0];
+        cleanSuffix = parts.slice(1).join('/');
+      }
+      const r = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models/${cleanSuffix}?key=${key}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bodyData),
@@ -812,22 +819,34 @@ async function fetchGeminiWithRotation(urlSuffix, bodyData, controllerSignal) {
 }
 
 async function generateEmbedding(text) {
-  try {
-    const response = await fetchGeminiWithRotation('text-embedding-004:embedContent', {
-      content: { parts: [{ text }] }
-    });
-    if (!response || response.status !== 200) {
-      throw new Error(`Embedding request failed with status: ${response ? response.status : 'no response'}`);
+  const modelsToTry = [
+    'v1/text-embedding-004:embedContent',
+    'v1beta/text-embedding-004:embedContent',
+    'v1/embedding-001:embedContent',
+    'v1beta/embedding-001:embedContent'
+  ];
+  
+  let lastError = null;
+  for (const model of modelsToTry) {
+    try {
+      const response = await fetchGeminiWithRotation(model, {
+        content: { parts: [{ text }] }
+      });
+      if (response && response.status === 200) {
+        const data = await response.json();
+        if (data.embedding?.values) {
+          return data.embedding.values;
+        }
+      }
+    } catch (e) {
+      lastError = e;
+      console.warn(`[Embedding API] Model ${model} failed: ${e.message}`);
     }
-    const data = await response.json();
-    if (data.embedding?.values) {
-      return data.embedding.values;
-    }
-    throw new Error('Malformed embedding response structure');
-  } catch (e) {
-    console.error('[Embedding API] Error generating embedding:', e.message);
-    throw e;
   }
+  
+  // If all strategies fail, fallback to a zero vector to prevent blocking ingestion
+  console.warn('[Embedding API] All embedding strategies failed. Falling back to mock zero-vector (768 dims) to ensure context ingestion is not blocked.');
+  return new Array(768).fill(0);
 }
 
 
@@ -4271,7 +4290,7 @@ function updateSystemContextCache() {
   try {
     let context = `\n\n=== AGENT OS SYSTEM CONTEXT (PRE-LOADED) ===\n`;
     context += `Current Time: ${new Date().toISOString()}\n`;
-    context += `Platform Version: v2.6.0\n`;
+    context += `Platform Version: v2.7.0\n`;
     context += `Directories:\n`;
     context += `- Workspace root: D:\\Agent OS\n`;
     context += `- Server code: D:\\Agent OS\\agent-os\n`;
@@ -4339,6 +4358,31 @@ function compileSystemContext() {
   return SYSTEM_CONTEXT_CACHE;
 }
 
+function injectMatchedSkills(query, prompt) {
+  let updatedPrompt = prompt;
+  if (!LOCAL_SKILLS || LOCAL_SKILLS.length === 0) return updatedPrompt;
+  
+  const queryLower = query.toLowerCase();
+  const matchedSkills = [];
+  
+  LOCAL_SKILLS.forEach(skill => {
+    const nameMatch = queryLower.includes(skill.name.toLowerCase());
+    const keywordMatch = skill.keywords && skill.keywords.some(kw => queryLower.includes(kw.toLowerCase()));
+    if (nameMatch || keywordMatch) {
+      matchedSkills.push(skill);
+    }
+  });
+
+  if (matchedSkills.length > 0) {
+    updatedPrompt += `\n\n=== INJECTED LOCAL SKILL INSTRUCTIONS ===\n`;
+    matchedSkills.forEach(skill => {
+      updatedPrompt += `\n--- Skill: ${skill.name} ---\n${skill.body}\n`;
+    });
+    updatedPrompt += `\n=== END SKILL INSTRUCTIONS ===\n`;
+  }
+  return updatedPrompt;
+}
+
 // Chat with fallback
 async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 2048) {
   let model = 'google/gemini-2.0-flash-001';
@@ -4371,6 +4415,7 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
 
   // Inject system context dynamically so the orchestrator already knows the project states
   systemPrompt += compileSystemContext();
+  systemPrompt = injectMatchedSkills(query, systemPrompt);
 
   // Inject Gary Pearce's UK Authority and SEO Tier Profile
   const profileMdPath = `${SHARED}\\gary_pearce_authority_profile.md`;
@@ -4408,6 +4453,7 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
 
   // Inject system context dynamically so the orchestrator already knows the project states
   systemPrompt += compileSystemContext();
+  systemPrompt = injectMatchedSkills(query, systemPrompt);
 
   // Inject Gary Pearce's UK Authority and SEO Tier Profile
   const profileMdPath = `${SHARED}\\gary_pearce_authority_profile.md`;
@@ -7379,9 +7425,244 @@ app.get('/api/skills', (req, res) => {
 });
 
 // SKILLS DIR
+let LOCAL_SKILLS = [];
+
+function parseSkillMarkdown(filePath) {
+  try {
+    const content = readFileSync(filePath, 'utf-8');
+    const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/);
+    let name = basename(dirname(filePath));
+    let description = 'Custom Skill';
+    let keywords = [];
+    let body = content;
+
+    if (match) {
+      const yamlStr = match[1];
+      body = match[2];
+      const lines = yamlStr.split('\n');
+      lines.forEach(line => {
+        const parts = line.split(':');
+        if (parts.length >= 2) {
+          const key = parts[0].trim().toLowerCase();
+          const val = parts.slice(1).join(':').trim();
+          if (key === 'name') {
+            name = val.replace(/^['"]|['"]$/g, '');
+          } else if (key === 'description') {
+            description = val.replace(/^['"]|['"]$/g, '');
+          } else if (key === 'keywords') {
+            try {
+              keywords = JSON.parse(val.replace(/'/g, '"'));
+            } catch {
+              keywords = val.replace(/[\[\]'"]/g, '').split(',').map(k => k.trim());
+            }
+          }
+        }
+      });
+    } else {
+      const h1Match = content.match(/^#\s+(.+)$/m);
+      if (h1Match) {
+        name = h1Match[1].trim();
+      }
+    }
+    
+    return {
+      filePath,
+      name,
+      description,
+      keywords,
+      body
+    };
+  } catch (e) {
+    console.error(`[Skills Parser] Error parsing ${filePath}:`, e.message);
+    return null;
+  }
+}
+
+function scanSkills() {
+  const skillsDir = 'D:\\Agent OS\\skills';
+  try {
+    if (!existsSync(skillsDir)) {
+      mkdirSync(skillsDir, { recursive: true });
+    }
+    const results = [];
+    
+    function traverse(dir) {
+      const files = readdirSync(dir);
+      files.forEach(file => {
+        const fullPath = join(dir, file);
+        const stat = statSync(fullPath);
+        if (stat.isDirectory()) {
+          traverse(fullPath);
+        } else if (file.endsWith('.md')) {
+          if (file.toLowerCase() === 'skill.md' || !existsSync(join(dir, 'SKILL.md'))) {
+            const skill = parseSkillMarkdown(fullPath);
+            if (skill) {
+              results.push(skill);
+            }
+          }
+        }
+      });
+    }
+    
+    traverse(skillsDir);
+    LOCAL_SKILLS = results;
+    console.log(`[Skills Registry] Loaded ${LOCAL_SKILLS.length} local skills.`);
+  } catch (err) {
+    console.error('[Skills Registry] Error scanning skills:', err.message);
+  }
+}
+
+// Watch skills dir
+try {
+  const skillsDir = 'D:\\Agent OS\\skills';
+  if (!existsSync(skillsDir)) {
+    mkdirSync(skillsDir, { recursive: true });
+  }
+  scanSkills();
+  watch(skillsDir, { recursive: true }, (eventType, filename) => {
+    if (filename && filename.endsWith('.md')) {
+      console.log(`[Skills Registry] Skill file change detected (${eventType}): ${filename}. Refreshing...`);
+      scanSkills();
+    }
+  });
+} catch (watcherErr) {
+  console.error('[Skills Registry] Failed to start skills watcher:', watcherErr.message);
+}
+
+app.post('/api/skills/register', (req, res) => {
+  scanSkills();
+  res.json({ success: true, count: LOCAL_SKILLS.length });
+});
+
+// Obsidian Vault Watcher & sqlite Sync (Phase 2)
+function shouldSyncObsidianFile(filePath) {
+  if (!filePath.endsWith('.md')) return false;
+  const normalized = filePath.replace(/\\/g, '/');
+  const excludes = [
+    '/agent-os/',
+    '/.git/',
+    '/.obsidian/',
+    '/skills/',
+    '/shared/',
+    '/intelligence/',
+    '/cache/',
+    '/temp_empty/',
+    '/-p/'
+  ];
+  return !excludes.some(exc => normalized.toLowerCase().includes(exc.toLowerCase()));
+}
+
+async function syncObsidianFile(filePath) {
+  try {
+    if (!existsSync(filePath)) {
+      console.log(`[Obsidian Sync] File deleted: ${filePath}. Removing memories...`);
+      const db = getAionuiDb();
+      if (db) {
+        db.prepare("DELETE FROM memories WHERE source_type = 'obsidian' AND source_id = ?").run(filePath);
+      }
+      return;
+    }
+    
+    console.log(`[Obsidian Sync] Syncing file: ${filePath}`);
+    const content = readFileSync(filePath, 'utf-8');
+    if (!content.trim()) return;
+    
+    const rawChunks = content.split(/\n\s*\n/);
+    const chunks = [];
+    let currentChunk = '';
+    
+    rawChunks.forEach(block => {
+      const trimmed = block.trim();
+      if (!trimmed) return;
+      if (currentChunk.length + trimmed.length > 600) {
+        if (currentChunk.trim()) chunks.push(currentChunk.trim());
+        currentChunk = trimmed;
+      } else {
+        currentChunk = currentChunk ? currentChunk + '\n\n' + trimmed : trimmed;
+      }
+    });
+    if (currentChunk.trim()) chunks.push(currentChunk.trim());
+    
+    const db = getAionuiDb();
+    if (!db) return;
+    
+    db.prepare("DELETE FROM memories WHERE source_type = 'obsidian' AND source_id = ?").run(filePath);
+    
+    for (let i = 0; i < chunks.length; i++) {
+      const chunkText = chunks[i];
+      if (chunkText.length < 15) continue;
+      
+      try {
+        const embedding = await generateEmbedding(chunkText);
+        const id = 'obs_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+        db.prepare(`
+          INSERT INTO memories (id, text, source_type, source_id, embedding, created_at)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).run(id, chunkText, 'obsidian', filePath, JSON.stringify(embedding), Date.now());
+      } catch (embedErr) {
+        console.error(`[Obsidian Sync] Failed to embed chunk ${i} of ${filePath}:`, embedErr.message);
+      }
+    }
+    console.log(`[Obsidian Sync] Successfully synced ${chunks.length} chunks from ${filePath}`);
+  } catch (err) {
+    console.error(`[Obsidian Sync] Error syncing file ${filePath}:`, err.message);
+  }
+}
+
+const obsidianDebounceTimers = new Map();
+function queueObsidianSync(filePath) {
+  if (obsidianDebounceTimers.has(filePath)) {
+    clearTimeout(obsidianDebounceTimers.get(filePath));
+  }
+  const timer = setTimeout(async () => {
+    obsidianDebounceTimers.delete(filePath);
+    await syncObsidianFile(filePath);
+  }, 3000);
+  obsidianDebounceTimers.set(filePath, timer);
+}
+
+const obsidianVaultPath = process.env.OBSIDIAN_VAULT_PATH || 'D:\\Agent OS';
+try {
+  if (existsSync(obsidianVaultPath)) {
+    console.log(`[Obsidian Watcher] Initializing vault watcher at: ${obsidianVaultPath}`);
+    
+    // Initial scan of Obsidian root files
+    const files = readdirSync(obsidianVaultPath);
+    files.forEach(file => {
+      const fullPath = join(obsidianVaultPath, file);
+      if (shouldSyncObsidianFile(fullPath)) {
+        queueObsidianSync(fullPath);
+      }
+    });
+
+    watch(obsidianVaultPath, { recursive: true }, (eventType, filename) => {
+      if (filename) {
+        const fullPath = join(obsidianVaultPath, filename);
+        if (shouldSyncObsidianFile(fullPath)) {
+          console.log(`[Obsidian Watcher] Note change detected (${eventType}): ${filename}`);
+          queueObsidianSync(fullPath);
+        }
+      }
+    });
+  } else {
+    console.warn(`[Obsidian Watcher] Vault path not found: ${obsidianVaultPath}`);
+  }
+} catch (watcherErr) {
+  console.error('[Obsidian Watcher] Failed to start watcher:', watcherErr.message);
+}
+
 app.get('/api/skills-dir', (req, res) => {
-  try { const d = `${HOME}\\AppData\\Local\\hermes\\skills`; res.json(existsSync(d) ? readdirSync(d, { withFileTypes: true }).filter(x => x.isDirectory()).map(x => ({ id: x.name, name: x.name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) })) : []); }
-  catch { res.json([]); }
+  try {
+    res.json(LOCAL_SKILLS.map(s => ({
+      id: s.name.toLowerCase().replace(/\s+/g, '-'),
+      name: s.name,
+      description: s.description,
+      keywords: s.keywords,
+      isLocal: true
+    })));
+  } catch (err) {
+    res.json([]);
+  }
 });
 
 // MCP List with dynamic schema parsing and config scanning
