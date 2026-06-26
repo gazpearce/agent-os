@@ -37,7 +37,7 @@
   {
     "id": "6",
     "name": "Swarm Auto-Evolution Engine",
-    "interval": "30 min",
+    "interval": "24 hour",
     "status": "running",
     "next": ""
   },
@@ -59,6 +59,34 @@
     "id": "9",
     "name": "N8N Workflow Ingestion",
     "interval": "10 min",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "10",
+    "name": "External Ingestion Engine",
+    "interval": "6 hour",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "11",
+    "name": "Model Catalog & Evolution Scanner",
+    "interval": "24 hour",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "12",
+    "name": "Self-Healing Engine",
+    "interval": "30 sec",
+    "status": "running",
+    "next": ""
+  },
+  {
+    "id": "13",
+    "name": "Nightly Intelligence Cycle",
+    "interval": "24 hour",
     "status": "running",
     "next": ""
   }

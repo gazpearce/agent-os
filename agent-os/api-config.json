@@ -222,8 +222,8 @@
   },
   "siliconflow": {
     "provider": "SiliconFlow",
-    "base_url": "https://api.siliconflow.cn/v1",
-    "keys": [],
+    "base_url": "https://api.siliconflow.com/v1",
+    "keys": ["sk-snphspluqbfjzfuzcdrysecbhkeytmnhaqihiewzobeetxzh"],
     "models": {
       "chat": "deepseek-ai/DeepSeek-R1",
       "fast": "deepseek-ai/DeepSeek-V3",
@@ -233,6 +233,23 @@
       "text",
       "reasoning",
       "code"
+    ]
+  },
+  "scaleway": {
+    "provider": "Scaleway",
+    "base_url": "https://api.scaleway.ai/v1",
+    "api_key": "0574ffd6-37be-40f1-ae61-02717be57f2f",
+    "access_key_id": "SCWBRJM0BR0PW69QH3MM",
+    "models": {
+      "chat": "qwen3.5-397b-a17b",
+      "fast": "llama-3.3-70b-instruct",
+      "code": "qwen3-coder-30b-a3b-instruct",
+      "vision": "pixtral-12b-2409"
+    },
+    "capabilities": [
+      "text",
+      "code",
+      "vision"
     ]
   },
   "puter": {
