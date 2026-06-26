@@ -17,7 +17,7 @@ import os from 'os';
 import { EventEmitter } from 'events';
 
 EventEmitter.defaultMaxListeners = 30;
-import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink, unlinkSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync, statSync, unlink, unlinkSync, appendFileSync } from 'fs';
 import { exec, execSync, spawn } from 'child_process';
 import pty from 'node-pty';
 import { fileURLToPath } from 'url';
@@ -5514,6 +5514,70 @@ app.get('/api/memories/graph', (req, res) => {
     }
 
     res.json({ nodes, links });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// External AI Gateway API Security Key
+let EXTERNAL_AI_API_KEY = process.env.EXTERNAL_AI_API_KEY;
+if (!EXTERNAL_AI_API_KEY) {
+  EXTERNAL_AI_API_KEY = 'agentos_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+  try {
+    appendFileSync('.env', `\nEXTERNAL_AI_API_KEY=${EXTERNAL_AI_API_KEY}\n`);
+    console.log(`[Security] Generated and persisted new EXTERNAL_AI_API_KEY to .env: ${EXTERNAL_AI_API_KEY}`);
+  } catch (e) {
+    console.error("Failed to append EXTERNAL_AI_API_KEY to .env:", e);
+  }
+}
+
+const externalApiAuth = (req, res, next) => {
+  const apiKey = req.headers['x-api-key'] || req.query.api_key;
+  if (!apiKey || apiKey !== EXTERNAL_AI_API_KEY) {
+    return res.status(401).json({ error: 'Unauthorized: Invalid or missing X-API-KEY header / api_key parameter' });
+  }
+  next();
+};
+
+// Expose secure API Gateway for other AIs
+app.get('/api/external/v1/status', externalApiAuth, (req, res) => {
+  const cfg = readConfig();
+  const m = cfg.match(/default:\s*([^\s\n]+)/);
+  res.json({
+    status: 'online',
+    version: '1.1.0',
+    activeAgent: m ? m[1] : 'google/gemini-2.0-flash-001',
+    wishlistCount: readWishlist().items.length,
+    activeTasks: 'AionUI monitoring'
+  });
+});
+
+app.get('/api/external/v1/memories', externalApiAuth, (req, res) => {
+  try {
+    const rows = aionuiDb.prepare("SELECT id, text, source_type, created_at FROM memories ORDER BY created_at DESC LIMIT 50").all();
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/external/v1/chat', externalApiAuth, async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: 'message parameter required' });
+  try {
+    const payload = { query: message };
+    // Call internal evaluate endpoint to leverage Hermes/Gemini routing
+    const r = await fetch(`http://localhost:3001/api/chat/evaluate-growth`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (r.ok) {
+      const data = await r.json();
+      res.json({ response: data.analysis });
+    } else {
+      res.status(500).json({ error: 'Failed to process message internally' });
+    }
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
