@@ -4339,28 +4339,12 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
   }
 
   const modelFallbacks = [
-    'siliconflow/Qwen/Qwen3.6-35B-A3B',
-    'siliconflow/Qwen/Qwen3.5-397B-A17B',
-    'siliconflow/Qwen/Qwen3-Coder-30B-A3B-Instruct',
-    'scaleway/qwen3.5-397b-a17b',
-    'scaleway/llama-3.3-70b-instruct',
-    'scaleway/qwen3-coder-30b-a3b-instruct',
-    'scaleway/pixtral-12b-2409',
-    mappedModel,
-    'agnes/agnes-2.0-flash',
-    'openrouter/deepseek/deepseek-r1:free',
-    'openrouter/deepseek/deepseek-chat:free',
-    'openrouter/qwen/qwen-2.5-coder-32b-instruct:free',
-    'openrouter/qwen/qwen-2.5-72b-instruct:free',
-    'openrouter/meta-llama/llama-3.3-70b-instruct:free',
-    'nvidia/meta/llama-3.3-70b-instruct',
-    'mistral/mistral-large-latest',
-    'huggingface/meta-llama/Llama-3.2-3B-Instruct',
-    'sambanova/Meta-Llama-3.1-70B-Instruct',
-    'cerebras/llama3.1-70b',
-    'zhipu/glm-4-flash',
-    'cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    mappedModel, // ALWAYS try the user's selected model first!
     'openrouter/free',
+    'siliconflow/Qwen/Qwen3-Coder-30B-A3B-Instruct',
+    'nvidia/meta/llama-3.3-70b-instruct',
+    'cloudflare/@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+    'zhipu/glm-4-flash',
     'google/gemma-2-9b-it:free'
   ];
 
