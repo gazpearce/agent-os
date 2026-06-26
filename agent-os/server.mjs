@@ -4265,64 +4265,78 @@ Only run one tool at a time. After calling a tool, the system will return the re
   return { success: true, from: toAgent, response };
 }
 
-// Compile full system context to pre-load into the AI Orchestrator's prompt
-function compileSystemContext() {
-  let context = `\n\n=== AGENT OS SYSTEM CONTEXT (PRE-LOADED) ===\n`;
-  context += `Current Time: ${new Date().toISOString()}\n`;
-  context += `Platform Version: v2.6.0\n`;
-  context += `Directories:\n`;
-  context += `- Workspace root: D:\\Agent OS\n`;
-  context += `- Server code: D:\\Agent OS\\agent-os\n`;
-  context += `- Intelligence feed: D:\\Agent OS\\intelligence\n`;
-  context += `- Shared directory: D:\\Agent OS\\shared\n`;
-  context += `Active Ports:\n`;
-  context += `- Express Dashboard Server: 3001\n`;
+let SYSTEM_CONTEXT_CACHE = '';
 
-  // Read Intelligence version
+function updateSystemContextCache() {
   try {
-    const verPath = 'D:\\Agent OS\\intelligence\\state\\version.json';
-    if (existsSync(verPath)) {
-      const ver = JSON.parse(readFileSync(verPath, 'utf-8'));
-      context += `Intelligence Feed Version: v${ver.version} (last updated: ${ver.last_updated})\n`;
-    }
-  } catch {}
+    let context = `\n\n=== AGENT OS SYSTEM CONTEXT (PRE-LOADED) ===\n`;
+    context += `Current Time: ${new Date().toISOString()}\n`;
+    context += `Platform Version: v2.6.0\n`;
+    context += `Directories:\n`;
+    context += `- Workspace root: D:\\Agent OS\n`;
+    context += `- Server code: D:\\Agent OS\\agent-os\n`;
+    context += `- Intelligence feed: D:\\Agent OS\\intelligence\n`;
+    context += `- Shared directory: D:\\Agent OS\\shared\n`;
+    context += `Active Ports:\n`;
+    context += `- Express Dashboard Server: 3001\n`;
 
-  // Read Intelligence pending updates status
-  try {
-    const pendingPath = 'D:\\Agent OS\\intelligence\\output\\pending_update.json';
-    if (existsSync(pendingPath)) {
-      const pending = JSON.parse(readFileSync(pendingPath, 'utf-8'));
-      context += `Intelligence Feed Status: ${pending.status} (from v${pending.from_version} to v${pending.to_version})\n`;
-      context += `Pending Changes Summary: ${pending.summary}\n`;
-    }
-  } catch {}
-
-  // Read Wishlist count
-  try {
-    const wishlistPath = 'D:\\Agent OS\\shared\\upgrade_wishlist.json';
-    if (existsSync(wishlistPath)) {
-      const wishlist = JSON.parse(readFileSync(wishlistPath, 'utf-8'));
-      const count = Object.keys(wishlist).length;
-      context += `Pending Upgrades Wishlist: ${count} items registered\n`;
-    }
-  } catch {}
-
-  // Read Knowledge Graph summaries from sqlite memory table if exists
-  try {
-    const db = getAionuiDb();
-    if (db) {
-      const rows = db.prepare("SELECT text FROM memories LIMIT 10;").all();
-      if (rows && rows.length > 0) {
-        context += `Knowledge Graph Memories:\n`;
-        rows.forEach(r => {
-          context += `- ${r.text}\n`;
-        });
+    // Read Intelligence version
+    try {
+      const verPath = 'D:\\Agent OS\\intelligence\\state\\version.json';
+      if (existsSync(verPath)) {
+        const ver = JSON.parse(readFileSync(verPath, 'utf-8'));
+        context += `Intelligence Feed Version: v${ver.version} (last updated: ${ver.last_updated})\n`;
       }
-    }
-  } catch {}
+    } catch {}
 
-  context += `=== END AGENT OS SYSTEM CONTEXT ===\n`;
-  return context;
+    // Read Intelligence pending updates status
+    try {
+      const pendingPath = 'D:\\Agent OS\\intelligence\\output\\pending_update.json';
+      if (existsSync(pendingPath)) {
+        const pending = JSON.parse(readFileSync(pendingPath, 'utf-8'));
+        context += `Intelligence Feed Status: ${pending.status} (from v${pending.from_version} to v${pending.to_version})\n`;
+        context += `Pending Changes Summary: ${pending.summary}\n`;
+      }
+    } catch {}
+
+    // Read Wishlist count
+    try {
+      const wishlistPath = 'D:\\Agent OS\\shared\\upgrade_wishlist.json';
+      if (existsSync(wishlistPath)) {
+        const wishlist = JSON.parse(readFileSync(wishlistPath, 'utf-8'));
+        const count = Object.keys(wishlist).length;
+        context += `Pending Upgrades Wishlist: ${count} items registered\n`;
+      }
+    } catch {}
+
+    // Read Knowledge Graph summaries from sqlite memory table if exists
+    try {
+      const db = getAionuiDb();
+      if (db) {
+        const rows = db.prepare("SELECT text FROM memories LIMIT 10;").all();
+        if (rows && rows.length > 0) {
+          context += `Knowledge Graph Memories:\n`;
+          rows.forEach(r => {
+            context += `- ${r.text}\n`;
+          });
+        }
+      }
+    } catch {}
+
+    context += `=== END AGENT OS SYSTEM CONTEXT ===\n`;
+    SYSTEM_CONTEXT_CACHE = context;
+  } catch (err) {
+    console.error('[System Context Cache] Error compiling context:', err.message);
+  }
+}
+
+// Initial cache compilation and background refresh loop
+updateSystemContextCache();
+setInterval(updateSystemContextCache, 15000); // refresh every 15 seconds in background
+
+// Compile full system context instantly from cache
+function compileSystemContext() {
+  return SYSTEM_CONTEXT_CACHE;
 }
 
 // Chat with fallback
