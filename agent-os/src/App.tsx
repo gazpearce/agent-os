@@ -10004,7 +10004,10 @@ export default function App() {
           <div className="flex justify-between items-center pb-2 border-b border-white/5 select-none">
             <div className="flex items-center gap-2">
               <span className="text-red-400 text-xs font-bold">⚠️ Errors Detected</span>
-              <button onClick={() => setTerminalLogs([])} className="text-[9px] bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-2 py-0.5 rounded border border-red-500/20 cursor-pointer transition-all" title="Clear error logs">Clear</button>
+              <div className="flex gap-1">
+                <button onClick={() => setTerminalLogs(terminalLogs.filter(l => l.type !== 'error'))} className="text-[9px] bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 px-2 py-0.5 rounded border border-red-500/20 cursor-pointer transition-all" title="Clear error logs">Clear Errors</button>
+                <button onClick={() => setTerminalLogs([])} className="text-[9px] bg-gray-500/10 hover:bg-gray-500/20 text-gray-400 hover:text-gray-300 px-2 py-0.5 rounded border border-gray-500/20 cursor-pointer transition-all" title="Clear all logs">Clear All</button>
+              </div>
             </div>
             <span className="text-gray-400 font-bold tracking-wider">🖥️ Floating Terminal Shell</span>
             <button onClick={() => setIsFloatingTerminalOpen(false)} className="text-gray-500 hover:text-white cursor-pointer font-bold text-xs">✕</button>
