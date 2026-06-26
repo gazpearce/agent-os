@@ -10285,6 +10285,16 @@ export default function App() {
           <span className="flex items-center gap-1.5"><Layers size={11} className="text-gray-600" /> 7 Layers Active</span>
           <span className="flex items-center gap-1.5"><Cpu size={11} className="text-gray-600" /> 8 Inference Catalogs</span>
           <span className="flex items-center gap-1.5 text-purple-400"><Sparkles size={11} /> Model: {activeModel}</span>
+          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
+            <button
+              onClick={() => setIsFloatingTerminalOpen(true)}
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+              title={`${terminalLogs.filter(l => l.type === 'error').length} healing failures - click to open terminal`}
+            >
+              <span className="flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span>
+              <span className="text-[9px] font-bold">{terminalLogs.filter(l => l.type === 'error').length} Errors</span>
+            </button>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {/* Files Explorer Button */}
