@@ -4265,6 +4265,66 @@ Only run one tool at a time. After calling a tool, the system will return the re
   return { success: true, from: toAgent, response };
 }
 
+// Compile full system context to pre-load into the AI Orchestrator's prompt
+function compileSystemContext() {
+  let context = `\n\n=== AGENT OS SYSTEM CONTEXT (PRE-LOADED) ===\n`;
+  context += `Current Time: ${new Date().toISOString()}\n`;
+  context += `Platform Version: v2.6.0\n`;
+  context += `Directories:\n`;
+  context += `- Workspace root: D:\\Agent OS\n`;
+  context += `- Server code: D:\\Agent OS\\agent-os\n`;
+  context += `- Intelligence feed: D:\\Agent OS\\intelligence\n`;
+  context += `- Shared directory: D:\\Agent OS\\shared\n`;
+  context += `Active Ports:\n`;
+  context += `- Express Dashboard Server: 3001\n`;
+
+  // Read Intelligence version
+  try {
+    const verPath = 'D:\\Agent OS\\intelligence\\state\\version.json';
+    if (existsSync(verPath)) {
+      const ver = JSON.parse(readFileSync(verPath, 'utf-8'));
+      context += `Intelligence Feed Version: v${ver.version} (last updated: ${ver.last_updated})\n`;
+    }
+  } catch {}
+
+  // Read Intelligence pending updates status
+  try {
+    const pendingPath = 'D:\\Agent OS\\intelligence\\output\\pending_update.json';
+    if (existsSync(pendingPath)) {
+      const pending = JSON.parse(readFileSync(pendingPath, 'utf-8'));
+      context += `Intelligence Feed Status: ${pending.status} (from v${pending.from_version} to v${pending.to_version})\n`;
+      context += `Pending Changes Summary: ${pending.summary}\n`;
+    }
+  } catch {}
+
+  // Read Wishlist count
+  try {
+    const wishlistPath = 'D:\\Agent OS\\shared\\upgrade_wishlist.json';
+    if (existsSync(wishlistPath)) {
+      const wishlist = JSON.parse(readFileSync(wishlistPath, 'utf-8'));
+      const count = Object.keys(wishlist).length;
+      context += `Pending Upgrades Wishlist: ${count} items registered\n`;
+    }
+  } catch {}
+
+  // Read Knowledge Graph summaries from sqlite memory table if exists
+  try {
+    const db = getAionuiDb();
+    if (db) {
+      const rows = db.prepare("SELECT text FROM memories LIMIT 10;").all();
+      if (rows && rows.length > 0) {
+        context += `Knowledge Graph Memories:\n`;
+        rows.forEach(r => {
+          context += `- ${r.text}\n`;
+        });
+      }
+    }
+  } catch {}
+
+  context += `=== END AGENT OS SYSTEM CONTEXT ===\n`;
+  return context;
+}
+
 // Chat with fallback
 async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 2048) {
   let model = 'google/gemini-2.0-flash-001';
@@ -4294,6 +4354,9 @@ async function chatCompletion(query, overrideSystemPrompt = null, maxTokens = 20
       } catch {}
     }
   }
+
+  // Inject system context dynamically so the orchestrator already knows the project states
+  systemPrompt += compileSystemContext();
 
   // Inject Gary Pearce's UK Authority and SEO Tier Profile
   const profileMdPath = `${SHARED}\\gary_pearce_authority_profile.md`;
@@ -4328,6 +4391,9 @@ async function _chatCompletionInternal(query, overrideSystemPrompt = null, maxTo
       } catch {}
     }
   }
+
+  // Inject system context dynamically so the orchestrator already knows the project states
+  systemPrompt += compileSystemContext();
 
   // Inject Gary Pearce's UK Authority and SEO Tier Profile
   const profileMdPath = `${SHARED}\\gary_pearce_authority_profile.md`;
@@ -6477,6 +6543,22 @@ async function executeSwarmInBackground(sessionId, query, agentId, parentId) {
         console.log(`[Orchestrator] Simple query detected: "${query}". Responding directly...`);
         const replyMsgId = 'msg_reply_' + Date.now();
         broadcastSseMessage(sessionId, { newMsgId: replyMsgId, agent: 'orchestrator', content: '' });
+
+        // Instant rules-based greeting to avoid any LLM latency for greetings
+        const cleanQuery = lowerQuery.replace(/[.,?!]/g, '').trim();
+        const greetings = ['hello', 'hi', 'hey', 'yo', 'sup', 'greetings'];
+        if (greetings.includes(cleanQuery)) {
+          const greetingsResponses = [
+            "Hey Gary! 👋 Always good to hear from you. What are we building or checking on today?",
+            "Hi Gary! 👋 Ready to roll. What can I do for you today?",
+            "Hey Gary! 👋 How's everything going? Let me know what you need help with."
+          ];
+          const responseText = greetingsResponses[Math.floor(Math.random() * greetingsResponses.length)];
+          broadcastSseMessage(sessionId, { newMsgId: replyMsgId, agent: 'orchestrator', content: responseText + '\n' });
+          saveChatMessage(sessionId, 'left', responseText, 'orchestrator', parentId);
+          broadcastSseMessage(sessionId, 'data: [DONE]\n\n');
+          return;
+        }
         
         const responseText = await chatCompletion(
           queryWithMemory,
