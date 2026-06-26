@@ -10023,13 +10023,22 @@ export default function App() {
                 <div className="text-red-400/70">• Check if path is absolute (/home/user/project) vs relative (./project)</div>
                 <div className="text-red-400/70">• Verify the directory exists before running healing operations</div>
                 <div className="text-red-400/70">• Try running `pwd` console command to confirm current working directory</div>
+                <div className="mt-1 flex gap-1">
                 <button 
                   onClick={() => navigator.clipboard.writeText('/home/user/project/package.json')}
-                  className="mt-1 text-[8px] bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 px-2 py-0.5 rounded border border-red-500/20 cursor-pointer transition-all"
-                  title="Copy common path to clipboard"
+                  className="text-[8px] bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 px-2 py-0.5 rounded border border-red-500/20 cursor-pointer transition-all"
+                  title="Copy Linux path"
                 >
-                  📋 Copy Standard Path
+                  📋 Copy Linux Path
                 </button>
+                <button 
+                  onClick={() => navigator.clipboard.writeText('D:\Agent OS\agent-os\package.json')}
+                  className="text-[8px] bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 hover:text-indigo-200 px-2 py-0.5 rounded border border-indigo-500/20 cursor-pointer transition-all"
+                  title="Copy Windows path"
+                >
+                  🪟 Copy Windows Path
+                </button>
+              </div>
               </div>
             </div>
           )}
