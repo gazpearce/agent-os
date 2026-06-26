@@ -9008,7 +9008,7 @@ export default function App() {
                     }`}
                   >
                     {tab === "sessions" ? <Clock size={11} /> : tab === "models" ? <Cpu size={11} /> : tab === "skills" ? <Zap size={11} /> : tab === "mcp-catalog" ? <Puzzle size={11} /> : tab === "vault" ? <Database size={11} /> : tab === "goals" ? <Target size={11} /> : tab === "monitor" ? <Activity size={11} /> : tab === "settings" ? <Settings size={11} /> : tab === "notebooklm" ? <FileText size={11} /> : <Search size={11} />}
-                    <span className="mt-0.5">{tab === "mcp-catalog" ? "MCP" : tab === "models" ? "Models" : tab === "vault" ? "Memory" : tab === "monitor" ? "Telemetry" : tab === "settings" ? "Settings" : tab === "notebooklm" ? "Notebooks" : tab === "rag" ? "RAG" : tab}</span>
+                    <span className="mt-0.5">{tab === "sessions" ? "Chats" : tab === "skills" ? "Skills" : tab === "mcp-catalog" ? "MCP" : tab === "models" ? "Models" : tab === "vault" ? "Memory" : tab === "monitor" ? "Telemetry" : tab === "settings" ? "Settings" : tab === "notebooklm" ? "Notebooks" : tab === "rag" ? "RAG" : tab}</span>
                   </button>
                 ))}
               </div>
@@ -9578,7 +9578,7 @@ export default function App() {
                                   {server.url && <span className="bg-black/30 px-1.5 py-0.5 rounded truncate max-w-40">url: {server.url}</span>}
                                   {server.transport === "http" && <span className="bg-yellow-500/10 text-yellow-400 px-1.5 py-0.5 rounded font-semibold">HTTP</span>}
                                   {server.transport === "stdio" && <span className="bg-purple-500/10 text-purple-400 px-1.5 py-0.5 rounded font-semibold">stdio</span>}
-                                  {server.env_required.length > 0 && (
+                                  {server.env_required && server.env_required.length > 0 && (
                                     <span className="bg-orange-500/10 text-orange-400 px-1.5 py-0.5 rounded font-semibold">🔑 {server.env_required.join(', ')}</span>
                                   )}
                                 </div>
@@ -10015,8 +10015,18 @@ export default function App() {
                 <span className="text-[9px] text-red-300 font-semibold">🔴 {terminalLogs.filter(l => l.type === 'error').length} healing failures detected</span>
                 <span className="text-[8px] text-red-400/60">Last: {new Date().toLocaleTimeString()}</span>
               </div>
-              <div className="text-[8px] text-red-400/80 bg-red-500/5 rounded px-2 py-1 border border-red-500/10">
-                💡 Tip: Verify package.json path exists. Common fix: Check for absolute vs relative paths (e.g., /home/user/project vs ./project)
+              <div className="text-[8px] text-red-400/80 bg-red-500/5 rounded px-2 py-1 border border-red-500/10 space-y-1">
+                <div className="font-semibold text-red-300">⚠️ Common Issue: Invalid package.json Path</div>
+                <div className="text-red-400/70">• Check if path is absolute (/home/user/project) vs relative (./project)</div>
+                <div className="text-red-400/70">• Verify the directory exists before running healing operations</div>
+                <div className="text-red-400/70">• Try running `pwd` console command to confirm current working directory</div>
+                <button 
+                  onClick={() => navigator.clipboard.writeText('/home/user/project/package.json')}
+                  className="mt-1 text-[8px] bg-red-500/20 hover:bg-red-500/30 text-red-300 hover:text-red-200 px-2 py-0.5 rounded border border-red-500/20 cursor-pointer transition-all"
+                  title="Copy common path to clipboard"
+                >
+                  📋 Copy Standard Path
+                </button>
               </div>
             </div>
           )}
