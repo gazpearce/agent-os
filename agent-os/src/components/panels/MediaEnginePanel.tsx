@@ -41,7 +41,7 @@ export default function MediaEnginePanel() {
     setLoading(true);
     setMediaUrl('');
     try {
-      const res = await fetch('/api/generate-image', {
+      const res = await fetch('http://localhost:3000/api/generate-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt, provider: genProvider }),
@@ -60,7 +60,7 @@ export default function MediaEnginePanel() {
     setLoading(true);
     setMediaUrl('');
     try {
-      const res = await fetch('/api/generate-video', {
+      const res = await fetch('http://localhost:3000/api/generate-video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt }),

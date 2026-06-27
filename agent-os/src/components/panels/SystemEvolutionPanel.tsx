@@ -9,7 +9,7 @@ export default function SystemEvolutionPanel() {
   const fetchBrief = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/evolution/status");
+      const res = await fetch("http://localhost:3000/api/evolution/status");
       if (res.ok) {
         const data = await res.json();
         setBrief(data.content || "");
@@ -26,7 +26,7 @@ export default function SystemEvolutionPanel() {
     setEvolving(true);
     setEvolveStatus("Executing evolution scanner scripts...");
     try {
-      const res = await fetch("/api/evolution/apply-upgrade", { method: "POST" });
+      const res = await fetch("http://localhost:3000/api/evolution/apply-upgrade", { method: "POST" });
       if (res.ok) {
         setEvolveStatus("Evolved successfully! Page will refresh.");
         setTimeout(() => {

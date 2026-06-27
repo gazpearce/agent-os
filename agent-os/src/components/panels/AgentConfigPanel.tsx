@@ -7,7 +7,7 @@ export function AIProvidersDiagnosticConsole() {
   const testConnections = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/providers/status');
+      const res = await fetch('http://localhost:3000/api/providers/status');
       if (res.ok) {
         setProviders(await res.json());
       }
@@ -80,7 +80,7 @@ export function BackgroundAgentPanel() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch('/api/background-agent/status');
+      const res = await fetch('http://localhost:3000/api/background-agent/status');
       if (res.ok) {
         setStatus(await res.json());
       }
@@ -91,7 +91,7 @@ export function BackgroundAgentPanel() {
     setLoading(true);
     setMsg('Triggering scan...');
     try {
-      const res = await fetch('/api/background-agent/trigger', { method: 'POST' });
+      const res = await fetch('http://localhost:3000/api/background-agent/trigger', { method: 'POST' });
       if (res.ok) {
         const data = await res.json();
         setMsg(data.message);
@@ -166,7 +166,7 @@ export function GeminiKeysPanel() {
   const loadKeys = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/gemini-keys');
+      const res = await fetch('http://localhost:3000/api/gemini-keys');
       if (res.ok) {
         const data = await res.json();
         setKeys(data.keys || []);
@@ -177,7 +177,7 @@ export function GeminiKeysPanel() {
 
   const saveKeys = async (updatedKeys: string[]) => {
     try {
-      const res = await fetch('/api/gemini-keys', {
+      const res = await fetch('http://localhost:3000/api/gemini-keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keys: updatedKeys })
@@ -264,12 +264,12 @@ export default function AgentConfigPanel() {
   const [saved, setSaved] = useState('');
   const loadConfig = async () => {
     setLoading(true);
-    try { const res = await fetch('/api/config'); if (res.ok) setConfig((await res.json()).content || ''); } catch (_) {}
+    try { const res = await fetch('http://localhost:3000/api/config'); if (res.ok) setConfig((await res.json()).content || ''); } catch (_) {}
     finally { setLoading(false); }
   };
   const saveConfig = async () => {
     try {
-      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: config }) });
+      await fetch('http://localhost:3000/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: config }) });
       setSaved('Saved!');
       setTimeout(() => setSaved(''), 2000);
     } catch (_) { setSaved('Error saving'); }
@@ -314,7 +314,7 @@ export default function AgentConfigPanel() {
                 btn.innerText = 'Syncing...';
               }
               try {
-                const res = await fetch('/api/git/backup', {
+                const res = await fetch('http://localhost:3000/api/git/backup', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ message: msg })

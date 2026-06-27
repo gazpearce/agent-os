@@ -11,7 +11,7 @@ export default function SwarmDiagnosticsPanel() {
   
   const fetchErrors = async () => {
     try {
-      const res = await fetch('/api/swarm/errors');
+      const res = await fetch('http://localhost:3000/api/swarm/errors');
       const data = await res.json();
       setErrors(data.errors || []);
     } catch (e) {
@@ -21,7 +21,7 @@ export default function SwarmDiagnosticsPanel() {
 
   const loadErrorContent = async (filename: string) => {
     try {
-      const res = await fetch(`/api/swarm/errors/content?file=${encodeURIComponent(filename)}`);
+      const res = await fetch(`http://localhost:3000/api/swarm/errors/content?file=${encodeURIComponent(filename)}`);
       const data = await res.json();
       setSelectedError({ filename, content: data.content });
     } catch (e) {
@@ -32,7 +32,7 @@ export default function SwarmDiagnosticsPanel() {
   const runDiag = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/swarm/diagnose');
+      const res = await fetch('http://localhost:3000/api/swarm/diagnose');
       const data = await res.json();
       setDiag(data);
     } catch (e) { console.error(e); }
@@ -43,7 +43,7 @@ export default function SwarmDiagnosticsPanel() {
     setHealing(true);
     setHealLogs(["Starting self-healing triggers..."]);
     try {
-      const res = await fetch('/api/swarm/self-heal', { method: 'POST' });
+      const res = await fetch('http://localhost:3000/api/swarm/self-heal', { method: 'POST' });
       const data = await res.json();
       if (data.logs) setHealLogs(data.logs);
     } catch (e: any) { setHealLogs(prev => [...prev, `Heal error: ${e.message || e}`]); }
@@ -54,7 +54,7 @@ export default function SwarmDiagnosticsPanel() {
     setConsolidating(true);
     setHealLogs(prev => [...prev, "Initiating swarm memory consolidation & prompt recompilation..."]);
     try {
-      const res = await fetch('/api/memory/consolidate', { method: 'POST' });
+      const res = await fetch('http://localhost:3000/api/memory/consolidate', { method: 'POST' });
       const data = await res.json();
       if (data.message) {
         setHealLogs(prev => [...prev, `Success: ${data.message}`]);
