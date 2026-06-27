@@ -2,13 +2,7 @@ import { useState, useEffect } from "react";
 import { Server, Download, Trash2, RefreshCw, Box, Shield, ExternalLink } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 
-const mockPlugins = [
-  { id: 'mcp-github', name: 'GitHub MCP', description: 'Interact with GitHub repositories, issues, and PRs.', installed: true, version: '1.2.0', author: 'Agent OS Core' },
-  { id: 'mcp-postgres', name: 'PostgreSQL MCP', description: 'Direct database access and schema introspection.', installed: true, version: '0.9.1', author: 'Agent OS Core' },
-  { id: 'mcp-linear', name: 'Linear MCP', description: 'Create and manage Linear issues automatically.', installed: false, version: '1.0.5', author: 'Community' },
-  { id: 'skill-seo', name: 'SEO Expert', description: 'Automated on-page and off-page SEO optimization workflows.', installed: true, version: '2.1.0', author: 'Gary Pearce' },
-  { id: 'skill-social', name: 'Social Syndicator', description: 'Auto-publish to Twitter, LinkedIn, and Reddit.', installed: false, version: '1.0.0', author: 'Community' },
-];
+
 
 export default function PluginRegistryPanel() {
   const [plugins, setPlugins] = useState<any[]>([]);

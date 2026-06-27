@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Clock, Play, Plus, Save, Trash2 } from 'lucide-react';
+import { Clock, Play, Plus, Trash2 } from 'lucide-react';
 import { useUIStore } from '../../store/useUIStore';
 
 export default function CronManagementPanel() {
