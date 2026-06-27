@@ -21,7 +21,10 @@ import createSwarmRouter from './backend/routes/swarm.mjs';
 import createMemoryRouter from './backend/routes/memory.mjs';
 import createPaperclipRouter from './backend/routes/paperclip.mjs';
 import createWorkflowRouter from './backend/routes/workflow.mjs';
+import createPluginsRouter from './backend/routes/plugins.mjs';
 import createAgentsRouter from './backend/routes/agents.mjs';
+import createTodoRouter from './backend/routes/todo.mjs';
+import createCronRouter from './backend/routes/cron.mjs';
 import createExternalRouter from './backend/routes/external.mjs';
 import createWebsiteRouter from './backend/routes/website.mjs';
 import createN8nRouter from './backend/routes/n8n.mjs';
@@ -8544,6 +8547,9 @@ app.use('/', createPaperclipRouter({
   sendToClients: broadcastSseMessage
 }));
 app.use('/', createWorkflowRouter({}));
+app.use('/', createPluginsRouter({}));
+app.use('/', createTodoRouter({}));
+app.use('/', createCronRouter({}));
 app.use('/', createSwarmRouter({
   db: getDb(),
   aionuiDb: getAionuiDb(),

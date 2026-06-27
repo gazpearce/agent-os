@@ -9,7 +9,7 @@ export default function TodoPanel() {
   const fetchTodos = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/todos');
+      const res = await fetch('http://localhost:3000/api/todos');
       if (res.ok) {
         const data = await res.json();
         setTodos(data.todos || []);
@@ -24,7 +24,7 @@ export default function TodoPanel() {
   const saveTodos = async (updatedTodos: any[]) => {
     setTodos(updatedTodos);
     try {
-      await fetch('/api/todos', {
+      await fetch('http://localhost:3000/api/todos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ todos: updatedTodos }),
