@@ -14,6 +14,14 @@ import {
   PieChart, Pie, Cell
 } from "recharts";
 
+import MediaEnginePanel from "./components/panels/MediaEnginePanel";
+import SwarmDiagnosticsPanel from "./components/panels/SwarmDiagnosticsPanel";
+import BrowserPanel from "./components/panels/BrowserPanel";
+import TodoPanel from "./components/panels/TodoPanel";
+import VoiceInput from "./components/chat/VoiceInput";
+import SystemEvolutionPanel from "./components/panels/SystemEvolutionPanel";
+import AgentConfigPanel from "./components/panels/AgentConfigPanel";
+import GitHubPanel from "./components/panels/GithubPanel";
 
 /* ─────────────── DATA TYPES ─────────────── */
 interface Agent {
@@ -507,478 +515,15 @@ function Markdown({ text }: { text: string }) {
 
 /* ─────────────── MAIN APP ─────────────── */
 /* ─────────── MEDIA ENGINE PANEL ─────────── */
-interface GalleryItem {
-  id: string;
-  url: string;
-  type: 'image' | 'video';
-  prompt: string;
-  timestamp: string;
-}
+// GalleryItem has been moved to types.ts
 
-function MediaEnginePanel() {
-  const [activeTab, setActiveTab] = useState<'image' | 'video'>('image');
-  const [prompt, setPrompt] = useState('');
-  const [mediaUrl, setMediaUrl] = useState('');
-  const [genProvider, setGenProvider] = useState('pollinations');
-  const [loading, setLoading] = useState(false);
-  const [gallery, setGallery] = useState<GalleryItem[]>(() => {
-    try {
-      const saved = localStorage.getItem('agent_os_gallery');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+// MediaEnginePanel has been moved to src/components/panels/MediaEnginePanel.tsx
 
-  const saveToGallery = (url: string, type: 'image' | 'video') => {
-    const newItem: GalleryItem = {
-      id: 'media-' + Date.now(),
-      url,
-      type,
-      prompt,
-      timestamp: new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })
-    };
-    const updated = [newItem, ...gallery];
-    setGallery(updated);
-    localStorage.setItem('agent_os_gallery', JSON.stringify(updated));
-  };
+// SwarmDiagnosticsPanel has been moved to src/components/panels/SwarmDiagnosticsPanel.tsx
 
-  const deleteFromGallery = (id: string) => {
-    const updated = gallery.filter(item => item.id !== id);
-    setGallery(updated);
-    localStorage.setItem('agent_os_gallery', JSON.stringify(updated));
-  };
+// BrowserPanel has been moved to src/components/panels/BrowserPanel.tsx
 
-  const genImage = async () => {
-    if (!prompt.trim() || loading) return;
-    setLoading(true);
-    setMediaUrl('');
-    try {
-      const res = await fetch('/api/generate-image', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, provider: genProvider }),
-      });
-      const data = await res.json();
-      if (data.imageUrl) {
-        setMediaUrl(data.imageUrl);
-        saveToGallery(data.imageUrl, 'image');
-      }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  const genVideo = async () => {
-    if (!prompt.trim() || loading) return;
-    setLoading(true);
-    setMediaUrl('');
-    try {
-      const res = await fetch('/api/generate-video', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
-      });
-      const data = await res.json();
-      if (data.videoUrl) {
-        setMediaUrl(data.videoUrl);
-        saveToGallery(data.videoUrl, 'video');
-      }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  const handleGen = () => {
-    if (activeTab === 'image') genImage();
-    else genVideo();
-  };
-
-  return (
-    <div className="space-y-3 p-3 bg-white/[0.015] border border-white/[0.04] rounded-2xl shadow-xl">
-      <div className="flex justify-between items-center select-none">
-        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-wider flex items-center gap-1.5">
-          {activeTab === 'image' ? <Image size={10} className="text-pink-400" /> : <Video size={10} className="text-purple-400" />} Media Engine
-        </span>
-        <div className="flex gap-1.5">
-          <button 
-            onClick={() => { setActiveTab('image'); setMediaUrl(''); }} 
-            className={`text-[8px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${activeTab === 'image' ? 'bg-pink-500/20 text-pink-300 border-pink-500/30' : 'text-gray-500 border-white/[0.03] hover:text-gray-300'}`}
-          >
-            Image
-          </button>
-          <button 
-            onClick={() => { setActiveTab('video'); setMediaUrl(''); }} 
-            className={`text-[8px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${activeTab === 'video' ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'text-gray-500 border-white/[0.03] hover:text-gray-300'}`}
-          >
-            Video
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'image' && (
-        <div className="flex gap-1.5 select-none">
-          {['pollinations', 'gemini'].map(p => (
-            <button 
-              key={p} 
-              onClick={() => setGenProvider(p)} 
-              className={`text-[8px] px-2 py-0.5 rounded-full border transition-all cursor-pointer ${genProvider === p ? 'bg-pink-500/10 text-pink-400 border-pink-500/20' : 'text-gray-500 border-white/[0.03] hover:text-gray-300'}`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex gap-1.5">
-        <input 
-          value={prompt} 
-          onChange={e => setPrompt(e.target.value)} 
-          onKeyDown={e => e.key === 'Enter' && handleGen()} 
-          placeholder={activeTab === 'image' ? "Describe image..." : "Describe video..."} 
-          className="flex-1 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-indigo-500/30" 
-        />
-        <button 
-          onClick={handleGen} 
-          disabled={loading} 
-          className={`px-3 py-1.5 rounded-lg text-white text-[10px] font-medium disabled:opacity-50 cursor-pointer whitespace-nowrap ${activeTab === 'image' ? 'bg-pink-600/80 hover:bg-pink-500' : 'bg-purple-600/80 hover:bg-purple-500'}`}
-        >
-          {loading ? '⏳' : activeTab === 'image' ? '🎨 Gen Image' : '🎬 Gen Video'}
-        </button>
-      </div>
-
-      {mediaUrl && (
-        <div className="rounded-xl overflow-hidden border border-white/[0.05] bg-black/30 p-2 space-y-2">
-          {activeTab === 'image' ? (
-            <img src={mediaUrl} alt="Generated" className="w-full h-auto max-h-48 object-contain" />
-          ) : (
-            <div className="space-y-2">
-              <video src={mediaUrl} controls autoPlay loop className="w-full h-auto max-h-48 rounded" />
-              <a 
-                href={mediaUrl} 
-                target="_blank" 
-                rel="noreferrer" 
-                className="flex items-center justify-center gap-1 text-[10px] text-purple-400 hover:text-purple-300 font-medium py-1 px-2.5 rounded bg-purple-500/10 border border-purple-500/20 transition-all"
-              >
-                <Download size={10} /> Open & Download Video
-              </a>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Gallery Section */}
-      {gallery.length > 0 && (
-        <div className="space-y-2 mt-3 pt-3 border-t border-white/[0.04]">
-          <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">Saved Gallery ({gallery.length})</div>
-          <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
-            {gallery.map(item => (
-              <div key={item.id} className="group relative rounded-lg overflow-hidden border border-white/[0.04] bg-black/40 aspect-square flex flex-col justify-between">
-                {item.type === 'image' ? (
-                  <img src={item.url} alt={item.prompt} className="w-full h-full object-cover" />
-                ) : (
-                  <video src={item.url} className="w-full h-full object-cover" muted loop autoPlay />
-                )}
-                <div className="absolute inset-0 bg-black/90 opacity-0 group-hover:opacity-100 transition-opacity duration-200 p-2 flex flex-col justify-between text-[9px] text-white">
-                  <p className="text-gray-300 line-clamp-3 select-all overflow-hidden text-[8px] leading-tight">{item.prompt}</p>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[7.5px] text-gray-500">{item.timestamp}</span>
-                    <div className="flex gap-1.5">
-                      <a href={item.url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:text-white cursor-pointer font-bold">Open</a>
-                      <button onClick={() => deleteFromGallery(item.id)} className="text-red-400 hover:text-red-300 cursor-pointer font-bold">Del</button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────── SWARM DIAGNOSTICS PANEL ─────────── */
-function SwarmDiagnosticsPanel() {
-  const [diag, setDiag] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [healLogs, setHealLogs] = useState<string[]>([]);
-  const [healing, setHealing] = useState(false);
-  const [consolidating, setConsolidating] = useState(false);
-  const [errors, setErrors] = useState<any[]>([]);
-  const [selectedError, setSelectedError] = useState<any>(null);
-  
-  const fetchErrors = async () => {
-    try {
-      const res = await fetch('/api/swarm/errors');
-      const data = await res.json();
-      setErrors(data.errors || []);
-    } catch (e) {
-      console.error("Failed to fetch errors:", e);
-    }
-  };
-
-  const loadErrorContent = async (filename: string) => {
-    try {
-      const res = await fetch(`/api/swarm/errors/content?file=${encodeURIComponent(filename)}`);
-      const data = await res.json();
-      setSelectedError({ filename, content: data.content });
-    } catch (e) {
-      console.error("Failed to load error content:", e);
-    }
-  };
-
-  const runDiag = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/swarm/diagnose');
-      const data = await res.json();
-      setDiag(data);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  };
-
-  const runHeal = async () => {
-    setHealing(true);
-    setHealLogs(["Starting self-healing triggers..."]);
-    try {
-      const res = await fetch('/api/swarm/self-heal', { method: 'POST' });
-      const data = await res.json();
-      if (data.logs) setHealLogs(data.logs);
-    } catch (e: any) { setHealLogs(prev => [...prev, `Heal error: ${e.message || e}`]); }
-    finally { setHealing(false); }
-  };
-
-  const runConsolidate = async () => {
-    setConsolidating(true);
-    setHealLogs(prev => [...prev, "Initiating swarm memory consolidation & prompt recompilation..."]);
-    try {
-      const res = await fetch('/api/memory/consolidate', { method: 'POST' });
-      const data = await res.json();
-      if (data.message) {
-        setHealLogs(prev => [...prev, `Success: ${data.message}`]);
-      } else if (data.error) {
-        setHealLogs(prev => [...prev, `Error: ${data.error}`]);
-      }
-    } catch (e: any) {
-      setHealLogs(prev => [...prev, `Consolidation error: ${e.message || e}`]);
-    } finally {
-      setConsolidating(false);
-    }
-  };
-
-  useEffect(() => { 
-    runDiag(); 
-    fetchErrors();
-  }, []);
-
-  return (
-    <div className="bg-[#0c0c16]/75 border border-white/[0.04] rounded-2xl p-4 space-y-4 shadow-xl">
-      <div className="flex justify-between items-center border-b border-white/[0.05] pb-3 select-none">
-        <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">🔬 Swarm Diagnostic Engine</span>
-        <div className="flex gap-2">
-          <button onClick={runDiag} disabled={loading} className="px-2.5 py-1 rounded bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-[9px] font-mono cursor-pointer transition-colors">
-            {loading ? "Testing..." : "Run Diagnostics"}
-          </button>
-          <button onClick={runHeal} disabled={healing} className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-[9px] font-mono cursor-pointer transition-colors">
-            {healing ? "Healing..." : "Run Auto-Healing"}
-          </button>
-          <button onClick={runConsolidate} disabled={consolidating} className="px-2.5 py-1 rounded bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-[9px] font-mono cursor-pointer transition-colors">
-            {consolidating ? "Consolidating..." : "Consolidate Memory"}
-          </button>
-        </div>
-      </div>
-
-      {diag && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 text-[10px] font-mono select-none">
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
-            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">RUNTIMES</span>
-            <div>🐍 Python: <span className="text-indigo-300">{diag.runtimes.python}</span></div>
-            <div>⚡ Node.js: <span className="text-indigo-300">{diag.runtimes.node}</span></div>
-          </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
-            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">CLI BINARIES</span>
-            <div>🧑‍💻 Aider: <span className={diag.clis.aider === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.aider}</span></div>
-            <div>🤖 Claude: <span className={diag.clis.claude === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.claude}</span></div>
-            <div>🐙 GitHub: <span className={diag.clis.gh === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.gh}</span></div>
-            <div>🔀 OpenClaw: <span className={diag.clis.openclaw === 'missing' ? 'text-rose-400' : 'text-emerald-400'}>{diag.clis.openclaw}</span></div>
-          </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-1.5">
-            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">PROXIES</span>
-            <div>🤖 fcc-server: <span className={diag.proxies.fccServer === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.fccServer}</span></div>
-            <div>🦙 LM Studio: <span className={diag.proxies.lmStudio === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.lmStudio}</span></div>
-            <div>🦙 Ollama: <span className={diag.proxies.ollama === 'offline' ? 'text-rose-400' : 'text-emerald-400'}>{diag.proxies.ollama}</span></div>
-          </div>
-          <div className="p-3 bg-white/[0.01] border border-white/[0.03] rounded-xl space-y-2">
-            <span className="text-gray-500 font-bold block border-b border-white/[0.04] pb-1 mb-1">SYSTEM RESOURCES</span>
-            
-            <div className="space-y-1">
-              <div className="flex justify-between text-[9px]">
-                <span>💻 CPU Load:</span>
-                <span className="text-cyan-400 font-bold">{diag.resources?.cpuPercent !== undefined ? `${diag.resources.cpuPercent}%` : 'N/A'}</span>
-              </div>
-              <div className="w-full bg-white/[0.03] h-1 rounded-full overflow-hidden border border-white/[0.02]">
-                <div 
-                  className="bg-cyan-500 h-full rounded-full transition-all duration-500" 
-                  style={{ width: `${diag.resources?.cpuPercent !== undefined ? Math.min(Math.max(diag.resources.cpuPercent, 0), 100) : 0}%` }} 
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between text-[9px]">
-                <span>📟 Memory:</span>
-                <span className="text-cyan-400 font-bold">{diag.resources ? `${diag.resources.memPercent}%` : 'N/A'}</span>
-              </div>
-              <div className="w-full bg-white/[0.03] h-1 rounded-full overflow-hidden border border-white/[0.02]">
-                <div 
-                  className="bg-indigo-500 h-full rounded-full transition-all duration-500" 
-                  style={{ width: `${diag.resources ? Math.min(Math.max(diag.resources.memPercent, 0), 100) : 0}%` }} 
-                />
-              </div>
-              <div className="text-[7.5px] text-gray-500 font-mono mt-0.5 text-right select-none">
-                {diag.resources ? `${diag.resources.usedMemGB}/${diag.resources.totalMemGB} GB` : ''}
-              </div>
-            </div>
-
-            <div className="border-t border-white/[0.02] pt-1.5 space-y-1 text-[9.5px]">
-              <div>🌐 Platform: <span className="text-gray-400">{diag.resources ? `${diag.resources.platform} (${diag.resources.arch})` : 'N/A'}</span></div>
-              <div>⏱️ Uptime: <span className="text-gray-400">{diag.resources ? `${diag.resources.uptimeHours} hrs` : 'N/A'}</span></div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {healLogs.length > 0 && (
-        <div className="p-3 bg-black/40 border border-white/[0.04] rounded-xl space-y-1 max-h-32 overflow-y-auto text-[9px] font-mono text-gray-400 select-text">
-          {healLogs.map((log, idx) => (
-            <div key={idx} className={log.includes('Failed') ? 'text-rose-400' : log.includes('success') || log.includes('installed') ? 'text-emerald-400' : 'text-gray-400'}>
-              🚀 {log}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {errors.length > 0 && (
-        <div className="border-t border-white/[0.04] pt-3.5 space-y-2.5">
-          <span className="text-[10px] font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5 select-none">
-            ⚠️ Recent Swarm Error Vault resolutions
-          </span>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
-              {errors.map(err => (
-                <button
-                  key={err.filename}
-                  onClick={() => loadErrorContent(err.filename)}
-                  className={`w-full text-left p-2 rounded-lg border text-[9px] font-mono transition-all cursor-pointer block truncate ${
-                    selectedError?.filename === err.filename
-                      ? "bg-rose-950/20 border-rose-500/30 text-rose-300"
-                      : "bg-white/[0.01] border-white/[0.03] text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]"
-                  }`}
-                >
-                  🔴 {err.title.substring(0, 35)}{err.title.length > 35 ? '...' : ''} ({new Date(err.mtime).toLocaleTimeString("en-GB", { hour: '2-digit', minute: '2-digit' })})
-                </button>
-              ))}
-            </div>
-            <div className="bg-black/30 border border-white/[0.03] rounded-xl p-3 max-h-32 overflow-y-auto text-[9px] font-mono text-gray-400 select-text">
-              {selectedError ? (
-                <div>
-                  <div className="font-bold text-white mb-2 border-b border-white/[0.04] pb-1">{selectedError.filename}</div>
-                  <pre className="whitespace-pre-wrap leading-relaxed">{selectedError.content}</pre>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-600 select-none">Select an error log to view symptoms & resolution details.</div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────── BROWSER CONTROL PANEL ─────────── */
-function BrowserPanel() {
-  const [url, setUrl] = useState('');
-  const [browserLog, setBrowserLog] = useState<string[]>([]);
-  const [screenshotUrl, setScreenshotUrl] = useState('');
-  const browse = async (action: string) => {
-    try {
-      const res = await fetch('/api/browser', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, url }),
-      });
-      const data = await res.json();
-      setBrowserLog(prev => [...prev.slice(-4), `${action}: ${data.message || data.success || 'ok'}`]);
-      if (action === 'screenshot' && data.success && data.path) {
-        setScreenshotUrl(`${data.path}?t=${Date.now()}`);
-      }
-    } catch (e) {
-      setBrowserLog(prev => [...prev.slice(-4), `Error: ${e}`]);
-    }
-  };
-  return (
-    <div className="space-y-2">
-      <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none flex items-center gap-1.5">
-        <Globe size={10} className="text-cyan-400" /> Browser Control
-      </div>
-      <div className="flex gap-1.5">
-        <input value={url} onChange={e => setUrl(e.target.value)} onKeyDown={e => e.key === 'Enter' && browse('open')} placeholder="https://..." className="flex-1 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-cyan-500/30 font-mono" />
-        <button onClick={() => browse('open')} className="px-2.5 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white text-[10px] font-medium cursor-pointer">Open</button>
-      </div>
-      <div className="flex gap-1">
-        {['screenshot', 'back', 'forward', 'refresh'].map(a => (
-          <button key={a} onClick={() => browse(a)} className="text-[8px] px-2 py-1 rounded border border-white/[0.04] text-gray-500 hover:text-gray-300 hover:bg-white/[0.02] cursor-pointer capitalize">{a}</button>
-        ))}
-      </div>
-      {browserLog.length > 0 && (
-        <div className="bg-black/30 rounded-lg p-2 text-[9px] text-gray-500 font-mono space-y-0.5 max-h-16 overflow-y-auto">
-          {browserLog.map((l, i) => <div key={i}>{l}</div>)}
-        </div>
-      )}
-      {screenshotUrl && (
-        <div className="rounded-xl overflow-hidden border border-white/[0.05] bg-black/30 mt-1">
-          <img src={screenshotUrl} alt="Browser Viewport" className="w-full h-auto max-h-48 object-contain select-none" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─────────── GITHUB PANEL ─────────── */
-function GitHubPanel() {
-  const [repos, setRepos] = useState<any[]>([]);
-  const [reposLoading, setReposLoading] = useState(false);
-  const [ghStatus, setGhStatus] = useState('');
-  const fetchRepos = async () => {
-    setReposLoading(true);
-    try { const res = await fetch('/api/github?action=repos'); if (res.ok) setRepos(await res.json()); } catch (_) {}
-    finally { setReposLoading(false); }
-  };
-  const checkStatus = async () => {
-    try { const res = await fetch('/api/github?action=status'); if (res.ok) setGhStatus((await res.json()).configured ? 'Connected' : 'Not configured'); } catch (_) {}
-  };
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-        <span className="flex items-center gap-1.5"><span className="text-white">⚡</span> GitHub</span>
-        <div className="flex gap-1">
-          <button onClick={checkStatus} className="text-[8px] text-gray-500 hover:text-gray-300 cursor-pointer">Status</button>
-          <button onClick={fetchRepos} disabled={reposLoading} className="text-[8px] text-gray-500 hover:text-gray-300 cursor-pointer">Repos</button>
-        </div>
-      </div>
-      {ghStatus && <div className="text-[9px] text-green-400">{ghStatus}</div>}
-      <div className="space-y-1 max-h-24 overflow-y-auto">
-        {repos.map(r => (
-          <div key={r.id} className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/[0.015] text-[10px]">
-            <span className="text-white flex-1 truncate">{r.name}</span>
-            <span className="text-yellow-400 text-[8px]">⭐{r.stars}</span>
-          </div>
-        ))}
-        {repos.length === 0 && !reposLoading && <div className="text-[9px] text-gray-600 text-center py-1">Click Repos to load</div>}
-      </div>
-    </div>
-  );
-}
+// GitHubPanel has been moved to src/components/panels/GithubPanel.tsx
 
 /* ─────────── N8N PANEL ─────────── */
 function N8NPanel() {
@@ -1302,537 +847,10 @@ function CronManagementPanel() {
   );
 }
 
-/* ─────────── TODO PANEL ─────────── */
-function TodoPanel() {
-  const [todos, setTodos] = useState<any[]>([]);
-  const [newTodo, setNewTodo] = useState('');
-  const [loading, setLoading] = useState(false);
+// TodoPanel has been moved to src/components/panels/TodoPanel.tsx
 
-  const fetchTodos = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/todos');
-      if (res.ok) {
-        const data = await res.json();
-        setTodos(data.todos || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const saveTodos = async (updatedTodos: any[]) => {
-    setTodos(updatedTodos);
-    try {
-      await fetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ todos: updatedTodos }),
-      });
-    } catch (e) {
-      console.error('Failed to save todos:', e);
-    }
-  };
-
-  useEffect(() => {
-    fetchTodos();
-  }, []);
-
-  const addTodo = () => {
-    if (!newTodo.trim()) return;
-    const updated = [...todos, { id: `t-${Date.now()}`, text: newTodo, done: false, priority: 'medium' }];
-    saveTodos(updated);
-    setNewTodo('');
-  };
-
-  const toggleTodo = (id: string) => {
-    const updated = todos.map(t => t.id === id ? { ...t, done: !t.done } : t);
-    saveTodos(updated);
-  };
-
-  const deleteTodo = (id: string) => {
-    const updated = todos.filter(t => t.id !== id);
-    saveTodos(updated);
-  };
-
-  const priorityColor: Record<string, string> = { high: 'text-red-400', medium: 'text-yellow-400', low: 'text-gray-400' };
-
-  return (
-    <div className="space-y-2">
-      <div className="text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none flex items-center gap-1.5">
-        <CheckCircle2 size={10} className="text-green-400" /> Todo List {loading && "⏳"}
-      </div>
-      <div className="flex gap-1.5">
-        <input value={newTodo} onChange={e => setNewTodo(e.target.value)} onKeyDown={e => e.key === 'Enter' && addTodo()} placeholder="New todo..." className="flex-1 bg-white/[0.03] border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-gray-600 focus:outline-none focus:border-green-500/30" />
-        <button onClick={addTodo} className="px-2.5 py-1.5 rounded-lg bg-green-600/80 hover:bg-green-500 text-white text-[10px] font-medium cursor-pointer">+</button>
-      </div>
-      <div className="space-y-1 max-h-36 overflow-y-auto">
-        {todos.map(t => (
-          <div key={t.id} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-[10px] ${t.done ? 'bg-white/[0.01] border-white/[0.02] opacity-50' : 'bg-white/[0.015] border-white/[0.03]'}`}>
-            <button onClick={() => toggleTodo(t.id)} className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 cursor-pointer ${t.done ? 'bg-green-500/30 border-green-500/50 text-green-400' : 'border-white/10'}`}>
-              {t.done && '✓'}
-            </button>
-            <span className={`flex-1 truncate ${t.done ? 'line-through text-gray-500' : 'text-gray-300'}`}>{t.text}</span>
-            <span className={`text-[7px] uppercase font-bold ${priorityColor[t.priority]}`}>{t.priority}</span>
-            <button onClick={() => deleteTodo(t.id)} className="text-gray-600 hover:text-red-400 cursor-pointer text-[10px]">✕</button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────── SYSTEM EVOLUTION HUB PANEL ─────────── */
-function SystemEvolutionPanel() {
-  const [brief, setBrief] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [evolving, setEvolving] = useState(false);
-  const [evolveStatus, setEvolveStatus] = useState("");
-
-  const fetchBrief = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/evolution/status");
-      if (res.ok) {
-        const data = await res.json();
-        setBrief(data.content || "");
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleApplyUpgrade = async () => {
-    if (!confirm("Are you sure you want to trigger the Auto-Evolution Upgrade? This will programmatically update codebase components, increment version number, and push to Git.")) return;
-    setEvolving(true);
-    setEvolveStatus("Executing evolution scanner scripts...");
-    try {
-      const res = await fetch("/api/evolution/apply-upgrade", { method: "POST" });
-      if (res.ok) {
-        setEvolveStatus("Evolved successfully! Page will refresh.");
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
-      } else {
-        const data = await res.json();
-        setEvolveStatus(`Failed: ${data.error || "Unknown error"}`);
-      }
-    } catch (e: any) {
-      setEvolveStatus(`Error: ${e.message}`);
-    } finally {
-      setEvolving(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchBrief();
-  }, []);
-
-  return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center pb-2 border-b border-white/5">
-        <span className="text-[9px] text-gray-400 font-mono">STATUS: SCAN RUNS AT 3 AM DAILY</span>
-        <button
-          type="button"
-          onClick={fetchBrief}
-          disabled={loading}
-          className="px-2 py-0.5 bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] rounded text-[9px] hover:text-white cursor-pointer transition-all"
-        >
-          {loading ? "Refreshing..." : "Refresh Status"}
-        </button>
-      </div>
-
-      <div className="text-[11px] leading-relaxed text-gray-300 font-mono bg-black/40 border border-white/[0.02] p-3.5 rounded-xl max-h-60 overflow-y-auto whitespace-pre-wrap select-text custom-scrollbar">
-        {brief || "No update brief available."}
-      </div>
-
-      {brief && brief.includes("🌟 Newly Discovered Models") && (
-        <div className="pt-1.5 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={handleApplyUpgrade}
-            disabled={evolving}
-            className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all shadow-md cursor-pointer flex items-center justify-center gap-1.5 font-sans"
-          >
-            🧬 {evolving ? "Evolving System..." : "Apply Auto-Upgrade & Evolve"}
-          </button>
-          {evolveStatus && (
-            <div className="text-[9px] font-mono text-purple-400 text-center animate-pulse">{evolveStatus}</div>
-          )}
-        </div>
-      )}
-
-      <div className="bg-indigo-500/5 border border-indigo-500/15 rounded-xl p-3 text-[10px] leading-relaxed text-indigo-200">
-        📢 <strong>Antigravity Sync Protocol:</strong> You can copy recommendations above and instruct Antigravity in the chat window:
-        <span className="block mt-1 font-mono text-[9px] bg-black/30 p-1.5 rounded border border-indigo-500/20 select-all">
-          "Run self-evolution updates from the 3am scanner"
-        </span>
-        to trigger automated workspace edits and codebase updates.
-      </div>
-    </div>
-  );
-}
-
-/* ─────────── SETTINGS PANEL ─────────── */
-function SettingsPanel() {
-  const [config, setConfig] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState('');
-  const loadConfig = async () => {
-    setLoading(true);
-    try { const res = await fetch('/api/config'); if (res.ok) setConfig((await res.json()).content || ''); } catch (_) {}
-    finally { setLoading(false); }
-  };
-  const saveConfig = async () => {
-    try {
-      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: config }) });
-      setSaved('Saved!');
-      setTimeout(() => setSaved(''), 2000);
-    } catch (_) { setSaved('Error saving'); }
-  };
-  return (
-    <div className="space-y-3">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-          <span>⚙️ Config.yaml</span>
-          <div className="flex gap-1">
-            <button onClick={loadConfig} disabled={loading} className="text-[8px] text-gray-500 hover:text-gray-300 cursor-pointer">{loading ? '...' : 'Load'}</button>
-            {config && <button onClick={saveConfig} className="text-[8px] text-green-500 hover:text-green-300 cursor-pointer">Save</button>}
-            {saved && <span className="text-[8px] text-green-400">{saved}</span>}
-          </div>
-        </div>
-        {config ? (
-          <textarea value={config} onChange={e => setConfig(e.target.value)} rows={10} className="w-full bg-black/40 border border-white/[0.05] rounded-lg px-2.5 py-1.5 text-[9px] text-gray-300 font-mono focus:outline-none focus:border-white/10 resize-none" />
-        ) : (
-          <div className="text-center py-3 text-[9px] text-gray-600">Click Load to view/edit config.yaml</div>
-        )}
-      </div>
-
-      {/* GitHub Backup */}
-      <div className="pt-2.5 border-t border-white/[0.05] space-y-1.5">
-        <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-          <span>📦 GitHub Repository Sync</span>
-        </div>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            placeholder="Optional commit message..."
-            id="git-commit-msg"
-            className="flex-1 bg-black/40 border border-white/[0.05] rounded px-2 py-1 text-[8px] text-gray-300 focus:outline-none focus:border-white/10"
-          />
-          <button
-            onClick={async () => {
-              const input = document.getElementById('git-commit-msg') as HTMLInputElement;
-              const msg = input ? input.value : '';
-              const btn = document.getElementById('git-backup-btn') as HTMLButtonElement;
-              if (btn) {
-                btn.disabled = true;
-                btn.innerText = 'Syncing...';
-              }
-              try {
-                const res = await fetch('/api/git/backup', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ message: msg })
-                });
-                const data = await res.json();
-                if (data.success) {
-                  alert('Sync Complete!\n\nCommit: ' + data.commit);
-                } else {
-                  alert('Error: ' + data.error);
-                }
-              } catch (e: any) {
-                alert('Sync Failed: ' + e.message);
-              } finally {
-                if (btn) {
-                  btn.disabled = false;
-                  btn.innerText = 'Push Backup';
-                }
-                if (input) input.value = '';
-              }
-            }}
-            id="git-backup-btn"
-            className="px-2.5 py-1 bg-indigo-500 hover:bg-indigo-600 text-white rounded text-[8px] font-bold cursor-pointer transition-colors"
-          >
-            Push Backup
-          </button>
-        </div>
-      </div>
-
-      {/* Background Agent Section */}
-      <BackgroundAgentPanel />
-
-      {/* AI Providers Diagnostic Console */}
-      <AIProvidersDiagnosticConsole />
-    </div>
-  );
-}
-
-/* ─────────── AI PROVIDERS DIAGNOSTIC CONSOLE ─────────── */
-function AIProvidersDiagnosticConsole() {
-  const [providers, setProviders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  const testConnections = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/providers/status');
-      if (res.ok) {
-        setProviders(await res.json());
-      }
-    } catch (e) {
-      console.error('Failed to fetch provider status:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    testConnections();
-    const interval = setInterval(testConnections, 15000);
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="pt-2.5 border-t border-white/[0.05] space-y-2">
-      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-        <span>📶 AI API Diagnostics & Fallbacks</span>
-        <button
-          onClick={testConnections}
-          disabled={loading}
-          className="text-[8px] text-teal-400 hover:text-teal-300 disabled:opacity-50 cursor-pointer"
-        >
-          {loading ? 'Testing...' : 'Refresh'}
-        </button>
-      </div>
-
-      <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-        {providers.map((p, idx) => (
-          <div
-            key={idx}
-            className="flex items-center justify-between bg-black/30 border border-white/[0.03] rounded px-2 py-1 text-[8px] font-mono hover:bg-black/40 transition-colors"
-          >
-            <div className="space-y-0.5">
-              <div className="flex items-center gap-1.5">
-                <span className="font-bold text-white">{p.name}</span>
-                <span className="text-[7.5px] text-gray-500">({p.type})</span>
-              </div>
-              <div className="text-[7px] text-gray-400">
-                Model: <span className="text-gray-300">{p.model}</span>
-                {p.keysCount !== undefined && ` | Keys: ${p.keysCount}`}
-              </div>
-            </div>
-            <div className="flex items-center gap-1.5">
-              {p.online && p.latency !== undefined && (
-                <span className="text-[7px] text-gray-500">{p.latency}ms</span>
-              )}
-              <span className={`w-1.5 h-1.5 rounded-full ${
-                !p.configured ? 'bg-gray-600' :
-                p.online ? 'bg-green-500 shadow-[0_0_4px_#22c55e]' :
-                'bg-red-500 shadow-[0_0_4px_#ef4444]'
-              }`} title={!p.configured ? 'Not Configured' : p.online ? 'Online' : 'Offline/Depleted'} />
-            </div>
-          </div>
-        ))}
-        {providers.length === 0 && (
-          <div className="text-center py-2 text-[8px] text-gray-600 font-mono">No diagnostic data. Click refresh.</div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────── BACKGROUND AGENT MANAGER ─────────── */
-function BackgroundAgentPanel() {
-  const [status, setStatus] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState('');
-
-  const fetchStatus = async () => {
-    try {
-      const res = await fetch('/api/background-agent/status');
-      if (res.ok) {
-        setStatus(await res.json());
-      }
-    } catch (_) {}
-  };
-
-  const triggerScan = async () => {
-    setLoading(true);
-    setMsg('Triggering scan...');
-    try {
-      const res = await fetch('/api/background-agent/trigger', { method: 'POST' });
-      if (res.ok) {
-        const data = await res.json();
-        setMsg(data.message);
-        setTimeout(() => setMsg(''), 4000);
-        fetchStatus();
-      }
-    } catch (e: any) {
-      setMsg('Error: ' + e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchStatus();
-    const interval = setInterval(fetchStatus, 5000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!status) return <div className="text-[9px] text-gray-500 py-1">Loading agent status...</div>;
-
-  return (
-    <div className="pt-2.5 border-t border-white/[0.05] space-y-2">
-      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-        <span>🔄 24/7 Research & Evolution Daemon</span>
-        <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${
-          status.status === 'researching' ? 'bg-amber-500/20 text-amber-400' :
-          status.status === 'user-active' ? 'bg-blue-500/20 text-blue-400' :
-          status.status === 'idle-passive' ? 'bg-teal-500/20 text-teal-400' :
-          'bg-gray-500/20 text-gray-400'
-        }`}>
-          {(status.status || 'offline').toUpperCase()}
-        </span>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 text-[8px] text-gray-400 font-mono bg-black/20 rounded p-1.5 border border-white/[0.03]">
-        <div>Idle Time: <span className="text-white">{status.idleTimeSeconds || 0}s</span></div>
-        <div>Last Run: <span className="text-white">{status.lastIntensiveRun ? new Date(status.lastIntensiveRun).toLocaleTimeString() : 'Never'}</span></div>
-        <div className="col-span-2">Mode: <span className="text-gray-300">{(status.idleTimeSeconds || 0) >= 1800 ? 'Deep Evolution (Idle)' : 'Passive Monitoring'}</span></div>
-      </div>
-
-      <div className="flex gap-2">
-        <button
-          onClick={triggerScan}
-          disabled={loading}
-          className="flex-1 px-2.5 py-1 bg-teal-500 hover:bg-teal-600 disabled:opacity-50 text-white rounded text-[8px] font-bold cursor-pointer transition-colors"
-        >
-          {loading ? 'Triggering...' : 'Force Intensive Scan'}
-        </button>
-      </div>
-      {msg && <div className="text-[8px] text-teal-400 font-mono">{msg}</div>}
-
-      <div className="space-y-1">
-        <div className="text-[8px] text-gray-500 font-bold uppercase">Activity Log:</div>
-        <div className="bg-black/40 border border-white/[0.05] rounded p-1.5 max-h-24 overflow-y-auto text-[7.5px] font-mono text-gray-400 space-y-0.5">
-          {(status.logs || []).map((log: string, idx: number) => (
-            <div key={idx} className="whitespace-pre-wrap">{log}</div>
-          ))}
-          {(!status.logs || status.logs.length === 0) && <div>No logs yet.</div>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-/* ─────────── GEMINI API KEYS MANAGER ─────────── */
-function GeminiKeysPanel() {
-  const [keys, setKeys] = useState<string[]>([]);
-  const [newKey, setNewKey] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [saved, setSaved] = useState('');
-
-  const loadKeys = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/gemini-keys');
-      if (res.ok) {
-        const data = await res.json();
-        setKeys(data.keys || []);
-      }
-    } catch (_) {}
-    finally { setLoading(false); }
-  };
-
-  const saveKeys = async (updatedKeys: string[]) => {
-    try {
-      const res = await fetch('/api/gemini-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keys: updatedKeys })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setKeys(data.keys || []);
-        setSaved('Saved!');
-        setTimeout(() => setSaved(''), 2000);
-      }
-    } catch (_) {
-      setSaved('Error saving');
-    }
-  };
-
-  useEffect(() => {
-    loadKeys();
-  }, []);
-
-  const handleAdd = () => {
-    if (!newKey.trim()) return;
-    const updated = [...keys, newKey.trim()];
-    saveKeys(updated);
-    setNewKey('');
-  };
-
-  const handleDelete = (index: number) => {
-    const updated = keys.filter((_, i) => i !== index);
-    saveKeys(updated);
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-[9px] text-gray-500 font-bold uppercase tracking-wider select-none">
-        <span className="flex items-center gap-1">🔑 Gemini API Keys ({keys.length})</span>
-        <div className="flex items-center gap-1.5">
-          {loading && <span className="text-[8px] text-gray-400">...</span>}
-          {saved && <span className="text-[8px] text-green-400">{saved}</span>}
-        </div>
-      </div>
-      
-      <div className="space-y-1">
-        {keys.map((key, i) => (
-          <div key={i} className="flex items-center justify-between gap-2 px-2 py-1 rounded bg-black/40 border border-white/[0.03] text-[9px] font-mono">
-            <span className="text-gray-400 truncate w-[180px]">
-              {key.length > 12 ? `${key.slice(0, 6)}...${key.slice(-6)}` : key}
-            </span>
-            <button 
-              onClick={() => handleDelete(i)} 
-              className="text-red-400 hover:text-red-300 hover:scale-105 cursor-pointer text-[8px] border-none bg-transparent"
-              title="Delete key"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-      </div>
-
-      <div className="flex gap-1 pt-1">
-        <input 
-          type="text" 
-          placeholder="Add Gemini API Key (AIzaSy...)" 
-          value={newKey} 
-          onChange={e => setNewKey(e.target.value)} 
-          className="flex-1 bg-black/40 border border-white/[0.05] rounded px-2 py-1 text-[9px] text-gray-300 font-mono focus:outline-none focus:border-white/10"
-        />
-        <button 
-          onClick={handleAdd} 
-          className="bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 text-yellow-300 rounded px-2.5 py-1 text-[9px] font-semibold transition-all cursor-pointer"
-        >
-          Add
-        </button>
-      </div>
-      <div className="text-[8px] text-gray-500 italic select-none">
-        Keys rotate automatically.
-      </div>
-    </div>
-  );
-}
+// SystemEvolutionPanel has been moved to src/components/panels/SystemEvolutionPanel.tsx
+// AgentConfigPanel (formerly SettingsPanel etc) has been moved to src/components/panels/AgentConfigPanel.tsx
 
 /* ─────────── PERSONALITY SWITCHER ─────────── */
 function PersonalityPanel() {
@@ -3719,6 +2737,7 @@ function GoalsPanel() {
 }
 
 export default function App() {
+  const [streamTrigger, setStreamTrigger] = useState(0);
   const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
   const [activeAgent, setActiveAgent] = useState(() => {
     try {
@@ -4175,6 +3194,111 @@ export default function App() {
         fetchWorkspaceFiles();
       }
     } catch (e) { console.error(e); }
+  };
+
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState("");
+
+  const handleCreateNewFile = async () => {
+    if (!newFileName.trim()) return;
+    try {
+      const res = await fetch("/api/website/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newFileName.trim(), content: "" })
+      });
+      if (res.ok) {
+        setNewFileName("");
+        fetchWorkspaceFiles();
+      } else {
+        alert("Failed to create file");
+      }
+    } catch (e: any) {
+      alert("Error creating file: " + e.message);
+    }
+  };
+
+  const handleCreateNewFolder = async () => {
+    if (!newFileName.trim()) return;
+    try {
+      const res = await fetch("/api/website/mkdir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newFileName.trim() })
+      });
+      if (res.ok) {
+        setNewFileName("");
+        fetchWorkspaceFiles();
+      } else {
+        alert("Failed to create folder");
+      }
+    } catch (e: any) {
+      alert("Error creating folder: " + e.message);
+    }
+  };
+
+  const handleUploadMultipleFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    setUploadProgress(`Uploading 0/${files.length} files...`);
+    
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        setUploadProgress(`Uploading ${i + 1}/${files.length}: ${file.name}...`);
+        
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        const res = await fetch("/api/website/write", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: file.name, content: base64Data })
+        });
+        
+        if (!res.ok) {
+          throw new Error(`Failed to upload ${file.name}`);
+        }
+      }
+      fetchWorkspaceFiles();
+      alert("All files uploaded successfully!");
+    } catch (e: any) {
+      alert("Upload failed: " + e.message);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress("");
+      e.target.value = "";
+    }
+  };
+
+  const handleAddLinkShortcut = async () => {
+    const url = prompt("Enter URL (e.g. https://google.com):");
+    if (!url) return;
+    const title = prompt("Enter shortcut name / title:");
+    if (!title) return;
+    
+    const sanitizedTitle = title.replace(/[^a-zA-Z0-9_\-]+/g, '_');
+    const fileName = `${sanitizedTitle}.url`;
+    const shortcutContent = `[InternetShortcut]\r\nURL=${url}\r\n`;
+    
+    try {
+      const res = await fetch("/api/website/write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fileName, content: shortcutContent })
+      });
+      if (res.ok) {
+        fetchWorkspaceFiles();
+        alert("Shortcut link created successfully!");
+      }
+    } catch (e: any) {
+      alert("Failed to save link: " + e.message);
+    }
   };
 
   const handleDeployWebsite = async () => {
@@ -4738,47 +3862,9 @@ export default function App() {
   const [isRightCollapsed, setIsRightCollapsed] = useState(true);
   const [showVersionHistory, setShowVersionHistory] = useState(false);
 
-  // Voice Input (Speech-to-Text) State
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
-
-  const toggleListening = () => {
-    if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
-      alert("Speech recognition is not supported in this browser. Try Chrome.");
-      return;
-    }
-    
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      const rec = new SpeechRecognition();
-      rec.continuous = false;
-      rec.interimResults = false;
-      rec.lang = 'en-US';
-      
-      rec.onstart = () => {
-        setIsListening(true);
-      };
-      
-      rec.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        setChatInput(prev => (prev ? prev + ' ' : '') + transcript);
-      };
-      
-      rec.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
-        setIsListening(false);
-      };
-      
-      rec.onend = () => {
-        setIsListening(false);
-      };
-      
-      recognitionRef.current = rec;
-      rec.start();
-    }
+  // Voice Input (Speech-to-Text) State handler
+  const handleVoiceTranscript = (transcript: string) => {
+    setChatInput(prev => (prev ? prev + ' ' : '') + transcript);
   };
 
   // Chat state
@@ -4910,6 +3996,7 @@ export default function App() {
           fetchSessionsList();
         }
       }
+      setStreamTrigger(prev => prev + 1);
     } catch (e) {
       console.error("Failed to send direct message to agent:", e);
       setThreadLoading(prev => ({ ...prev, [agentId]: false }));
@@ -5165,7 +4252,7 @@ export default function App() {
       console.log("[SSE client] Closing EventSource for session:", activeSessionId);
       eventSource.close();
     };
-  }, [activeSessionId, chatMode, activeAgent, voiceUpdatesEnabled]);
+  }, [activeSessionId, chatMode, activeAgent, voiceUpdatesEnabled, streamTrigger]);
 
   // System Status & Model selection
   const [activeModel, setActiveModel] = useState("deepseek/deepseek-v4-flash:free");
@@ -5176,6 +4263,51 @@ export default function App() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [notifications, setNotifications] = useState<string[]>([]);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+
+  // Swarm Visualizer & Manus execution telemetry states
+  const [isVisualLiveMode, setIsVisualLiveMode] = useState(false);
+  const [evolving, setEvolving] = useState(false);
+  const [swarmExecution, setSwarmExecution] = useState<any>({
+    currentTask: 'Idle',
+    currentCommand: '',
+    screenshotPath: '/videos/live_browser.png',
+    lastUpdated: Date.now()
+  });
+
+  const handleApplyEvolution = async () => {
+    if (!confirm("Are you sure you want to trigger the Auto-Evolution Upgrade? This will programmatically update codebase components, increment version number, and push to Git.")) return;
+    setEvolving(true);
+    try {
+      const res = await fetch("/api/evolution/apply-upgrade", { method: "POST" });
+      if (res.ok) {
+        alert("Evolved successfully! Page will refresh.");
+        window.location.reload();
+      } else {
+        const data = await res.json();
+        alert(`Failed: ${data.error || "Unknown error"}`);
+      }
+    } catch (e: any) {
+      alert(`Error: ${e.message}`);
+    } finally {
+      setEvolving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isVisualLiveMode) return;
+    const fetchSwarmState = async () => {
+      try {
+        const res = await fetch("/api/swarm/execution-state");
+        if (res.ok) {
+          setSwarmExecution(await res.json());
+        }
+      } catch (_) {}
+    };
+    fetchSwarmState();
+    const interval = setInterval(fetchSwarmState, 2000);
+    return () => clearInterval(interval);
+  }, [isVisualLiveMode]);
+
 
   // Floating Chat states & draggable logic
   const [isFloatingChatOpen, setIsFloatingChatOpen] = useState(() => {
@@ -5315,8 +4447,8 @@ export default function App() {
   const [newCardAssignee, setNewCardAssignee] = useState("Hermes");
   const [isAddingCard, setIsAddingCard] = useState(false);
 
-  const fetchDbTasks = async () => {
-    setDbTasksLoading(true);
+  const fetchDbTasks = async (silent = false) => {
+    if (!silent) setDbTasksLoading(true);
     try {
       const res = await fetch("/api/db-tasks");
       if (res.ok) {
@@ -5326,7 +4458,7 @@ export default function App() {
     } catch (e) {
       console.error("Failed to fetch database tasks:", e);
     } finally {
-      setDbTasksLoading(false);
+      if (!silent) setDbTasksLoading(false);
     }
   };
 
@@ -5345,8 +4477,8 @@ export default function App() {
     }
   };
 
-  const fetchMailbox = async () => {
-    setMailboxLoading(true);
+  const fetchMailbox = async (silent = false) => {
+    if (!silent) setMailboxLoading(true);
     try {
       const res = await fetch("/api/mailbox");
       if (res.ok) {
@@ -5356,13 +4488,13 @@ export default function App() {
     } catch (e) {
       console.error("Failed to fetch mailbox logs:", e);
     } finally {
-      setMailboxLoading(false);
+      if (!silent) setMailboxLoading(false);
     }
   };
 
   // Poll system status
-  const fetchStatus = async () => {
-    setIsRefreshing(true);
+  const fetchStatus = async (silent = false) => {
+    if (!silent) setIsRefreshing(true);
     try {
       const res = await fetch("/api/status");
       if (res.ok) {
@@ -5388,7 +4520,9 @@ export default function App() {
       console.error("Failed to fetch system status:", e);
     } finally {
       setLastRefreshed(new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-      setTimeout(() => setIsRefreshing(false), 500);
+      if (!silent) {
+        setTimeout(() => setIsRefreshing(false), 500);
+      }
     }
   };
 
@@ -5568,7 +4702,7 @@ export default function App() {
 
   // Initialize data on mount
   useEffect(() => {
-    fetchStatus();
+    fetchStatus(true);
     fetchSessionsList();
     fetchEvolutionStatus();
     fetchSkills();
@@ -5600,9 +4734,9 @@ export default function App() {
     checkEvolutionUpgrade();
 
     const interval = setInterval(() => {
-      fetchStatus();
-      fetchDbTasks();
-      fetchMailbox();
+      fetchStatus(true);
+      fetchDbTasks(true);
+      fetchMailbox(true);
     }, 8000);
     return () => clearInterval(interval);
   }, []);
@@ -5767,6 +4901,7 @@ export default function App() {
       } else {
         throw new Error("HTTP error: " + res.status);
       }
+      setStreamTrigger(prev => prev + 1);
     } catch (e: any) {
       console.error("Failed to send query:", e);
       setThreadLoading(prev => ({ ...prev, [targetAgent]: false }));
@@ -6081,7 +5216,7 @@ export default function App() {
     : chatMessages.map(m => ({ ...m, replies: [] }));
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#020208] text-[#e2e8f0] overflow-hidden selection:bg-indigo-500/30 selection:text-white">
+    <div className="h-full w-full flex flex-col bg-[#020208] text-[#e2e8f0] overflow-hidden selection:bg-indigo-500/30 selection:text-white">
       {/* Background grid canvas effect */}
       <div className="absolute inset-0 bg-[radial-gradient(#1e1b4b_1px,transparent_1px)] [background-size:16px_16px] opacity-15 pointer-events-none animate-[pulse_12s_ease-in-out_infinite]" />
 
@@ -6096,7 +5231,7 @@ export default function App() {
             <h1 className="text-sm font-bold tracking-wider uppercase text-white flex items-center gap-1.5">
               Agent OS <span className="text-[10px] text-indigo-400 font-mono font-normal">Mission Control</span>
             </h1>
-            <div className="text-[9px] font-mono text-gray-500">v2.7.1 • Dynamic Skills & Obsidian Sync</div>
+            <div className="text-[9px] font-mono text-gray-500">v2.7.2 • Dynamic Skills & Obsidian Sync</div>
           </div>
         </div>
 
@@ -6114,7 +5249,7 @@ export default function App() {
 
         <div className="flex items-center gap-4">
           <button
-            onClick={fetchStatus}
+            onClick={() => fetchStatus()}
             disabled={isRefreshing}
             className="flex items-center gap-1.5 bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.05] rounded-lg px-2.5 py-1 text-[10px] font-mono text-gray-400 hover:text-white transition-all disabled:opacity-50 cursor-pointer"
           >
@@ -6134,7 +5269,7 @@ export default function App() {
               className="flex items-center gap-1 bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 rounded px-2 py-0.5 text-[9px] font-bold tracking-wider font-mono shadow-[0_0_10px_rgba(168,85,247,0.15)] transition-all cursor-pointer select-none"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-purple-400 animate-pulse" />
-              v2.7.1
+              v2.7.2
               <ChevronDown size={10} className={`opacity-80 transition-transform ${showVersionHistory ? "rotate-180" : ""}`} />
             </button>
 
@@ -6152,20 +5287,20 @@ export default function App() {
                   <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                     <div className="border-l-2 border-indigo-500 pl-2 py-0.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.7.1 (Active)</span>
+                        <span className="text-[9.5px] font-bold text-indigo-300 font-mono">v2.7.2 (Active)</span>
                         <span className="text-[8px] text-gray-500">Active</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Memory Recall Optimization: Replaced filesystem searching loops with indexed SQLite DB matching and configured background automatic RAG recall on every query.
+                        Unlimited File Upload Support: Lifted Express request body size limit to 50GB and added support for automatic base64 binary decoding on file writing (allowing any images, videos, or archives to be added to the tool).
                       </p>
                     </div>
                     <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.7.0</span>
+                        <span className="text-[9.5px] font-bold text-purple-300 font-mono">v2.7.1</span>
                         <span className="text-[8px] text-gray-500">Previous</span>
                       </div>
                       <p className="text-[9px] text-gray-400 mt-0.5 leading-relaxed">
-                        Dynamic Skills & Obsidian Sync: Implemented live watcher and dynamic YAML parser for D:\Agent OS\skills\, background directory sync for Obsidian vault to SQLite memory vectors, and global latency optimizations.
+                        Memory Recall Optimization: Replaced filesystem searching loops with indexed SQLite DB matching and configured background automatic RAG recall on every query.
                       </p>
                     </div>
                     <div className="border-l-2 border-purple-500 pl-2 py-0.5 opacity-60 hover:opacity-100 transition-opacity">
@@ -6306,8 +5441,25 @@ export default function App() {
         </div>
       </header>
 
+      {/* Auto-Evolution Update Banner */}
+      {evolutionStatus && evolutionStatus.content && !evolutionStatus.content.includes("No evolution brief") && (
+        <div className="bg-indigo-600/25 backdrop-blur-md border-b border-indigo-500/20 text-indigo-200 px-5 py-2.5 text-xs flex justify-between items-center z-[100] animate-[slideDown_0.3s_ease-out] select-none font-mono">
+          <div className="flex items-center gap-2">
+            <span className="animate-pulse">🚀</span>
+            <span><strong>System Evolution Update Ready:</strong> A new autonomous codebase upgrade has been generated by the auto-evolution daemons.</span>
+          </div>
+          <button 
+            onClick={handleApplyEvolution}
+            disabled={evolving}
+            className="bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-bold px-3 py-1 rounded-md transition-all cursor-pointer shadow-[0_0_12px_rgba(99,102,241,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] active:scale-95 disabled:opacity-50"
+          >
+            {evolving ? "Upgrading..." : "Apply Codebase Upgrade"}
+          </button>
+        </div>
+      )}
+
       {/* ═══ CORE LAYOUT ═══ */}
-      <div className="flex-1 flex overflow-hidden relative p-4 gap-4 bg-[#03030b]/30">
+      <div className="flex-grow h-0 flex overflow-hidden relative p-4 gap-4 bg-[#03030b]/30">
 
         {/* ─── LEFT SIDEBAR: SWARMS, PRESETS & AGENT LIST ─── */}
         <aside 
@@ -6611,9 +5763,13 @@ export default function App() {
 
           {/* ─── TAB 1: LIVE CONVERSATIONAL CHAT PANE ─── */}
           {centerTab === "chat" && (
-            <div className="flex-grow flex overflow-hidden w-full h-full relative">
-              <div className={`flex flex-col h-full overflow-hidden justify-between transition-all duration-300 relative ${
-                activeSpecialistId && chatMode === 'collab' ? 'w-3/5 border-r border-white/[0.04]' : 'w-full'
+            <div className="flex-grow h-0 flex overflow-hidden w-full relative">
+              <div className={`flex flex-col flex-grow overflow-hidden justify-between transition-all duration-300 relative ${
+                isVisualLiveMode 
+                  ? 'w-1/2 border-r border-white/[0.04]' 
+                  : activeSpecialistId && chatMode === 'collab' 
+                  ? 'w-3/5 border-r border-white/[0.04]' 
+                  : 'w-full'
               }`}>
               {/* Mode Selector Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-950/60 bg-[#070715] shadow-lg select-none shrink-0">
@@ -6643,21 +5799,34 @@ export default function App() {
                   </div>
                 </div>
 
-                {chatMode === 'collab' ? (
-                  <div className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
-                    <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-                    ⚡ Swarm Active (Delegated Execution)
-                  </div>
-                ) : (
-                  <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Direct: {currentAgent.name}
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setIsVisualLiveMode(!isVisualLiveMode)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer select-none font-mono ${
+                      isVisualLiveMode
+                        ? "bg-purple-600/30 text-purple-300 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                        : "bg-white/[0.02] text-gray-400 border-white/[0.04] hover:text-white hover:bg-white/[0.05]"
+                    }`}
+                  >
+                    📺 {isVisualLiveMode ? "Disable Split View" : "Split Live View (Manus)"}
+                  </button>
+
+                  {chatMode === 'collab' ? (
+                    <div className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
+                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
+                      ⚡ Swarm Active (Delegated Execution)
+                    </div>
+                  ) : (
+                    <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Direct: {currentAgent.name}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Centered Scrollable Conversation */}
-              <div ref={chatScrollContainerRef} className="flex-grow overflow-y-auto p-3 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <div ref={chatScrollContainerRef} className="flex-grow h-0 overflow-y-auto p-3 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: 0, minHeight: 0, flexGrow: 1 }}>
                 <div className="space-y-3" style={{ maxWidth: '1280px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
                   <AnimatePresence>
                     {chatMessages.length === 0 && !isCurrentLoading && (
@@ -6835,16 +6004,16 @@ export default function App() {
                             {/* Message Header */}
                             <div className="flex items-center justify-between mb-1.5 select-none">
                               <div className="flex items-center gap-2">
-                                <span className="text-[11.5px] font-bold font-mono text-white">
+                                <span className="text-[13.5px] font-bold font-mono text-white">
                                   {isUser ? "USER" : isSystem ? "SYSTEM SECURITY" : agentMeta?.name || msg.agent}
                                 </span>
-                                <span className="text-[9px] text-gray-500 font-mono">{msg.time || "just now"}</span>
+                                <span className="text-[9.5px] text-gray-500 font-mono">{msg.time || "just now"}</span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 {msg.id && (
                                   <button
                                     onClick={() => handleRewindSession(msg.id!)}
-                                    className="text-[9px] font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-0.5 cursor-pointer select-none bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20"
+                                    className="text-[9.5px] font-bold text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-0.5 cursor-pointer select-none bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20"
                                     title="Rewind session history to this checkpoint"
                                   >
                                     <span>🔄</span>
@@ -6854,7 +6023,7 @@ export default function App() {
                                 {!isUser && !isSystem && !msg.isError && (
                                   <button
                                     onClick={() => handleOpenSpecialistPanel(msg.agent)}
-                                    className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
+                                    className="text-[9.5px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1 cursor-pointer select-none bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20"
                                     title={`Open 1-on-1 Chat with ${agentMeta?.name || msg.agent}`}
                                   >
                                     <MessageSquare size={9} />
@@ -6871,7 +6040,7 @@ export default function App() {
                               </div>
                             )}
 
-                            <div className="text-[12.5px] text-[#cbd5e1] leading-relaxed break-words select-text">
+                            <div className="text-[14.5px] text-[#e2e8f0] leading-relaxed break-words select-text">
                               <Markdown text={msg.msg} />
                             </div>
 
@@ -6980,11 +6149,11 @@ export default function App() {
               </div>
 
               {/* Centered Floating Input Container */}
-              <div className="p-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none flex justify-center w-full">
+              <div className="p-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none flex justify-center w-full z-[100]">
                 <div className="chat-container-centered">
                   <div className="w-full flex flex-col gap-2">
                     <div className="w-full flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-lg shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all">
-                      <span className="text-gray-500 font-mono pl-4 pr-1 select-none text-xs">&gt;</span>
+                      <span className="text-gray-900 font-mono pl-4 pr-1 select-none text-xs">&gt;</span>
                       <input
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
@@ -7024,18 +6193,10 @@ export default function App() {
                       >
                         <RefreshCw size={14} className={activeAutonomous ? "animate-spin" : ""} />
                       </button>
-                      <button 
-                        type="button" 
-                        onClick={toggleListening}
-                        title={isListening ? "Listening... Click to stop" : "Voice Input (Mic)"}
-                        className={`p-2 transition-all cursor-pointer rounded-lg ${
-                          isListening 
-                            ? "text-red-500 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.2)]" 
-                            : "text-gray-500 hover:text-gray-300"
-                        }`}
-                      >
-                        <Radio size={14} className={isListening ? "animate-pulse" : ""} />
-                      </button>
+                      <VoiceInput 
+                        onTranscript={handleVoiceTranscript} 
+                        disabled={isCurrentLoading} 
+                      />
                       <button 
                         type="button" 
                         title="Attach Workspace File"
@@ -7157,6 +6318,73 @@ export default function App() {
                   </div>
                 );
               })()}
+
+              {/* Right Column: Visual Live Browser/Execution Monitor (Manus-style) */}
+              {isVisualLiveMode && (
+                <div className="w-1/2 flex flex-col h-full overflow-hidden bg-[#070715]/95 border-l border-white/[0.04] backdrop-blur-md justify-between animate-[slideInRight_0.25s_cubic-bezier(0.16,1,0.3,1)] font-mono">
+                  {/* Monitor Header */}
+                  <div className="glass-strong h-14 flex items-center justify-between px-4 shrink-0 border-b border-white/[0.04] bg-[#03030d]/80 select-none">
+                    <div className="flex items-center gap-2">
+                      <span className="text-purple-400">📺</span>
+                      <span className="text-[11px] font-bold text-white uppercase tracking-wider">Manus Live Execution Monitor</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Live Capturing</span>
+                      </div>
+                      <button 
+                        onClick={() => setIsVisualLiveMode(false)}
+                        className="text-gray-500 hover:text-white transition-colors cursor-pointer p-1"
+                        title="Close Visual Monitor"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Monitor Body */}
+                  <div className="flex-grow overflow-y-auto p-4 space-y-4 flex flex-col justify-start">
+                    {/* Active Task Info Card */}
+                    <div className="bg-[#0c0d22]/85 border border-[#1f2347] rounded-xl p-3.5 shadow-md space-y-2">
+                      <div className="text-[9px] text-indigo-400 uppercase tracking-widest font-extrabold">Active Goal Objective</div>
+                      <div className="text-xs text-white leading-relaxed">{swarmExecution.currentTask || "Idle: Waiting for instructions..."}</div>
+                      
+                      {swarmExecution.currentCommand && (
+                        <>
+                          <div className="text-[9px] text-purple-400 uppercase tracking-widest font-extrabold mt-3">Executing Command</div>
+                          <div className="bg-black/45 border border-purple-500/10 rounded px-2.5 py-2 text-[10px] text-purple-300 overflow-x-auto whitespace-pre font-mono">
+                            {swarmExecution.currentCommand}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Screenshot Live Feed Container */}
+                    <div className="flex-grow flex flex-col justify-center items-center bg-black/30 border border-white/[0.03] rounded-xl overflow-hidden relative min-h-[320px] shadow-inner">
+                      {swarmExecution.screenshotPath ? (
+                        <img 
+                          src={`${swarmExecution.screenshotPath}?t=${swarmExecution.lastUpdated || Date.now()}`} 
+                          alt="Live Agent Screen Capture"
+                          className="w-full h-full object-contain max-h-[460px]"
+                          onError={(e) => {
+                            // Fallback to placeholder if file does not exist yet
+                            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80";
+                          }}
+                        />
+                      ) : (
+                        <div className="text-center text-xs text-gray-500 p-8">
+                          <span className="block text-2xl mb-2">📸</span>
+                          Screen capture feed loading...
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur px-2 py-0.5 rounded text-[8px] text-gray-400 border border-white/[0.04]">
+                        Frame Refreshed: {new Date(swarmExecution.lastUpdated || Date.now()).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -8037,12 +7265,58 @@ export default function App() {
                       type="text"
                       value={newFileName}
                       onChange={e => setNewFileName(e.target.value)}
-                      placeholder="New file (e.g. index.html)..."
+                      placeholder="Name (e.g. index.html or folder/)"
                       className="w-full bg-black/40 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white placeholder-gray-500 focus:outline-none"
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                          if (newFileName.endsWith('/')) {
+                            handleCreateNewFolder();
+                          } else {
+                            handleCreateNewFile();
+                          }
+                        }
+                      }}
                     />
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Explorer button moved to footer */}
-                    </div>
+                    
+                    {isUploading ? (
+                      <div className="text-[10px] text-indigo-400 animate-pulse text-center py-1">
+                        {uploadProgress}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={handleCreateNewFile}
+                          className="px-2 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/35 border border-indigo-500/10 text-indigo-300 hover:text-white rounded-lg text-[10px] font-medium transition-all cursor-pointer text-center"
+                        >
+                          + File
+                        </button>
+                        <button
+                          onClick={handleCreateNewFolder}
+                          className="px-2 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/35 border border-emerald-500/10 text-emerald-300 hover:text-white rounded-lg text-[10px] font-medium transition-all cursor-pointer text-center"
+                        >
+                          + Folder
+                        </button>
+                        <button
+                          onClick={() => document.getElementById("file-uploader-workspace")?.click()}
+                          className="px-2 py-1.5 bg-blue-600/20 hover:bg-blue-600/35 border border-blue-500/10 text-blue-300 hover:text-white rounded-lg text-[10px] font-medium transition-all cursor-pointer text-center"
+                        >
+                          Upload
+                        </button>
+                        <button
+                          onClick={handleAddLinkShortcut}
+                          className="px-2 py-1.5 bg-amber-600/20 hover:bg-amber-600/35 border border-amber-500/10 text-amber-300 hover:text-white rounded-lg text-[10px] font-medium transition-all cursor-pointer text-center"
+                        >
+                          + Link
+                        </button>
+                        <input
+                          type="file"
+                          id="file-uploader-workspace"
+                          multiple
+                          className="hidden"
+                          onChange={handleUploadMultipleFiles}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -9257,8 +8531,7 @@ export default function App() {
                 {/* TAB: GENERAL SETTINGS */}
                 {rightTab === "settings" && (
                   <div className="space-y-4">
-                    <SettingsPanel />
-                    <GeminiKeysPanel />
+                    <AgentConfigPanel />
                     <PersonalityPanel />
                     <DiagnosticsPanel />
                     <AionUITeamsPanel />
@@ -9393,10 +8666,7 @@ export default function App() {
                     <TodoPanel />
 
                     {/* Settings / Config Viewer */}
-                    <SettingsPanel />
-
-                    {/* Gemini API Keys Manager */}
-                    <GeminiKeysPanel />
+                    <AgentConfigPanel />
 
                     {/* Swarm Personality */}
                     <PersonalityPanel />
@@ -10264,19 +9534,12 @@ export default function App() {
                   <h4 className="text-[10px] font-bold text-white tracking-wider uppercase font-mono pb-2 border-b border-white/5 mb-4 flex items-center gap-1.5">
                     ⚙️ Config Properties
                   </h4>
-                  <SettingsPanel />
+                  <AgentConfigPanel />
                 </div>
               </div>
               
               {/* Right Diagnostic / Keys Column */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-black/20">
-                <div className="bg-[#0b0b1e]/60 border border-white/[0.03] p-5 rounded-2xl shadow-xl">
-                  <h4 className="text-[10px] font-bold text-white tracking-wider uppercase font-mono pb-2 border-b border-white/5 mb-4 flex items-center gap-1.5">
-                    🔑 Gemini APIs
-                  </h4>
-                  <GeminiKeysPanel />
-                </div>
-                
                 <div className="bg-[#0b0b1e]/60 border border-white/[0.03] p-5 rounded-2xl shadow-xl">
                   <h4 className="text-[10px] font-bold text-white tracking-wider uppercase font-mono pb-2 border-b border-white/5 mb-4 flex items-center gap-1.5">
                     🔧 Diagnosticians
