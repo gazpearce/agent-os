@@ -110,21 +110,36 @@ def update_database(free_models):
     conn.close()
     return new_discovered
 
+def scan_local_ollama_models():
+    print("[Model Scanner] Checking local Ollama models...")
+    try:
+        r = requests.get('http://localhost:11434/api/tags', timeout=5)
+        if r.status_code == 200:
+            data = r.json()
+            return [m['name'] for m in data.get('models', [])]
+    except Exception as e:
+        print(f"[Model Scanner] Local Ollama check failed: {e}")
+    return []
+
 def main():
     print("[Model Scanner] Starting daily self-evolution model scan...")
     free_models = scan_openrouter_free_models()
     github_releases = scan_github_releases()
+    local_ollama_models = scan_local_ollama_models()
     
     new_models = []
     if free_models:
         new_models = update_database(free_models)
         print(f"[Model Scanner] DB Sync: Found {len(new_models)} new models.")
         
+    has_nemotron = any("nemotron-mini" in m for m in local_ollama_models)
+    has_heavy_model = any("qwen3.5" in m for m in local_ollama_models)
+
     # Write the update brief
     brief_content = f"""# System Evolution Update Brief
 Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 
-This brief outlines newly discovered AI models and open-source releases detected by the 3 AM background scanner.
+This brief outlines newly discovered AI models and open-source releases detected by the background scanner.
 
 ## 🌟 Newly Discovered Models (OpenRouter Free Tier)
 Total Discovered: {len(new_models)}
@@ -146,10 +161,27 @@ Total Discovered: {len(new_models)}
     else:
         brief_content += "*No GitHub release updates fetched.*\n"
         
+    brief_content += "\n## 💻 Local Ollama Status & GPU Alignment\n"
+    if local_ollama_models:
+        brief_content += f"*   **Currently Installed:** {', '.join(local_ollama_models)}\n"
+        if not has_nemotron:
+            brief_content += "*   ⚠️ **Missing Recommended Nvidia Model:** `nemotron-mini` (Nvidia's optimized 4B model) is not installed. This model is exceptionally fast and tailored for local GPU execution.\n"
+        if has_heavy_model:
+            brief_content += "*   ⚠️ **Oversized Model Warning:** You have a 30B+ model installed which exceeds your 16GB VRAM limit. This will overflow into CPU memory and cause slow agent response times.\n"
+    else:
+        brief_content += "*Ollama service is offline or not running.*\n"
+
     brief_content += """
 ---
 
 ## 🛠️ Auto-Evolution Action Items
+"""
+    if local_ollama_models:
+        if not has_nemotron:
+            brief_content += "1.  **Pull Nvidia Nemotron-Mini:** Run `ollama pull nemotron-mini` to acquire the hardware-optimized model.\n"
+        if has_heavy_model:
+            brief_content += "2.  **Clean up oversized models:** Run `ollama rm qwen3.5:35b-a3b` to free up 23 GB and keep execution pure VRAM.\n"
+    brief_content += """
 If you want to sync these updates:
 1. Speak with your coding assistant **Antigravity** and say: `"Run self-evolution updates from the 3am scanner."`
 2. Antigravity will automatically apply any recommended system configuration updates or active prompt patches.

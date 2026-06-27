@@ -11,3 +11,8 @@
 * [Hello, verify you are active and respond with a short confirmation message.](goals/goal-2026-06-01-hello-verify-you-are-active-an-1780349346117.md) - Executed on 2026-06-01
 * [Search the vault for Content Guidelines to retrieve formatting rules, then write a Javascript function in D:/Agent OS/shared/math.js to compute factorials using Claude Code.](goals/goal-2026-06-01-search-the-vault-for-content-g-1780350341434.md) - Executed on 2026-06-01
 * [Create a file test-collab.txt in D:/Agent OS/shared and write 'Swarm Collaboration verified.'](goals/goal-2026-06-05-create-a-file-test-collab-txt--1780676205888.md) - Executed on 2026-06-05
+* [Write a blog post about CCTV laws in the UK to D:\Agent OS\shared\cctv-laws-uk-outline.md](goals/goal-2026-06-27-write-a-blog-post-about-cctv-l-1782547712435.md) - Executed on 2026-06-27
+* [Run a diagnostics self-check on the swarm's active components.](goals/goal-2026-06-27-run-a-diagnostics-self-check-o-1782552444776.md) - Executed on 2026-06-27
+* [Run a diagnostics self-check of the active swarm.](goals/goal-2026-06-27-run-a-diagnostics-self-check-o-1782553800360.md) - Executed on 2026-06-27
+* [Run a diagnostics self-check of the active swarm.](goals/goal-2026-06-27-run-a-diagnostics-self-check-o-1782554359149.md) - Executed on 2026-06-27
+* [Write a short 1-paragraph summary of UK CCTV laws.](goals/goal-2026-06-27-write-a-short-1-paragraph-summ-1782554748987.md) - Executed on 2026-06-27

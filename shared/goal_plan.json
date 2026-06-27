@@ -1,12 +1,12 @@
 [
   {
-    "agent": "hermes",
-    "task": "Ensure the directory D:/Agent OS/shared exists by creating it if necessary.",
-    "reason": "The target directory must exist before writing the file."
+    "agent": "obsidian",
+    "task": "Search the vault for keywords related to: \n\n### # Dynamic Memory Recall (Found in Vault/Logs):\n- **Source**: CONTEXT.md\n  **Snippet**: ### Write.as/WriteFreely - DOWN\n- **Source**: CONTEXT.md\n  **Snippet**: - Posts all 16 topics to Mataroa + Pika + Bear (optional) + WriteFreely (.md)\n- **Source**: CONTEXT.md\n  **Snippet**: - Write.as posts (when available) will use the same relevance-based cross-linking\n- **Source**: CONTEXT.md\n  **Snippet**: - WriteFreely content saved to 48+16 pending .md files (service currently unreachable)\n- **Source**: CONTEXT.md\n  **Snippet**: - Write.as posts for all 16 topics (48 WA posts) - blocked by write.as being down\n- **Source**: CONTEXT.md\n  **Snippet**: - **Write.as**: DOWN (174.143.201.50:443 timeout)\n- **Source**: CONTEXT.md\n  **Snippet**: 9. Retry Write.as/WriteFreely when service comes back up\n- **Source**: CONTEXT.md\n  **Snippet**: - `C:\\Users\\Gary\\post-writefreely.js` - WriteFreely/Write.as posting (48 posts pending)\n\n(Please use the above historical context to accurately answer the query.)\n\nWrite a short 1-paragraph summary of UK CCTV laws.",
+    "reason": "Fetch background context"
   },
   {
     "agent": "hermes",
-    "task": "Write the file D:/Agent OS/shared/test-collab.txt with the content 'Swarm Collaboration verified.'",
-    "reason": "Create the requested file with the specified verification message."
+    "task": "Execute terminal command or write files for: \n\n### # Dynamic Memory Recall (Found in Vault/Logs):\n- **Source**: CONTEXT.md\n  **Snippet**: ### Write.as/WriteFreely - DOWN\n- **Source**: CONTEXT.md\n  **Snippet**: - Posts all 16 topics to Mataroa + Pika + Bear (optional) + WriteFreely (.md)\n- **Source**: CONTEXT.md\n  **Snippet**: - Write.as posts (when available) will use the same relevance-based cross-linking\n- **Source**: CONTEXT.md\n  **Snippet**: - WriteFreely content saved to 48+16 pending .md files (service currently unreachable)\n- **Source**: CONTEXT.md\n  **Snippet**: - Write.as posts for all 16 topics (48 WA posts) - blocked by write.as being down\n- **Source**: CONTEXT.md\n  **Snippet**: - **Write.as**: DOWN (174.143.201.50:443 timeout)\n- **Source**: CONTEXT.md\n  **Snippet**: 9. Retry Write.as/WriteFreely when service comes back up\n- **Source**: CONTEXT.md\n  **Snippet**: - `C:\\Users\\Gary\\post-writefreely.js` - WriteFreely/Write.as posting (48 posts pending)\n\n(Please use the above historical context to accurately answer the query.)\n\nWrite a short 1-paragraph summary of UK CCTV laws.",
+    "reason": "Perform the core task"
   }
 ]

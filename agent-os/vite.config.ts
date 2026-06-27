@@ -6,6 +6,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
+    watch: {
+      ignored: ['**/.wwebjs_auth/**', '**/.paperclip/**', '**/.agents/**', '**/server.mjs', '**/package.json']
+    },
     hmr: {
       port: 3000,
     },

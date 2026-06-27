@@ -4,6 +4,11 @@ This profile defines the authority networks, location clusters, services, and st
 
 ## 👤 Identity & Authority
 - **Name**: Gary Pearce
+- **Appearance & Reference Photo**: Located at `D:\Agent OS\shared\gary_reference.jpg` (Contains front-facing portrait reference pictures of Gary for video avatar synthesis, face-swapping, and AI image mapping).
+- **Video & Voice References**:
+  - Video 1: `D:\Agent OS\shared\gary_video_ref_1.mov` (Front-facing reference, vocal sample)
+  - Video 2: `D:\Agent OS\shared\gary_video_ref_2.mov` (Detailed facial expression, vocal sample)
+  - Video 3: `D:\Agent OS\shared\gary_video_ref_3.mov` (Profile perspective, vocal sample)
 - **Location Coverage**: UK-wide (based in northern/central England).
 - **Core Cities & Locations**: Blackburn, Bradford, Blackpool, Bolton, Chester, Crewe, Darlington, Derby, Durham, Doncaster, Huddersfield, Harrogate, Hull, Halifax, Liverpool, Lincoln, Leeds, Manchester, Middlesbrough, Newcastle, Nottingham, Oldham, Preston, Sheffield, Stockport, Sunderland, Warrington, Wakefield, Wigan, York, Yorkshire, Humberside, Teesside, Lancashire, Lincolnshire, Nottinghamshire, Derbyshire.
 - **Reviews (Checkatrade)**: [CCTV and Alarms Services](https://www.checkatrade.com/trades/cctvandalarmsservices)
