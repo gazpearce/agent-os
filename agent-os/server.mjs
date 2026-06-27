@@ -25,6 +25,9 @@ import createPluginsRouter from './backend/routes/plugins.mjs';
 import createAgentsRouter from './backend/routes/agents.mjs';
 import createTodoRouter from './backend/routes/todo.mjs';
 import createCronRouter from './backend/routes/cron.mjs';
+import createCodeRouter from './backend/routes/code.mjs';
+import createVisionRouter from './backend/routes/vision.mjs';
+import createProxyRouter from './backend/routes/proxy.mjs';
 import createExternalRouter from './backend/routes/external.mjs';
 import createWebsiteRouter from './backend/routes/website.mjs';
 import createN8nRouter from './backend/routes/n8n.mjs';
@@ -8550,6 +8553,9 @@ app.use('/', createWorkflowRouter({}));
 app.use('/', createPluginsRouter({}));
 app.use('/', createTodoRouter({}));
 app.use('/', createCronRouter({}));
+app.use('/', createCodeRouter({}));
+app.use('/', createVisionRouter({}));
+app.use('/', createProxyRouter({}));
 app.use('/', createSwarmRouter({
   db: getDb(),
   aionuiDb: getAionuiDb(),
