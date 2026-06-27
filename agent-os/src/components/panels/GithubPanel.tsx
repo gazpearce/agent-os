@@ -8,7 +8,7 @@ export default function GitHubPanel() {
   const fetchRepos = async () => {
     setReposLoading(true);
     try {
-      const res = await fetch('/api/github?action=repos');
+      const res = await fetch('http://localhost:3000/api/github?action=repos');
       if (res.ok) setRepos(await res.json());
     } catch (_) {}
     finally { setReposLoading(false); }
@@ -16,7 +16,7 @@ export default function GitHubPanel() {
 
   const checkStatus = async () => {
     try {
-      const res = await fetch('/api/github?action=status');
+      const res = await fetch('http://localhost:3000/api/github?action=status');
       if (res.ok) setGhStatus((await res.json()).configured ? 'Connected' : 'Not configured');
     } catch (_) {}
   };

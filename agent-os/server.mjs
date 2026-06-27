@@ -28,6 +28,8 @@ import createCronRouter from './backend/routes/cron.mjs';
 import createCodeRouter from './backend/routes/code.mjs';
 import createVisionRouter from './backend/routes/vision.mjs';
 import createProxyRouter from './backend/routes/proxy.mjs';
+import createTTSRouter from './backend/routes/tts.mjs';
+import createSpotifyRouter from './backend/routes/spotify.mjs';
 import createExternalRouter from './backend/routes/external.mjs';
 import createWebsiteRouter from './backend/routes/website.mjs';
 import createN8nRouter from './backend/routes/n8n.mjs';
@@ -8556,6 +8558,8 @@ app.use('/', createCronRouter({}));
 app.use('/', createCodeRouter({}));
 app.use('/', createVisionRouter({}));
 app.use('/', createProxyRouter({}));
+app.use('/', createTTSRouter({}));
+app.use('/', createSpotifyRouter({}));
 app.use('/', createSwarmRouter({
   db: getDb(),
   aionuiDb: getAionuiDb(),
