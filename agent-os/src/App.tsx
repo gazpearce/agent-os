@@ -270,6 +270,17 @@ export default function App() {
 
   // System Cron Scheduler States
   const [cronJobs, setCronJobs] = useState<any[]>([]);
+  const [evolutionUpdate, setEvolutionUpdate] = useState<{available: boolean, prompt: string}>({available: false, prompt: ''});
+
+  useEffect(() => {
+    // Check for auto-evolution update on mount
+    fetch('/api/evolution/check')
+      .then(r => r.json())
+      .then(d => {
+         if (d.updateAvailable) setEvolutionUpdate({available: true, prompt: d.proposedPrompt});
+      })
+      .catch(e => console.error(e));
+  }, []);
 
   const fetchCrons = async () => {
     try {
@@ -1374,8 +1385,9 @@ export default function App() {
     setChatInput(prev => (prev ? prev + ' ' : '') + transcript);
   };
 
-  // Chat state
   const [chatInput, setChatInput] = useState("");
+
+
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
     try {
       const saved = localStorage.getItem("agent_os_chat_messages");
@@ -2961,6 +2973,30 @@ export default function App() {
             className="bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-bold px-3 py-1 rounded-md transition-all cursor-pointer shadow-[0_0_12px_rgba(99,102,241,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] active:scale-95 disabled:opacity-50"
           >
             {evolving ? "Upgrading..." : "Apply Codebase Upgrade"}
+          </button>
+        </div>
+      )}
+
+      {/* AUTO-EVOLUTION NOTIFICATION */}
+      {evolutionUpdate.available && (
+        <div className="bg-emerald-600/20 border-b border-emerald-500/30 px-4 py-2 flex items-center justify-between shadow-lg backdrop-blur-md z-[100] animate-[slideDown_0.3s_ease-out]">
+          <div className="flex items-center gap-3">
+            <Sparkles className="text-emerald-400 w-4 h-4 animate-pulse" />
+            <span className="text-xs font-semibold text-emerald-100">Auto-Evolution Update Needed: System has detected a high-impact missing feature.</span>
+          </div>
+          <button 
+            onClick={() => {
+              setChatInput(evolutionUpdate.prompt);
+              setEvolutionUpdate({available: false, prompt: ''});
+              // Focus the chat input
+              setTimeout(() => {
+                const el = document.getElementById('main-chat-input');
+                if (el) el.focus();
+              }, 100);
+            }}
+            className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white text-[10px] uppercase font-bold tracking-wider rounded-md transition-colors"
+          >
+            Review & Install
           </button>
         </div>
       )}
@@ -7067,18 +7103,23 @@ export default function App() {
           <span className="flex items-center gap-1.5"><Layers size={11} className="text-gray-600" /> 7 Layers Active</span>
           <span className="flex items-center gap-1.5"><Cpu size={11} className="text-gray-600" /> 8 Inference Catalogs</span>
           <span className="flex items-center gap-1.5 text-purple-400"><Sparkles size={11} /> Model: {activeModel}</span>
-          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
+          {evolutionUpdate.available && (
             <button
-              onClick={() => setIsFloatingTerminalOpen(true)}
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
-              title={`🚨 ${terminalLogs.filter(l => l.type === 'error').length} healing failures (invalid package.json paths detected). Click to open terminal and review error details.
-💡 Tip: Check working directory with 'pwd' command before running healing operations.`}
-              aria-live="assertive"
-              aria-label={`Error count: ${terminalLogs.filter(l => l.type === 'error').length} healing failures`}
+              onClick={() => setIsSettingsModalOpen(true)}
+              className="flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20 cursor-pointer transition-all animate-pulse text-[9px]"
+              title="Auto-Evolution detected new updates. Click to open System Evolution Hub in Settings."
             >
-              <span className="flex h-2 w-2"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span></span>
-              <span className="text-[9px] font-bold">{terminalLogs.filter(l => l.type === 'error').length} Errors</span>
+              🧬 Evolution Ready
             </button>
+          )}
+          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span className="text-[9px] font-bold text-red-400">{terminalLogs.filter(l => l.type === 'error').length} Errors</span>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">
