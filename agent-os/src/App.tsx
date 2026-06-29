@@ -7127,6 +7127,12 @@ export default function App() {
               <span>Build failures detected - See Console</span>
             </div>
           )}
+          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
+            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-300 text-[8px] px-2 py-0.5 rounded-full transition-all duration-300 animate-in fade-in">
+              <span className="animate-pulse">🔧</span>
+              <span>Fix errors to enable build</span>
+            </div>
+          )}
           <button
             onClick={() => setIsSettingsModalOpen(true)}
             className="flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20 cursor-pointer transition-all text-[8px]"
