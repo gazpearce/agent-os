@@ -7182,7 +7182,7 @@ export default function App() {
             <span className="text-[9px] uppercase font-bold tracking-wider">💬 Swarm Chat</span>
           </button>
 
-          <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-md">Antigravity Premium OS Dashboard</span>
+          <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-md">Antigravity Premium OS Dashboard {import.meta.env.VITE_ENVIRONMENT === 'development' && <span className="text-orange-400"> (DEV Env - Test in Prod before deploy)</span>}</span>
           <span className={`text-[8px] font-mono border-l border-gray-800 pl-2 ml-1 ${
             import.meta.env.VITE_ENVIRONMENT === 'production' 
               ? 'text-emerald-400' 
