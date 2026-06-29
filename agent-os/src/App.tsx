@@ -7127,6 +7127,13 @@ export default function App() {
               <span>Build failures detected - See Console</span>
             </div>
           )}
+          <button
+            onClick={() => setIsSettingsModalOpen(true)}
+            className="flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20 cursor-pointer transition-all text-[8px]"
+            title="Open System Settings to view detailed build diagnostics"
+          >
+            🛠️ Build Diagnostics
+          </button>
         </div>
         <div className="flex items-center gap-3">
           {/* Files Explorer Button */}
