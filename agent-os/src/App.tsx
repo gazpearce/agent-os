@@ -7,7 +7,7 @@ import {
   Layers, Radio, Shield, Terminal, Database, Workflow, TerminalSquare, RefreshCw,
   ChevronLeft, ChevronRight, Plus, Trash2, Save, Play, Users, Kanban,
   Network, FileText, X, ExternalLink, Globe, Puzzle, Download, Search, Filter,
-  Target, FolderOpen, XCircle, Settings, MessageSquare, Send, Loader2, Bell
+  Target, FolderOpen, XCircle, Settings, MessageSquare, Send, Bell, Volume2
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -208,6 +208,7 @@ const INITIAL_AGENTS: Agent[] = [
   { id: "openrouter", name: "OpenRouter", role: "Cloud · API", icon: <Radio size={18} />, status: "online", version: "27 models", layer: "Cloud", color: "#8b5cf6", tokens: 89234, tasks: 156, skills: 27 },
   { id: "alibaba", name: "Alibaba DashScope", role: "Qwen · Free APIs", icon: <Layers size={18} />, status: "online", version: "qwen-long", layer: "Cloud", color: "#ff6a00", tokens: 0, tasks: 0, skills: 6 },
   { id: "zhipu", name: "Zhipu BigModel", role: "GLM · Free APIs", icon: <Sparkles size={18} />, status: "online", version: "glm-5.1", layer: "Cloud", color: "#3051ff", tokens: 0, tasks: 0, skills: 8 },
+  { id: "voice_synth", name: "Voice Synthesis", role: "Audio · Speech Synthesizer", icon: <Volume2 size={18} />, status: "online", version: "gTTS-based", layer: "L3", color: "#a855f7", tokens: 0, tasks: 5, skills: 3 },
 ];
 
 
@@ -271,10 +272,13 @@ export default function App() {
   // System Cron Scheduler States
   const [cronJobs, setCronJobs] = useState<any[]>([]);
   const [evolutionUpdate, setEvolutionUpdate] = useState<{available: boolean, prompt: string}>({available: false, prompt: ''});
+  const [showStatusPopover, setShowStatusPopover] = useState(false);
+  const [isFeatureDropdownOpen, setIsFeatureDropdownOpen] = useState(false);
+  const [isChatModelDropdownOpen, setIsChatModelDropdownOpen] = useState(false);
 
   useEffect(() => {
     // Check for auto-evolution update on mount
-    fetch('/api/evolution/check')
+    fetch('/api/evolution/check?t=' + Date.now())
       .then(r => r.json())
       .then(d => {
          if (d.updateAvailable) setEvolutionUpdate({available: true, prompt: d.proposedPrompt});
@@ -1327,7 +1331,7 @@ export default function App() {
 
   useEffect(() => {
     fetchDiscoveredModels();
-    const interval = setInterval(fetchDiscoveredModels, 60000);
+    const interval = setInterval(fetchDiscoveredModels, 10000);
     return () => clearInterval(interval);
   }, []);
 
@@ -1428,11 +1432,10 @@ export default function App() {
     } catch (e) {}
   }, [chatMode]);
 
-  const [activeSpecialistId, setActiveSpecialistId] = useState<string | null>(null);
-  const [specialistChatInput, setSpecialistChatInput] = useState<string>("");
+
 
   const handleOpenSpecialistPanel = async (agentId: string) => {
-    setActiveSpecialistId(agentId);
+    handleSwitchThread('single', agentId);
     
     if (!chatThreads[agentId]) {
       const targetAgentObj = agents.find(a => a.id === agentId) || agents[0];
@@ -1488,39 +1491,7 @@ export default function App() {
     }
   };
 
-  const handleSendSpecialistMessage = async (agentId: string) => {
-    const text = specialistChatInput;
-    if (!text.trim()) return;
-    
-    setSpecialistChatInput("");
-    setThreadLoading(prev => ({ ...prev, [agentId]: true }));
-    
-    try {
-      const res = await fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: text,
-          model: activeModel,
-          agent: agentId,
-          parentId: agentId,
-          activeSessionId: activeSessionId
-        })
-      });
-      
-      if (res.ok) {
-        const data = await res.json();
-        if (data.sessionId) {
-          setActiveSessionId(data.sessionId);
-          fetchSessionsList();
-        }
-      }
-      setStreamTrigger(prev => prev + 1);
-    } catch (e) {
-      console.error("Failed to send direct message to agent:", e);
-      setThreadLoading(prev => ({ ...prev, [agentId]: false }));
-    }
-  };
+
 
   const [chatThreads, setChatThreads] = useState<Record<string, ChatMessage[]>>(() => {
     try {
@@ -1607,12 +1578,7 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isCurrentLoading]);
 
-  const loadingMessages = [
-    "Connecting to OpenRouter API...",
-    "Sending query to model...",
-    "Waiting for response stream...",
-    "Processing & formatting output..."
-  ];
+  // Dynamic loadingMessages moved below activeModel state declaration
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatScrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -1774,7 +1740,27 @@ export default function App() {
   }, [activeSessionId, chatMode, activeAgent, voiceUpdatesEnabled, streamTrigger]);
 
   // System Status & Model selection
-  const [activeModel, setActiveModel] = useState("deepseek/deepseek-v4-flash:free");
+  const [activeModel, setActiveModel] = useState(() => {
+    return localStorage.getItem("active_model") || "ollama/qwen2.5-coder:7b";
+  });
+
+  const getProviderLabel = () => {
+    if (activeModel.startsWith('ollama/')) return 'Ollama (Local)';
+    if (activeModel.startsWith('lmstudio/')) return 'LM Studio (Local)';
+    if (activeModel.startsWith('google/') || activeModel.startsWith('gemini')) return 'Google Gemini API';
+    if (activeModel.startsWith('github/')) return 'GitHub Models API';
+    if (activeModel.startsWith('siliconflow/')) return 'SiliconFlow API';
+    if (activeModel.startsWith('groq/')) return 'Groq Direct API';
+    return 'OpenRouter API';
+  };
+
+  const loadingMessages = [
+    `Connecting to ${getProviderLabel()}...`,
+    "Sending query to model...",
+    "Waiting for response stream...",
+    "Processing & formatting output..."
+  ];
+
   const [evolutionStatus, setEvolutionStatus] = useState<any>(null);
   const [isReverting, setIsReverting] = useState(false);
   const [switchingModelId, setSwitchingModelId] = useState<string | null>(null);
@@ -1784,7 +1770,9 @@ export default function App() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 
   // Swarm Visualizer & Manus execution telemetry states
-  const [isVisualLiveMode, setIsVisualLiveMode] = useState(false);
+  const [isVisualLiveMode, setIsVisualLiveMode] = useState(true);
+  const [splitTab, setSplitTab] = useState<"preview" | "files" | "screen">("preview");
+  const [isChatHidden, setIsChatHidden] = useState(false);
   const [evolving, setEvolving] = useState(false);
   const [swarmExecution, setSwarmExecution] = useState<any>({
     currentTask: 'Idle',
@@ -2593,6 +2581,7 @@ export default function App() {
         const data = await res.json();
         if (data.success) {
           setActiveModel(modelId);
+          localStorage.setItem("active_model", modelId);
           // Clear chat when switching models so the old conversation doesn't bleed through
           setChatMessages([]);
         }
@@ -2741,12 +2730,12 @@ export default function App() {
 
       {/* ═══ SYSTEM HEADER ═══ */}
       <header className="glass-strong h-14 flex items-center justify-between px-5 shrink-0 z-50 relative border-b border-white/[0.04] select-none">
-        <div className="flex items-center gap-3"><div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-300 text-[8px] px-2 py-0.5 rounded-full transition-all duration-300 animate-in fade-in"><span className="animate-pulse">⚠️</span><span>Build failures detected - See Console</span></div>
+        <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shadow-[0_0_15px_rgba(99,102,241,0.4)] relative">
             <span className="absolute inset-0 rounded-lg bg-white/20 animate-pulse pointer-events-none" />
             🦑
           </div>
-          <div>
+          <div className="border-r border-white/10 pr-4">
             <h1 className="text-sm font-bold tracking-wider uppercase text-white flex items-center gap-1.5">
               Agent OS <span className="text-[10px] text-indigo-400 font-mono font-normal">Mission Control</span>
             </h1>
@@ -2754,16 +2743,133 @@ export default function App() {
           </div>
         </div>
 
-        <div className="hidden lg:flex items-center gap-1.5 text-[9px] font-mono">
-          {["L1 · Intelligence", "L2 · Routing", "L3 · Execution", "L4 · Vault", "L5 · UI", "L6 · Inference", "L7 · Automation"].map((l, i) => (
-            <span key={i} className={`px-2.5 py-1 rounded-md border transition-all ${
-              i === 2
-                ? "bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.1)]"
-                : i === 4
-                ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20 shadow-[0_0_10px_rgba(99,102,241,0.1)]"
-                : "text-gray-500 border-white/[0.02]"
-            }`}>{l}</span>
-          ))}
+        {/* Feature Selector Dropdown */}
+        <div className="relative select-none pointer-events-auto mr-auto ml-2">
+          <button
+            onClick={() => setIsFeatureDropdownOpen(!isFeatureDropdownOpen)}
+            className="flex items-center gap-2 bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.05] text-indigo-300 font-extrabold px-3 py-1.5 rounded-lg text-[10.5px] transition-all cursor-pointer shadow-md font-mono"
+          >
+            {(() => {
+              const currentTabObj = [
+                { id: "chat", label: "Chat", icon: <Bot size={12} /> },
+                { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
+                { id: "swarm", label: "Swarm Hub", icon: <Users size={12} /> },
+                { id: "paperclip", label: "Paperclip", icon: <Puzzle size={12} /> },
+                { id: "studio", label: "Studio", icon: <Image size={12} /> },
+                { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={12} /> },
+                { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={12} /> },
+                { id: "workspace", label: "Workspace", icon: <FolderOpen size={12} /> },
+                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> },
+                { id: "memory", label: "Memory", icon: <Database size={12} /> },
+                { id: "nightly", label: "Intelligence", icon: <Sparkles size={12} /> }
+              ].find(t => t.id === centerTab);
+              return (
+                <>
+                  {currentTabObj?.icon}
+                  <span>View: {currentTabObj?.label}</span>
+                </>
+              );
+            })()}
+            <ChevronDown size={11} className={`opacity-80 transition-transform ${isFeatureDropdownOpen ? "rotate-180" : ""}`} />
+          </button>
+
+          {isFeatureDropdownOpen && (
+            <>
+              <div className="fixed inset-0 z-[100]" onClick={() => setIsFeatureDropdownOpen(false)} />
+              <div className="absolute left-0 mt-2 w-56 rounded-xl border border-white/[0.08] bg-[#070713]/98 p-1.5 shadow-2xl backdrop-blur-xl z-[101]">
+                {[
+                  { id: "chat", label: "Chat", icon: <Bot size={12} /> },
+                  { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
+                  { id: "swarm", label: "Swarm Hub", icon: <Users size={12} /> },
+                  { id: "paperclip", label: "Paperclip", icon: <Puzzle size={12} /> },
+                  { id: "studio", label: "Studio", icon: <Image size={12} /> },
+                  { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={12} /> },
+                  { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={12} /> },
+                  { id: "workspace", label: "Workspace", icon: <FolderOpen size={12} /> },
+                  { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> },
+                  { id: "memory", label: "Memory", icon: <Database size={12} /> },
+                  { id: "nightly", label: "Intelligence", icon: <Sparkles size={12} /> }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      setCenterTab(tab.id as any);
+                      setIsFeatureDropdownOpen(false);
+                    }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
+                      centerTab === tab.id
+                        ? "bg-indigo-500/15 text-indigo-300 border border-indigo-500/25"
+                        : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
+                    }`}
+                  >
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5 shadow-[inset_0_1px_2px_rgba(0,0,0,0.4)]">
+          {/* Files Explorer Toggle */}
+          <button
+            onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
+            className={`p-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer flex items-center gap-1 ${
+              !isLeftCollapsed 
+                ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
+                : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
+            }`}
+            title="Toggle Files Explorer"
+          >
+            <FolderOpen size={11} />
+            <span>Files</span>
+          </button>
+          
+          {/* Publishing Control Toggle */}
+          <button
+            onClick={() => setIsRightCollapsed(!isRightCollapsed)}
+            className={`p-1.5 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer flex items-center gap-1 ${
+              !isRightCollapsed 
+                ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
+                : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
+            }`}
+            title="Toggle Publishing Control"
+          >
+            <Globe size={11} />
+            <span>Publishing</span>
+          </button>
+
+          {/* Console Button */}
+          <button
+            onClick={() => setIsFloatingTerminalOpen(!isFloatingTerminalOpen)}
+            className={`p-1.5 px-2 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer flex items-center gap-1 ${
+              isFloatingTerminalOpen
+                ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
+                : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
+            }`}
+            title="Toggle Console"
+          >
+            <TerminalSquare size={11} className="text-indigo-400" />
+            <span>Console</span>
+          </button>
+
+          {/* Swarm Chat Button */}
+          <button
+            onClick={() => {
+              setIsFloatingChatOpen(!isFloatingChatOpen);
+              setIsChatMinimized(false);
+            }}
+            className={`p-1.5 px-2 rounded text-[10px] font-extrabold transition-all duration-200 cursor-pointer flex items-center gap-1 ${
+              isFloatingChatOpen
+                ? "bg-indigo-500/15 text-indigo-200 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
+                : "bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/20 text-indigo-300 hover:text-indigo-200"
+            }`}
+            title="Toggle Swarm Chat"
+          >
+            <MessageSquare size={11} />
+            <span>Swarm Chat</span>
+          </button>
         </div>
 
         <div className="flex items-center gap-4">
@@ -2897,6 +3003,31 @@ export default function App() {
               </button>
             </div>
 
+            {/* Split View and Voice Controls in Main Header */}
+            <button
+              onClick={() => setIsVisualLiveMode(!isVisualLiveMode)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer select-none font-mono ${
+                isVisualLiveMode
+                  ? "bg-purple-600/30 text-purple-300 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
+                  : "bg-white/[0.02] text-gray-400 border-white/[0.04] hover:text-white hover:bg-white/[0.05]"
+              }`}
+              title="Toggle Split Live View (Manus)"
+            >
+              📺 {isVisualLiveMode ? "Disable Split View" : "Split Live View (Manus)"}
+            </button>
+
+            <button 
+              onClick={toggleVoiceUpdates} 
+              className={`px-2.5 py-1.5 rounded border transition-all cursor-pointer flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                voiceUpdatesEnabled 
+                  ? 'bg-purple-500/10 text-purple-400 border-purple-500/25 shadow-[0_0_10px_rgba(168,85,247,0.15)]' 
+                  : 'bg-white/[0.015] text-gray-500 border-white/[0.04] hover:text-gray-300 hover:bg-white/[0.03]'
+              }`}
+              title="Toggle Live Voice Updates during execution"
+            >
+              {voiceUpdatesEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
+            </button>
+
             <div className="flex items-center gap-2 border-l border-white/10 pl-4 relative">
               {/* Notification Bell */}
               <div className="relative flex items-center">
@@ -2948,61 +3079,89 @@ export default function App() {
                 )}
               </div>
 
-              <div className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded text-[10px] ml-1">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
-                </span>
-                <span className="text-green-400 font-mono font-bold tracking-wide">SYSTEMS ONLINE</span>
+              {/* Diagnostics Dropdown */}
+              <div className="relative ml-1 select-none pointer-events-auto">
+                <button
+                  onClick={() => setShowStatusPopover(!showStatusPopover)}
+                  className="flex items-center gap-1.5 bg-green-500/10 border border-green-500/20 hover:bg-green-500/15 transition-all px-2.5 py-1 rounded text-[10px] font-mono font-bold tracking-wide text-green-400 cursor-pointer select-none"
+                >
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                  </span>
+                  <span>SYSTEMS ONLINE</span>
+                  {terminalLogs.filter(l => l.type === 'error').length > 0 && (
+                    <span className="bg-red-500 text-white rounded-full text-[8px] w-3 h-3 flex items-center justify-center font-bold font-sans animate-bounce ml-1">
+                      !
+                    </span>
+                  )}
+                  <ChevronDown size={10} className={`opacity-80 transition-transform ${showStatusPopover ? "rotate-180" : ""}`} />
+                </button>
+
+                {showStatusPopover && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-[100]" 
+                      onClick={() => setShowStatusPopover(false)} 
+                    />
+                    <div className="absolute right-0 mt-2 w-64 rounded-xl border border-white/[0.08] bg-[#0c0c16]/95 p-3.5 shadow-2xl backdrop-blur-xl z-[101] text-left text-[10px] font-mono text-gray-400">
+                      <div className="flex items-center justify-between mb-2 pb-1.5 border-b border-white/[0.05]">
+                        <h3 className="text-[10px] font-bold text-white tracking-wider uppercase font-sans">System Diagnostics</h3>
+                        <span className="text-[8px] bg-green-500/10 border border-green-500/20 rounded px-1.5 py-0.5 text-green-400 font-sans">Healthy</span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between py-0.5 border-b border-white/[0.02]">
+                          <span>Active Model:</span>
+                          <span className="text-purple-400 font-bold text-right truncate max-w-[120px]" title={activeModel}>{activeModel}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-0.5 border-b border-white/[0.02]">
+                          <span>Layers:</span>
+                          <span className="text-white font-bold">7 Layers Active</span>
+                        </div>
+                        <div className="flex items-center justify-between py-0.5 border-b border-white/[0.02]">
+                          <span>Catalogs:</span>
+                          <span className="text-white font-bold">8 Inference Catalogs</span>
+                        </div>
+                        <div className="flex items-center justify-between py-0.5 border-b border-white/[0.02]">
+                          <span>Environment:</span>
+                          <span className="text-indigo-400 font-bold uppercase">{import.meta.env.VITE_ENVIRONMENT || 'DEV'}</span>
+                        </div>
+                        <div className="flex items-center justify-between py-0.5 border-b border-white/[0.02]">
+                          <span>Version:</span>
+                          <span className="text-gray-300 font-bold">v2.7.2</span>
+                        </div>
+                        {terminalLogs.filter(l => l.type === 'error').length > 0 && (
+                          <div className="bg-red-500/10 border border-red-500/20 text-red-300 p-2 rounded mt-2 text-[9px] flex flex-col gap-1 font-sans">
+                            <div className="font-bold flex items-center gap-1">
+                              <span>⚠️</span>
+                              <span>{terminalLogs.filter(l => l.type === 'error').length} Build Errors</span>
+                            </div>
+                            <span className="text-[8px] opacity-85">Fix errors in codebase to enable build. See Terminal Console.</span>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => {
+                            setIsSettingsModalOpen(true);
+                            setShowStatusPopover(false);
+                          }}
+                          className="w-full mt-2 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/35 text-indigo-300 font-bold rounded py-1 px-2.5 text-[9px] shadow-[0_0_8px_rgba(99,102,241,0.1)] transition-all cursor-pointer text-center font-sans uppercase tracking-wider"
+                        >
+                          🛠️ Open Diagnostics
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Auto-Evolution Update Banner */}
-      {evolutionStatus && evolutionStatus.content && !evolutionStatus.content.includes("No evolution brief") && (
-        <div className="bg-indigo-600/25 backdrop-blur-md border-b border-indigo-500/20 text-indigo-200 px-5 py-2.5 text-xs flex justify-between items-center z-[100] animate-[slideDown_0.3s_ease-out] select-none font-mono">
-          <div className="flex items-center gap-2">
-            <span className="animate-pulse">🚀</span>
-            <span><strong>System Evolution Update Ready:</strong> A new autonomous codebase upgrade has been generated by the auto-evolution daemons.</span>
-          </div>
-          <button 
-            onClick={handleApplyEvolution}
-            disabled={evolving}
-            className="bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-bold px-3 py-1 rounded-md transition-all cursor-pointer shadow-[0_0_12px_rgba(99,102,241,0.3)] hover:shadow-[0_0_20px_rgba(99,102,241,0.5)] active:scale-95 disabled:opacity-50"
-          >
-            {evolving ? "Upgrading..." : "Apply Codebase Upgrade"}
-          </button>
-        </div>
-      )}
 
-      {/* AUTO-EVOLUTION NOTIFICATION */}
-      {evolutionUpdate.available && (
-        <div className="bg-emerald-600/20 border-b border-emerald-500/30 px-4 py-2 flex items-center justify-between shadow-lg backdrop-blur-md z-[100] animate-[slideDown_0.3s_ease-out]">
-          <div className="flex items-center gap-3">
-            <Sparkles className="text-emerald-400 w-4 h-4 animate-pulse" />
-            <span className="text-xs font-semibold text-emerald-100">Auto-Evolution Update Needed: System has detected a high-impact missing feature.</span>
-          </div>
-          <button 
-            onClick={() => {
-              setChatInput(evolutionUpdate.prompt);
-              setEvolutionUpdate({available: false, prompt: ''});
-              // Focus the chat input
-              setTimeout(() => {
-                const el = document.getElementById('main-chat-input');
-                if (el) el.focus();
-              }, 100);
-            }}
-            className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white text-[10px] uppercase font-bold tracking-wider rounded-md transition-colors"
-          >
-            Review & Install
-          </button>
-        </div>
-      )}
 
       {/* ═══ CORE LAYOUT ═══ */}
-      <div className="flex-grow h-0 flex overflow-hidden relative p-4 gap-4 bg-[#03030b]/30">
+      <div className="flex-grow h-0 flex overflow-hidden relative p-0 gap-0 bg-[#03030b]/30">
 
         {/* ─── LEFT SIDEBAR: SWARMS, PRESETS & AGENT LIST ─── */}
         <aside 
@@ -3067,7 +3226,7 @@ export default function App() {
                 </div>
                 <div className="space-y-1">
                   {agents.map(agent => {
-                    const isActive = activeSpecialistId === agent.id;
+                    const isActive = activeAgent === agent.id && chatMode === 'single';
                     return (
                       <button
                         key={agent.id}
@@ -3235,59 +3394,7 @@ export default function App() {
 
         {/* ─── CENTER: WORKSPACE (CHAT / KANBAN / MONITOR / TERMINAL) ─── */}
         <main className="flex-1 flex flex-col min-w-0 bg-[#04040c]/45 border border-white/[0.05] rounded-2xl overflow-hidden relative z-10 shadow-xl">
-          {/* Workspace Tabs Header */}
-          <div className="glass-strong h-16 flex items-center justify-between px-5 shrink-0 border-b border-white/[0.04] bg-[#03030d]/80 select-none">
-            <div className="flex items-center gap-2">
-              <div style={{ color: currentAgent.color }} className="drop-shadow-[0_0_5px_rgba(255,255,255,0.15)] shrink-0">{currentAgent.icon}</div>
-              <span className="text-xs font-bold text-white uppercase tracking-wider">{currentAgent.name} Core</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-white/10 shrink-0" />
-              <span className="text-[10px] font-mono text-gray-500 hidden sm:inline">{currentAgent.role}</span>
-            </div>
 
-            <div className="flex items-center">
-              <button 
-                onClick={toggleVoiceUpdates} 
-                className={`px-2.5 py-1.5 rounded border transition-all cursor-pointer flex items-center gap-2 text-[10px] font-mono font-bold uppercase tracking-wider mr-6 ${
-                  voiceUpdatesEnabled 
-                    ? 'bg-purple-500/10 text-purple-400 border-purple-500/25 shadow-[0_0_10px_rgba(168,85,247,0.15)]' 
-                    : 'bg-white/[0.015] text-gray-500 border-white/[0.04] hover:text-gray-300 hover:bg-white/[0.03]'
-                }`}
-                title="Toggle Live Voice Updates during execution"
-              >
-                {voiceUpdatesEnabled ? '🔊 Voice On' : '🔇 Voice Off'}
-              </button>
-
-              <div className="h-6 w-[1px] bg-white/10 mr-6 hidden md:block" />
-
-              <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5 flex-nowrap overflow-x-auto scrollbar-none max-w-full">
-              {[
-                { id: "chat", label: "Chat", icon: <Bot size={12} /> },
-                { id: "kanban", label: "Kanban", icon: <Kanban size={12} /> },
-                { id: "swarm", label: "Swarm Hub", icon: <Users size={12} /> },
-                { id: "paperclip", label: "Paperclip", icon: <Puzzle size={12} /> },
-                { id: "studio", label: "Studio", icon: <Image size={12} /> },
-                { id: "video-analyzer", label: "Video Analyzer", icon: <Video size={12} /> },
-                { id: "seo-pipeline", label: "SEO Pipeline", icon: <Globe size={12} /> },
-                { id: "workspace", label: "Workspace", icon: <FolderOpen size={12} /> },
-                { id: "terminal", label: "Terminal", icon: <TerminalSquare size={12} /> },
-                { id: "memory", label: "Memory", icon: <Database size={12} /> },
-                { id: "nightly", label: "Intelligence", icon: <Sparkles size={12} /> }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setCenterTab(tab.id as any)}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-[10.5px] font-semibold transition-all duration-200 cursor-pointer shrink-0 ${
-                    centerTab === tab.id
-                      ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
-                      : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
-                  }`}
-                >
-                  {tab.icon} {tab.label}
-                </button>
-              ))}
-              </div>
-            </div>
-          </div>
 
           {/* ─── TAB: SWARM HUB ─── */}
           {centerTab === "swarm" && (
@@ -3304,68 +3411,15 @@ export default function App() {
             <div className="flex-grow h-0 flex overflow-hidden w-full relative">
               <div className={`flex flex-col flex-grow overflow-hidden justify-between transition-all duration-300 relative ${
                 isVisualLiveMode 
-                  ? 'w-1/2 border-r border-white/[0.04]' 
-                  : activeSpecialistId && chatMode === 'collab' 
-                  ? 'w-3/5 border-r border-white/[0.04]' 
+                  ? (isChatHidden ? 'hidden' : 'w-1/2 border-r border-white/[0.04]') 
                   : 'w-full'
               }`}>
               {/* Mode Selector Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-indigo-950/60 bg-[#070715] shadow-lg select-none shrink-0">
-                <div className="flex items-center gap-4">
-                  <span className="text-gray-300 text-[10px] font-extrabold uppercase tracking-widest font-mono border-r border-white/10 pr-4">Workspace Mode:</span>
-                  <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1.5">
-                    <button
-                      onClick={() => handleSwitchThread('collab', activeAgent)}
-                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
-                        chatMode === 'collab'
-                          ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
-                          : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
-                      }`}
-                    >
-                      <Users size={11} /> Swarm Collab
-                    </button>
-                    <button
-                      onClick={() => handleSwitchThread('single', activeAgent)}
-                      className={`flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px] font-extrabold transition-all cursor-pointer ${
-                        chatMode === 'single'
-                          ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_12px_rgba(99,102,241,0.12)]"
-                          : "text-gray-400 hover:text-white hover:bg-white/[0.03] border border-transparent"
-                      }`}
-                    >
-                      <Bot size={11} /> Specialist Chat
-                    </button>
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setIsVisualLiveMode(!isVisualLiveMode)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer select-none font-mono ${
-                      isVisualLiveMode
-                        ? "bg-purple-600/30 text-purple-300 border-purple-500/40 shadow-[0_0_12px_rgba(168,85,247,0.2)]"
-                        : "bg-white/[0.02] text-gray-400 border-white/[0.04] hover:text-white hover:bg-white/[0.05]"
-                    }`}
-                  >
-                    📺 {isVisualLiveMode ? "Disable Split View" : "Split Live View (Manus)"}
-                  </button>
-
-                  {chatMode === 'collab' ? (
-                    <div className="text-[10px] text-indigo-300 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />
-                      ⚡ Swarm Active (Delegated Execution)
-                    </div>
-                  ) : (
-                    <div className="text-[10px] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-md font-mono font-bold flex items-center gap-1.5 shadow-inner">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Direct: {currentAgent.name}
-                    </div>
-                  )}
-                </div>
-              </div>
 
               {/* Centered Scrollable Conversation */}
-              <div ref={chatScrollContainerRef} className="flex-grow h-0 overflow-y-auto p-3 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: 0, minHeight: 0, flexGrow: 1 }}>
-                <div className="space-y-3" style={{ maxWidth: '1280px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
+              <div ref={chatScrollContainerRef} className="flex-grow h-0 overflow-y-auto p-4 md:p-5 pb-3 scroll-smooth" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', height: 0, minHeight: 0, flexGrow: 1 }}>
+                <div className="space-y-6 md:space-y-8" style={{ maxWidth: '1280px', width: '100%', marginLeft: 'auto', marginRight: 'auto' }}>
                   <AnimatePresence>
                     {chatMessages.length === 0 && !isCurrentLoading && (
                       <motion.div
@@ -3525,7 +3579,7 @@ export default function App() {
                           key={i}
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="flex gap-3.5 py-4 px-6 border-b border-white/[0.03] hover:bg-white/[0.005] transition-all relative"
+                          className="flex gap-4.5 py-6 px-8 border-b border-white/[0.03] hover:bg-white/[0.005] transition-all relative"
                         >
                           <div
                             className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 border select-none text-[12px]"
@@ -3682,21 +3736,24 @@ export default function App() {
                       </div>
                     )}
                   </AnimatePresence>
+                  {/* Spacious buffer zone at bottom of scroll container */}
+                  <div className="h-8 shrink-0 pointer-events-none" />
                   <div ref={chatBottomRef} />
                 </div>
               </div>
 
               {/* Centered Floating Input Container */}
-              <div className="p-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none flex justify-center w-full z-[100]">
+              <div className="py-2.5 px-5 border-t border-white/[0.04] bg-[#03030d]/50 select-none flex justify-center w-full z-[100]">
                 <div className="chat-container-centered">
                   <div className="w-full flex flex-col gap-2">
-                    <div className="w-full flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-lg shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all">
-                      <span className="text-gray-900 font-mono pl-4 pr-1 select-none text-xs">&gt;</span>
-                      <input
+                    <div className="w-full flex items-start bg-[#0d0f22]/90 border border-[#1f2347] rounded-xl shadow-[0_4px_30px_rgba(0,0,0,0.5)] focus-within:border-indigo-500/50 focus-within:shadow-[0_0_20px_rgba(99,102,241,0.15)] transition-all pt-2.5">
+                      <span className="text-indigo-500/60 font-mono pl-5 pr-1 select-none text-sm pt-0.5">&gt;</span>
+                      <textarea
                         value={chatInput}
                         onChange={e => setChatInput(e.target.value)}
                         onKeyDown={e => {
-                          if (e.key === "Enter") {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
                             if (isCurrentLoading) {
                               handleSendIntervention(chatInput);
                             } else {
@@ -3705,12 +3762,93 @@ export default function App() {
                           }
                         }}
                         placeholder={isCurrentLoading ? "Type to chat with AGY / send feedback to active swarm..." : `Type your command or ask ${currentAgent.name}...`}
-                        className="w-full bg-transparent pl-2 pr-4 py-2.5 text-[12px] text-white placeholder-gray-500 focus:outline-none"
+                        className="w-full bg-transparent pl-2 pr-5 py-2 text-[14px] text-white placeholder-gray-500 focus:outline-none resize-none min-h-[80px] max-h-48 scrollbar-thin"
+                        rows={3}
                       />
                     </div>
                     
                     {/* Controls Row (Below the Input Field) */}
                     <div className="flex items-center justify-end gap-2 px-1">
+                      {/* Model Selector Dropdown in Chat */}
+                      <div className="relative mr-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newOpen = !isChatModelDropdownOpen;
+                            setIsChatModelDropdownOpen(newOpen);
+                            if (newOpen) {
+                              fetchDiscoveredModels();
+                            }
+                          }}
+                          className="flex items-center gap-1.5 bg-white/[0.02] border border-white/[0.06] hover:bg-white/[0.05] text-purple-300 hover:text-purple-200 transition-all px-2.5 py-1.5 rounded-lg text-[10px] font-mono cursor-pointer select-none"
+                          title="Switch Swarm Model"
+                        >
+                          🤖 <span className="max-w-[120px] truncate">{discoveredModels.find(m => m.id === activeModel)?.name || activeModel}</span>
+                          <ChevronDown size={10} className={`opacity-80 transition-transform ${isChatModelDropdownOpen ? "rotate-180" : ""}`} />
+                        </button>
+                        
+                        {isChatModelDropdownOpen && (
+                          <>
+                            <div className="fixed inset-0 z-[120]" onClick={() => setIsChatModelDropdownOpen(false)} />
+                            <div className="absolute left-0 bottom-full mb-2 w-72 max-h-80 overflow-y-auto rounded-xl border border-white/[0.08] bg-[#0c0c16]/98 p-1.5 shadow-2xl backdrop-blur-xl z-[121] scrollbar-thin">
+                              {(() => {
+                                const activeProvider = activeModel.startsWith('ollama/')
+                                  ? 'ollama'
+                                  : activeModel.startsWith('lmstudio/')
+                                    ? 'lmstudio'
+                                    : activeModel.startsWith('cloudflare/')
+                                      ? 'cloudflare'
+                                      : 'openrouter';
+                                const locals = discoveredModels.filter(m => m.provider === activeProvider);
+                                const providerLabel = activeProvider === 'ollama' ? 'Ollama' : activeProvider === 'lmstudio' ? 'LM Studio' : activeProvider === 'cloudflare' ? 'Cloudflare' : 'OpenRouter';
+
+                                return (
+                                  <>
+                                    <div className="px-2 py-1.5 text-[9px] font-bold text-gray-500 uppercase tracking-wider border-b border-white/[0.04] mb-1">
+                                      Select {providerLabel} Model ({locals.length})
+                                    </div>
+                                    {locals.length === 0 ? (
+                                      <div className="px-3 py-4 text-[10px] text-gray-550 font-mono text-center leading-normal">
+                                        No active {providerLabel} models found.<br/>
+                                        Verify your configuration settings.
+                                      </div>
+                                    ) : (
+                                      locals.map(model => {
+                                        const isSelected = activeModel === model.id;
+                                        return (
+                                          <button
+                                            key={model.id}
+                                            onClick={() => {
+                                              handleSwitchModel(model.id);
+                                              setIsChatModelDropdownOpen(false);
+                                            }}
+                                            className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-[11px] text-left transition-all cursor-pointer ${
+                                              isSelected
+                                                ? "bg-[#6366f1]/15 text-white border border-[#6366f1]/25"
+                                                : "text-gray-400 hover:text-white hover:bg-white/[0.02] border border-transparent"
+                                            }`}
+                                          >
+                                            <div className="truncate pr-2">
+                                              <div className="font-bold truncate flex items-center gap-1">
+                                                {model.name}
+                                                {model.provider === 'ollama' && <span className="text-[7px] px-1 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 font-extrabold">LOCAL</span>}
+                                                {model.provider === 'lmstudio' && <span className="text-[7px] px-1 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 font-extrabold">LOCAL</span>}
+                                                {model.provider === 'cloudflare' && <span className="text-[7px] px-1 rounded bg-orange-500/10 border border-orange-500/20 text-orange-400 font-extrabold">CLOUDFLARE</span>}
+                                              </div>
+                                              <div className="text-[8px] text-gray-500 truncate mt-0.5">{model.id}</div>
+                                            </div>
+                                          </button>
+                                        );
+                                      })
+                                    )}
+                                  </>
+                                );
+                              })()}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
                       <button
                         type="button"
                         onClick={handleOrchestratorInterrupt}
@@ -3772,154 +3910,182 @@ export default function App() {
               </div>
               </div>
 
-              {/* Right Column: Specialist 1-on-1 Panel */}
-              {activeSpecialistId && chatMode === 'collab' && (() => {
-                const specAgentMeta = agents.find(a => a.id === activeSpecialistId) || { name: activeSpecialistId, color: '#6366f1', icon: <Bot size={16} />, role: 'Specialist Agent' };
-                const specMessages = chatThreads[activeSpecialistId] || [];
-                return (
-                  <div className="w-2/5 flex flex-col h-full overflow-hidden bg-[#070715]/90 border-l border-white/[0.04] backdrop-blur-md justify-between animate-[slideInRight_0.25s_cubic-bezier(0.16,1,0.3,1)]">
-                    {/* Header */}
-                    <div className="glass-strong h-14 flex items-center justify-between px-4 shrink-0 border-b border-white/[0.04] bg-[#03030d]/80 select-none">
-                      <div className="flex items-center gap-2">
-                        <div style={{ color: specAgentMeta.color }} className="drop-shadow-[0_0_5px_rgba(255,255,255,0.15)] shrink-0">{specAgentMeta.icon}</div>
-                        <span className="text-[11px] font-bold text-white uppercase tracking-wider">{specAgentMeta.name} (1-on-1)</span>
-                      </div>
-                      <button 
-                        onClick={() => setActiveSpecialistId(null)}
-                        className="text-gray-500 hover:text-white transition-colors cursor-pointer p-1"
-                        title="Close 1-on-1 Chat"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
 
-                    {/* Scrollable Conversation */}
-                    <div className="flex-grow overflow-y-auto p-4 space-y-4">
-                      {specMessages.map((m, idx) => {
-                        const isUser = m.agent === 'user';
-                        return (
-                          <div key={m.id || idx} className={`flex gap-2.5 ${isUser ? 'justify-end' : ''}`}>
-                            {!isUser && (
-                              <div 
-                                className="w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 border shadow-md"
-                                style={{ backgroundColor: `${specAgentMeta.color}15`, borderColor: `${specAgentMeta.color}30`, color: specAgentMeta.color }}
-                              >
-                                {specAgentMeta.icon}
-                              </div>
-                            )}
-                            <div 
-                              className={`max-w-[80%] rounded-xl px-3.5 py-2.5 break-words text-xs ${
-                                isUser 
-                                  ? 'bg-indigo-600/20 border border-indigo-500/35 text-white shadow-[0_2px_12px_rgba(99,102,241,0.1)]' 
-                                  : 'bg-white/[0.02] border border-white/[0.05] text-[#cbd5e1]'
-                              }`}
-                            >
-                              <Markdown text={m.msg} />
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {threadLoading[activeSpecialistId] && (
-                        <div className="flex gap-2.5">
-                          <div 
-                            className="w-6.5 h-6.5 rounded-lg flex items-center justify-center shrink-0 border shadow-md bg-white/[0.02] border-white/[0.05] text-indigo-400"
-                          >
-                            <Loader2 size={12} className="animate-spin" />
-                          </div>
-                          <div className="bg-white/[0.015] border border-white/[0.03] text-gray-500 text-[10px] px-3.5 py-2.5 rounded-xl animate-pulse">
-                            Thinking/responding...
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Input Area */}
-                    <div className="p-3 border-t border-white/[0.04] bg-[#03030d]/50 select-none">
-                      <div className="flex items-center bg-[#0d0f22]/90 border border-[#1f2347] rounded-xl px-2.5 py-1.5 focus-within:border-indigo-500/50 transition-all">
-                        <input 
-                          value={specialistChatInput}
-                          onChange={e => setSpecialistChatInput(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === "Enter") handleSendSpecialistMessage(activeSpecialistId);
-                          }}
-                          placeholder={`Ask ${specAgentMeta.name} directly...`}
-                          className="w-full bg-transparent text-xs text-white placeholder-gray-500 focus:outline-none py-1"
-                        />
-                        <button 
-                          onClick={() => handleSendSpecialistMessage(activeSpecialistId)}
-                          className="p-1 text-indigo-400 hover:text-indigo-300 transition-colors cursor-pointer"
-                        >
-                          <Send size={12} />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
 
               {/* Right Column: Visual Live Browser/Execution Monitor (Manus-style) */}
+              {/* Right Column: Visual Workspace Live Split View (Bolt.new/v0 Style) */}
               {isVisualLiveMode && (
-                <div className="w-1/2 flex flex-col h-full overflow-hidden bg-[#070715]/95 border-l border-white/[0.04] backdrop-blur-md justify-between animate-[slideInRight_0.25s_cubic-bezier(0.16,1,0.3,1)] font-mono">
-                  {/* Monitor Header */}
+                <div className={`${isChatHidden ? 'w-full' : 'w-1/2'} flex flex-col h-full overflow-hidden bg-[#070715]/95 border-l border-white/[0.04] backdrop-blur-md justify-between animate-[slideInRight_0.25s_cubic-bezier(0.16,1,0.3,1)] font-mono`}>
+                  {/* Split View Tab Bar Header */}
                   <div className="glass-strong h-14 flex items-center justify-between px-4 shrink-0 border-b border-white/[0.04] bg-[#03030d]/80 select-none">
-                    <div className="flex items-center gap-2">
-                      <span className="text-purple-400">📺</span>
-                      <span className="text-[11px] font-bold text-white uppercase tracking-wider">Manus Live Execution Monitor</span>
+                    <div className="flex bg-[#04040c]/40 border border-white/[0.04] rounded-md p-1 gap-1">
+                      {[
+                        { id: "preview", label: "Web Preview", icon: <Globe size={11} /> },
+                        { id: "files", label: "Workspace Files", icon: <FolderOpen size={11} /> },
+                        { id: "screen", label: "Agent Screen", icon: <Eye size={11} /> }
+                      ].map(tab => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setSplitTab(tab.id as any)}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded text-[10px] font-bold uppercase transition-all duration-200 cursor-pointer ${
+                            splitTab === tab.id
+                              ? "bg-indigo-500/10 text-indigo-300 border border-indigo-500/35 shadow-[0_0_10px_rgba(99,102,241,0.1)]"
+                              : "text-gray-500 hover:text-gray-300 border border-transparent"
+                          }`}
+                        >
+                          {tab.icon}
+                          <span>{tab.label}</span>
+                        </button>
+                      ))}
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Live Capturing</span>
-                      </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <button 
+                        onClick={() => setIsChatHidden(prev => !prev)}
+                        className={`text-[9px] font-bold uppercase px-2.5 py-1.5 rounded transition-all cursor-pointer border ${
+                          isChatHidden 
+                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/35 hover:bg-indigo-500/30' 
+                            : 'bg-white/[0.03] text-gray-400 border-white/[0.05] hover:bg-white/[0.06] hover:text-white'
+                        }`}
+                        title={isChatHidden ? "Restore Chat View" : "Maximize Workspace (Hide Chat)"}
+                      >
+                        {isChatHidden ? "Show Chat" : "Maximize"}
+                      </button>
                       <button 
                         onClick={() => setIsVisualLiveMode(false)}
                         className="text-gray-500 hover:text-white transition-colors cursor-pointer p-1"
-                        title="Close Visual Monitor"
+                        title="Close Split View"
                       >
                         <X size={14} />
                       </button>
                     </div>
                   </div>
 
-                  {/* Monitor Body */}
-                  <div className="flex-grow overflow-y-auto p-4 space-y-4 flex flex-col justify-start">
-                    {/* Active Task Info Card */}
-                    <div className="bg-[#0c0d22]/85 border border-[#1f2347] rounded-xl p-3.5 shadow-md space-y-2">
-                      <div className="text-[9px] text-indigo-400 uppercase tracking-widest font-extrabold">Active Goal Objective</div>
-                      <div className="text-xs text-white leading-relaxed">{swarmExecution.currentTask || "Idle: Waiting for instructions..."}</div>
-                      
-                      {swarmExecution.currentCommand && (
-                        <>
-                          <div className="text-[9px] text-purple-400 uppercase tracking-widest font-extrabold mt-3">Executing Command</div>
-                          <div className="bg-black/45 border border-purple-500/10 rounded px-2.5 py-2 text-[10px] text-purple-300 overflow-x-auto whitespace-pre font-mono">
-                            {swarmExecution.currentCommand}
+                  {/* Split View Content Body */}
+                  <div className="flex-grow flex flex-col overflow-hidden relative p-4 min-h-0">
+                    {splitTab === "preview" && (
+                      <div className="flex-grow flex flex-col min-h-0 bg-[#04040c]/90 border border-white/[0.04] rounded-xl overflow-hidden p-3.5 h-full">
+                        <div className="flex justify-between items-center border-b border-white/[0.05] pb-2 mb-3 shrink-0">
+                          <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                            <span>Workspace Preview</span>
+                            <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded ${isViteRunning ? "bg-amber-500/10 text-amber-400 border border-amber-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"}`}>
+                              {isViteRunning ? "Vite Dev" : "Static preview"}
+                            </span>
                           </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Screenshot Live Feed Container */}
-                    <div className="flex-grow flex flex-col justify-center items-center bg-black/30 border border-white/[0.03] rounded-xl overflow-hidden relative min-h-[320px] shadow-inner">
-                      {swarmExecution.screenshotPath ? (
-                        <img 
-                          src={`${swarmExecution.screenshotPath}?t=${swarmExecution.lastUpdated || Date.now()}`} 
-                          alt="Live Agent Screen Capture"
-                          className="w-full h-full object-contain max-h-[460px]"
-                          onError={(e) => {
-                            // Fallback to placeholder if file does not exist yet
-                            (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80";
-                          }}
-                        />
-                      ) : (
-                        <div className="text-center text-xs text-gray-500 p-8">
-                          <span className="block text-2xl mb-2">📸</span>
-                          Screen capture feed loading...
+                          <div className="flex gap-2 items-center">
+                            <button
+                              onClick={() => {
+                                setPreviewKey(prev => prev + 1);
+                              }}
+                              className="text-[9px] text-indigo-400 hover:underline uppercase font-bold cursor-pointer font-mono bg-transparent border-none"
+                              title="Refresh Frame"
+                            >
+                              Refresh 🔄
+                            </button>
+                            <button
+                              onClick={handleToggleVite}
+                              disabled={viteLoading}
+                              className="text-[9px] text-amber-400 hover:underline uppercase font-bold cursor-pointer font-mono bg-transparent border-none"
+                            >
+                              {viteLoading ? "Loading..." : isViteRunning ? "⏹️ Stop Vite" : "⚡ Start Vite Dev"}
+                            </button>
+                          </div>
                         </div>
-                      )}
-                      <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur px-2 py-0.5 rounded text-[8px] text-gray-400 border border-white/[0.04]">
-                        Frame Refreshed: {new Date(swarmExecution.lastUpdated || Date.now()).toLocaleTimeString()}
+                        <div className="flex-1 bg-white rounded-lg overflow-hidden relative min-h-0">
+                          <iframe
+                            key={previewKey}
+                            src={viteUrl}
+                            className="w-full h-full border-none"
+                          />
+                        </div>
                       </div>
-                    </div>
+                    )}
+
+                    {splitTab === "files" && (
+                      <div className="flex-grow flex gap-3 overflow-hidden min-h-0 h-full">
+                        {/* File tree */}
+                        <div className="w-1/3 bg-white/[0.01] border border-white/[0.04] p-3 rounded-xl flex flex-col gap-2 overflow-y-auto shrink-0 min-h-0 text-white select-none">
+                          <div className="text-[9px] font-bold text-gray-400 uppercase border-b border-white/5 pb-1">Files</div>
+                          <div className="space-y-1 overflow-y-auto flex-1">
+                            {workspaceFiles.map(file => (
+                              <div
+                                key={file.path}
+                                onClick={() => {
+                                  if (file.type === "file") {
+                                    handleOpenFile(file.path);
+                                  }
+                                }}
+                                className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] transition-all cursor-pointer ${
+                                  selectedFile === file.path
+                                    ? "bg-indigo-600/10 border border-indigo-500/20 text-white"
+                                    : "hover:bg-white/[0.02] text-gray-400 hover:text-gray-200"
+                                }`}
+                                style={{ paddingLeft: `${(file.path.split('/').length - 1) * 8 + 6}px` }}
+                              >
+                                <span>{file.type === "directory" ? "📁" : "📄"}</span>
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            onClick={fetchWorkspaceFiles}
+                            className="w-full text-center py-1 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded text-[8px] uppercase tracking-wider font-bold text-gray-400 hover:text-white"
+                          >
+                            Refresh File List
+                          </button>
+                        </div>
+
+                        {/* Read-only code viewer */}
+                        <div className="flex-grow bg-black/40 border border-white/5 p-3 rounded-xl flex flex-col min-h-0 overflow-hidden">
+                          <div className="text-[9px] font-bold text-gray-400 uppercase border-b border-white/5 pb-1 mb-2">
+                            {selectedFile ? `View: ${selectedFile.split('/').pop()}` : "Select a file to view"}
+                          </div>
+                          <pre className="flex-1 w-full bg-black/25 border border-white/[0.02] rounded p-2.5 font-mono text-[9px] text-gray-300 overflow-auto whitespace-pre leading-relaxed select-text min-h-0">
+                            {editorContent || "// No file contents loaded or empty."}
+                          </pre>
+                        </div>
+                      </div>
+                    )}
+
+                    {splitTab === "screen" && (
+                      <div className="flex-grow overflow-y-auto space-y-4 flex flex-col justify-start h-full min-h-0">
+                        {/* Active Task Info Card */}
+                        <div className="bg-[#0c0d22]/85 border border-[#1f2347] rounded-xl p-3 shadow-md space-y-1.5">
+                          <div className="text-[9px] text-indigo-400 uppercase tracking-widest font-extrabold">Active Goal Objective</div>
+                          <div className="text-[11px] text-white leading-relaxed">{swarmExecution.currentTask || "Idle: Waiting for instructions..."}</div>
+                          {swarmExecution.currentCommand && (
+                            <>
+                              <div className="text-[8px] text-purple-400 uppercase tracking-widest font-extrabold mt-2">Executing Command</div>
+                              <div className="bg-black/45 border border-purple-500/10 rounded px-2 py-1 text-[9px] text-purple-300 overflow-x-auto whitespace-pre font-mono">
+                                {swarmExecution.currentCommand}
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Screenshot Feed */}
+                        <div className="flex-grow flex flex-col justify-center items-center bg-black/30 border border-white/[0.03] rounded-xl overflow-hidden relative min-h-[300px] shadow-inner">
+                          {swarmExecution.screenshotPath ? (
+                            <img 
+                              src={`${swarmExecution.screenshotPath}?t=${swarmExecution.lastUpdated || Date.now()}`} 
+                              alt="Live Agent Screen Capture"
+                              className="w-full h-full object-contain max-h-[420px]"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=800&q=80";
+                              }}
+                            />
+                          ) : (
+                            <div className="text-center text-[10px] text-gray-500 p-8">
+                              <span className="block text-xl mb-2">📸</span>
+                              Screen capture feed loading...
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur px-2 py-0.5 rounded text-[8px] text-gray-400 border border-white/[0.04]">
+                            Frame Refreshed: {new Date(swarmExecution.lastUpdated || Date.now()).toLocaleTimeString()}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -5145,7 +5311,7 @@ export default function App() {
                   type="text"
                   value={terminalInput}
                   onChange={e => setTerminalInput(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && handleRunCommand()}
+                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); setTerminalInput(''); handleRunCommand(); } }}
                   className="flex-grow bg-transparent text-white focus:outline-none placeholder-gray-600 select-text"
                   placeholder="Type commands here... (e.g. dir, node -v, claude)"
                 />
@@ -7097,101 +7263,87 @@ export default function App() {
         </div>
       )}
 
-      {/* ═══ SYSTEM FOOTER ═══ */}
-      <footer className="glass-strong h-8 flex items-center justify-between px-5 shrink-0 text-[10px] text-gray-500 font-mono border-t border-white/[0.04] bg-[#03030d]/80 z-20 select-none">
-        <div className="flex items-center gap-5">
-          <span className="flex items-center gap-1.5"><Layers size={11} className="text-gray-600" /> 7 Layers Active</span>
-          <span className="flex items-center gap-1.5"><Cpu size={11} className="text-gray-600" /> 8 Inference Catalogs</span>
-          <span className="flex items-center gap-1.5 text-purple-400"><Sparkles size={11} /> Model: {activeModel}</span>
-          {evolutionUpdate.available && (
-            <button
-              onClick={() => setIsSettingsModalOpen(true)}
-              className="flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20 cursor-pointer transition-all animate-pulse text-[9px]"
-              title="Auto-Evolution detected new updates. Click to open System Evolution Hub in Settings."
-            >
-              🧬 Evolution Ready
-            </button>
-          )}
-          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-              </span>
-              <span className="text-[9px] font-bold text-red-400">{terminalLogs.filter(l => l.type === 'error').length} Errors</span>
+      {/* FLOATING CORNER BUBBLE NOTIFICATIONS */}
+      <div className="fixed bottom-5 right-5 z-50 flex flex-col gap-3 pointer-events-none select-none max-w-sm w-85">
+        
+        {/* Evolution Suggestion Bubble */}
+        {evolutionUpdate.available && (
+          <div className="pointer-events-auto glass-strong rounded-xl border border-indigo-500/35 p-3.5 shadow-2xl backdrop-blur-xl animate-[slideIn_0.3s_ease-out] flex flex-col gap-2 bg-[#0c0c1b]/95 text-white">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20 text-indigo-400">
+                  <Sparkles size={13} className="animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-gray-100 uppercase tracking-wider">Evolution Ready</h4>
+                  <p className="text-[9px] text-gray-400 font-mono">System detected a missing feature.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setEvolutionUpdate({available: false, prompt: ''})}
+                className="text-gray-500 hover:text-gray-300 transition-colors p-1"
+              >
+                <X size={12} />
+              </button>
             </div>
-          )}
-          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
-            <div className="flex items-center gap-1.5 bg-red-500/10 border border-red-500/20 text-red-300 text-[8px] px-2 py-0.5 rounded-full transition-all duration-300 animate-in fade-in">
-              <span className="animate-pulse">⚠️</span>
-              <span>Build failures detected - See Console</span>
+            <p className="text-[9.5px] text-indigo-200/90 bg-indigo-500/5 p-2 rounded-md border border-indigo-500/10 max-h-16 overflow-y-auto font-mono leading-relaxed select-text pointer-events-auto">
+              {evolutionUpdate.prompt}
+            </p>
+            <div className="flex justify-end gap-2 mt-1">
+              <button 
+                onClick={() => {
+                  setChatInput(evolutionUpdate.prompt);
+                  setEvolutionUpdate({available: false, prompt: ''});
+                  setTimeout(() => {
+                    const el = document.getElementById('main-chat-input');
+                    if (el) el.focus();
+                  }, 100);
+                }}
+                className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-bold rounded transition-colors uppercase tracking-wider"
+              >
+                Review & Install
+              </button>
             </div>
-          )}
-          {terminalLogs.filter(l => l.type === 'error').length > 0 && (
-            <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 text-red-300 text-[8px] px-2 py-0.5 rounded-full transition-all duration-300 animate-in fade-in">
-              <span className="animate-pulse">🔧</span>
-              <span>Fix errors to enable build</span>
+          </div>
+        )}
+
+        {/* Codebase Upgrade Ready Bubble */}
+        {evolutionStatus && evolutionStatus.content && !evolutionStatus.content.includes("No evolution brief") && (
+          <div className="pointer-events-auto glass-strong rounded-xl border border-emerald-500/35 p-3.5 shadow-2xl backdrop-blur-xl animate-[slideIn_0.3s_ease-out] flex flex-col gap-2 bg-[#0a1c12]/95 text-white">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400">
+                  <Zap size={13} className="animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-[11px] font-bold text-gray-100 uppercase tracking-wider font-mono">Upgrade Ready</h4>
+                  <p className="text-[9px] text-gray-400">Autonomous codebase patch available.</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setEvolutionStatus(null);
+                }}
+                className="text-gray-500 hover:text-gray-300 transition-colors p-1"
+              >
+                <X size={12} />
+              </button>
             </div>
-          )}
-          <button
-            onClick={() => setIsSettingsModalOpen(true)}
-            className="flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 hover:text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20 cursor-pointer transition-all text-[8px]"
-            title="Open System Settings to view detailed build diagnostics"
-          >
-            🛠️ Build Diagnostics
-          </button>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Files Explorer Button */}
-          <button
-            onClick={() => setIsLeftCollapsed(!isLeftCollapsed)}
-            className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer"
-            title="Toggle Files Explorer"
-          >
-            <FolderOpen size={12} />
-          </button>
-          {/* Publishing Control Button */}
-          <button
-            onClick={() => setIsRightCollapsed(!isRightCollapsed)}
-            className="p-1.5 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer"
-            title="Toggle Publishing Control"
-          >
-            <Globe size={12} />
-          </button>
-
-          {/* Console Button */}
-          <button
-            onClick={() => setIsFloatingTerminalOpen(!isFloatingTerminalOpen)}
-            className="p-1.5 px-2 rounded-lg bg-white/[0.03] hover:bg-white/[0.08] border border-white/[0.05] text-gray-400 hover:text-white transition-all cursor-pointer flex items-center gap-1.5"
-            title="Toggle Console"
-          >
-            <TerminalSquare size={12} className="text-indigo-400" />
-            <span className="text-[9px] uppercase font-bold tracking-wider">Console</span>
-          </button>
-
-          {/* Swarm Chat Button */}
-          <button
-            onClick={() => {
-              setIsFloatingChatOpen(!isFloatingChatOpen);
-              setIsChatMinimized(false);
-            }}
-            className="p-1.5 px-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 hover:text-indigo-200 transition-all cursor-pointer flex items-center gap-1.5"
-            title="Toggle Swarm Chat"
-          >
-            <MessageSquare size={12} />
-            <span className="text-[9px] uppercase font-bold tracking-wider">💬 Swarm Chat</span>
-          </button>
-
-          <span className="text-[9px] font-sans bg-indigo-500/10 text-indigo-400 border border-indigo-500/10 px-2 py-0.5 rounded-md">Antigravity Premium OS Dashboard {import.meta.env.VITE_ENVIRONMENT === 'development' && <span className="text-orange-400"> (DEV Env - Test in Prod before deploy)</span>}</span>
-          <span className={`text-[8px] font-mono border-l border-gray-800 pl-2 ml-1 ${
-            import.meta.env.VITE_ENVIRONMENT === 'production' 
-              ? 'text-emerald-400' 
-              : 'text-amber-400'
-          }`}>
-            ENV:{import.meta.env.VITE_ENVIRONMENT || 'DEV'} • v{import.meta.env.VITE_APP_VERSION || 'dev'} • {new Date().toISOString().split('T')[0]}
-          </span>
-        </div>
-      </footer>
+            <p className="text-[9.5px] text-emerald-200/90 bg-emerald-500/5 p-2 rounded-md border border-emerald-500/10 max-h-16 overflow-y-auto font-mono leading-relaxed select-text pointer-events-auto">
+              Autonomously generated upgrades are compile-tested and ready to apply.
+            </p>
+            <div className="flex justify-end gap-2 mt-1">
+              <button 
+                onClick={handleApplyEvolution}
+                disabled={evolving}
+                className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-bold rounded transition-colors uppercase tracking-wider disabled:opacity-50"
+              >
+                {evolving ? "Upgrading..." : "Apply Codebase Upgrade"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
